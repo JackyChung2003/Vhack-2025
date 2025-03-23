@@ -93,6 +93,16 @@ const HorizontalNavbar: React.FC<NavbarProps> = ({ toggle }) => {
             My Profile
           </NavLink>
         )}
+        {userRole === 'vendor' && (
+          <NavLink
+            className={({ isActive }) =>
+              isActive ? `${styles.link} ${styles.active}` : styles.link
+            }
+            to="/vendor/profile"
+          >
+            Profile
+          </NavLink>
+        )}
       </div>
       <div className={styles.loginButtonMobileHidden}>
         <div className={styles.icons}>
