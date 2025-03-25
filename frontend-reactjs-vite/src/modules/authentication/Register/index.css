@@ -1,0 +1,241 @@
+/* Main Container */
+.register-page {
+  display: flex;
+  height: 100vh;
+  background-color: var(--background);
+  overflow: hidden;
+}
+
+/* Left Section - Image & Branding */
+.register-left {
+  flex: 1;
+  background: linear-gradient(to bottom, #0f0e17, #051f20);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-height: 100vh; /* Prevent overflow */
+}
+
+.register-image {
+  max-width: 80%;
+  max-height: 90vh;
+  border-radius: 12px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* Right Section - Form Container */
+.register-right {
+  flex: 1;
+  background-color: var(--background);
+  color: var(--headline);
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  text-align: center;
+  overflow-y: auto; /* Enable scrolling when charity/vendor is selected */
+  max-height: 100vh; /* Prevent content overflow */
+}
+
+/* Headings */
+h1 {
+  font-size: 30px;
+  margin-bottom: 25px;
+  color: var(--headline);
+  font-weight: bold;
+}
+
+/* Role Tabs */
+.role-tabs {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+  gap: 10px;
+}
+
+.role-tab {
+  background-color: var(--paragraph);
+  color: var(--background);
+  padding: 10px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.role-tab.active {
+  background-color: var(--button);
+  color: var(--button-text);
+  font-weight: bold;
+  box-shadow: 0 0 8px rgba(250, 174, 43, 0.5);
+}
+
+/* Form Group for Consistency */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 15px;
+  text-align: left;
+}
+
+.form-group label {
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: var(--headline);
+}
+
+/* Input Fields */
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid var(--paragraph);
+  border-radius: 8px;
+  background-color: var(--background);
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  border-color: var(--highlight);
+  box-shadow: 0 0 6px rgba(250, 174, 43, 0.5);
+}
+
+/* Disabled Fields */
+input:disabled {
+  background-color: #e0e0e0;
+  color: #888;
+}
+
+/* Vendor Fields */
+.vendor-fields,
+.charity-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+/* User Info Section */
+.user-info-container {
+  display: flex;
+  gap: 20px; /* Adds space between the two sections */
+  align-items: center; /* Vertically aligns items */
+  width: 100%;
+}
+
+/* Left Section - User Info Fields */
+.user-info {
+  flex: 2; /* Larger portion for the input fields */
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.user-info .form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-info .form-group label {
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: var(--headline);
+}
+
+.user-info input {
+  background-color: #e0e0e0;
+  border: 2px solid var(--paragraph);
+  padding: 12px;
+  border-radius: 8px;
+  color: #888;
+  width: 100%;
+}
+
+/* Right Section - Connect Button */
+.connect-button-container {
+  flex: 1; /* Smaller portion for the button */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.connect-wallet-btn {
+  width: 100%;
+  max-width: 150px;
+  background-color: var(--button);
+  color: var(--button-text);
+  padding: 12px 0;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.connect-wallet-btn:hover {
+  background-color: var(--highlight);
+}
+
+/* Register Button */
+.register-button {
+  width: 100%;
+  background-color: var(--button);
+  color: var(--button-text);
+  padding: 12px 0;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.register-button:hover {
+  background-color: var(--highlight);
+}
+
+.register-button.loading {
+  background-color: #ffa8ba;
+  cursor: not-allowed;
+}
+
+/* Error Message */
+.error-message {
+  color: var(--tertiary);
+  background-color: #ffe6e6;
+  border: 2px solid var(--tertiary);
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+/* Footer */
+.login-footer {
+  margin-top: 20px;
+  font-size: 14px;
+}
+
+/* Responsive Design for Smaller Screens */
+@media screen and (max-width: 768px) {
+  .register-page {
+    flex-direction: column;
+  }
+
+  .register-left {
+    display: none; /* Hide the image on smaller screens */
+  }
+
+  .register-right {
+    width: 100%;
+    padding: 20px;
+  }
+
+  .role-tabs {
+    flex-wrap: wrap;
+  }
+
+  .register-right {
+    max-height: 100vh; /* Prevent content overflow */
+    overflow-y: auto; /* Enable scroll for charity/vendor fields */
+  }
+}

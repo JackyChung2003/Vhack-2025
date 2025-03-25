@@ -1,25 +1,93 @@
 import React from "react";
 import { Link, NavLink } from "react-router-dom";
-import { FaBars } from "react-icons/fa";
+import { FaBars, FaHome, FaListAlt, FaUsers, FaUserCircle, FaComments, FaChartLine } from "react-icons/fa";
 import LoginButton from "../../../../components/Button/LoginButton";
 import logoNameImage from "../../../../assets/images/logo-name.png";
 import logoPNGImage from "../../../../assets/images/logo-png.png";
-import navBarItems from "../navBarItems";
-import styles from "./HorizontalNavbar.module.css"; // Module CSS Import
+import { useRole } from "../../../../contexts/RoleContext";
+import styles from "./HorizontalNavBar.module.css"; // Module CSS Import
 
 interface NavbarProps {
   toggle: () => void;
 }
 
 const HorizontalNavbar: React.FC<NavbarProps> = ({ toggle }) => {
+  const { userRole } = useRole();
+
+  // Custom navigation items for charity users
+  const charityNavItems = [
+    {
+      title: "Home",
+      link: "/Vhack-2025/charity/home",
+      icon: <FaHome />,
+    },
+    {
+      title: "Management",
+      link: "/charity-management",
+      icon: <FaChartLine />,
+    },
+    {
+      title: "Vendor",
+      link: "/Vhack-2025/charity/vendor-page",
+      icon: <FaComments />,
+    },
+    {
+      title: "Profile",
+      link: "/Vhack-2025/charity/profile",
+      icon: <FaUserCircle />,
+    },
+  ];
+
+  // Custom navigation items for vendor users
+  const vendorNavItems = [
+    {
+      title: "Home",
+      link: "/Vhack-2025/vendor/dashboard",
+      icon: <FaHome />,
+    },
+    {
+      title: "Profile",
+      link: "/Vhack-2025/vendor/profile",
+      icon: <FaUserCircle />,
+    },
+  ];
+
+  // Custom navigation items for donor users
+  const donorNavItems = [
+    {
+      title: "Home",
+      link: "/",
+      icon: <FaHome />,
+    },
+    {
+      title: "Charity",
+      link: "/charity",
+      icon: <FaListAlt />,
+    },
+    {
+      title: "Profile",
+      link: "/donor/profile",
+      icon: <FaUserCircle />,
+    },
+  ];
+
+  // Select which nav items to use based on role
+  let navItems = donorNavItems;
+  if (userRole === 'charity') {
+    navItems = charityNavItems;
+  } else if (userRole === 'vendor') {
+    navItems = vendorNavItems;
+  }
+
   return (
     <nav className={styles.nav}>
-      <Link to="/" className={styles.link}>
+      <Link to={userRole === 'charity' ? "/Vhack-2025/charity/home" : userRole === 'vendor' ? "/Vhack-2025/vendor/dashboard" : "/"} className={styles.link}>
         <img src={logoPNGImage} alt="Power Stake Name" className={styles.logoIcon} />
-        <img src={logoNameImage} alt="Power Stake Name" className={styles.logoName} />
+        {/* <img src={logoNameImage} alt="Power Stake Name" className={styles.logoName} /> */}
+        <span className={styles.logoName}>DermaNow</span>
       </Link>
       <div className={styles.menuItems}>
-        {navBarItems.map((item, index) => (
+        {navItems.map((item, index) => (
           <NavLink
             className={({ isActive }) =>
               isActive ? `${styles.link} ${styles.active}` : styles.link
@@ -34,7 +102,7 @@ const HorizontalNavbar: React.FC<NavbarProps> = ({ toggle }) => {
       <div className={styles.loginButtonMobileHidden}>
         <div className={styles.icons}>
           <a
-            href="https://github.com/JackyChung2003/My-Universiti-Hackathon-2024"
+            href="https://github.com/JackyChung2003/Vhack-2025"
             target="_blank"
             rel="noreferrer"
           >

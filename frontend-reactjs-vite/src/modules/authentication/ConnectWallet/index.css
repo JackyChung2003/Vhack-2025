@@ -1,0 +1,136 @@
+.connect-wallet-container {
+  display: flex;
+  height: 100vh;
+}
+
+/* Left Section */
+.left-section {
+  width: 50%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  background-color: var(--headline);
+  color: var(--highlight-contrast);
+  padding: 3rem;
+  position: relative;
+}
+
+.logo {
+  position: absolute;
+  top: 1.5rem;
+  left: 1.5rem;
+  font-weight: bold;
+  font-size: 1.5rem;
+  color: var(--highlight);
+}
+
+.left-section h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.left-section p {
+  text-align: left;
+  opacity: 0.8;
+  margin-bottom: 2rem;
+}
+
+/* Mock Comments */
+.mock-comments {
+  padding: 1.5rem;
+  border-radius: 12px;
+  background-color: var(--highlight);
+  opacity: 0.15;
+  width: 90%;
+}
+
+.comment {
+  margin-bottom: 1rem;
+  font-style: italic;
+  opacity: 0.9;
+}
+
+.comment span {
+  display: block;
+  margin-top: 0.5rem;
+  font-weight: bold;
+  opacity: 0.8;
+}
+
+/* Right Section */
+.right-section {
+  width: 50%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--main);
+  color: var(--headline);
+  padding: 3rem;
+  box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
+}
+
+.right-section h2 {
+  font-size: 1.8rem;
+  margin-bottom: 2rem;
+}
+
+.button {
+  background-color: var(--button);
+  color: var(--button-text);
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  border: none;
+}
+
+.button:hover {
+  background-color: var(--highlight);
+}
+
+.loading-section {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid var(--highlight);
+  border-top: 3px solid transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.error-message {
+  color: var(--tertiary);
+  margin-top: 1rem;
+}
+
+.footer-links {
+  margin-top: 2rem;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.footer-links a {
+  color: var(--highlight);
+  text-decoration: none;
+  margin-left: 0.3rem;
+}
+
+.footer-links a:hover {
+  text-decoration: underline;
+}
