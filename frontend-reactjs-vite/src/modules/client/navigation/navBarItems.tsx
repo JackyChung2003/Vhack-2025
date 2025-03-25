@@ -1,4 +1,4 @@
-import { FaHome, FaListAlt, FaVideo, FaUsers } from "react-icons/fa";
+import { FaHome, FaListAlt, FaVideo, FaUsers, FaUser } from "react-icons/fa";
 
 const navBarItems = [
   {
@@ -12,9 +12,18 @@ const navBarItems = [
     icon: <FaListAlt />,
   },
   {
+    title: "Scan QR",
+    link: "/scan",
+  },
+  {
     title: "Community",
     link: "/community",
     icon: <FaUsers />,
+  },
+  {
+    title: "Profile",
+    link: "/profile",
+    icon: <FaUser />,
   },
 ];
 
