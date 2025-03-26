@@ -116,7 +116,7 @@ const VendorDashboard: React.FC = () => {
                   : 'bg-white bg-opacity-20 text-white hover:bg-opacity-30'
               }`}
             >
-              <FaSearch size={14} /> Find Charities
+              <FaSearch size={14} /> Find Organisation
             </button>
           </div>
         </div>
@@ -169,7 +169,7 @@ const VendorDashboard: React.FC = () => {
                 <FaComments className="text-green-600" />
               </div>
               <div>
-                <h2 className="font-medium text-[var(--headline)]">Charity Communications</h2>
+                <h2 className="font-medium text-[var(--headline)]">Charity Chat</h2>
                 <p className="text-sm text-[var(--paragraph)]">Chat with charity organizations and respond to inquiries</p>
               </div>
             </div>
