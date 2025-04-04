@@ -61,6 +61,39 @@ yarn
 
 ---
 
+## 🔐 Environment Setup
+
+Before running the frontend locally, you need to set up your environment variables.
+
+### 📁 Step 1: Create a `.env` File
+
+In the root of the `frontend-reactjs-vite` directory, create a file named:
+
+```
+.env
+```
+
+### 🧩 Step 2: Add the Following Variables
+
+Paste the following content into your `.env` file and replace the placeholder values with your actual credentials:
+
+```env
+VITE_TEMPLATE_CLIENT_ID=
+VITE_TEMPLATE_CONTRACT_ADDRESS=
+
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+```
+
+> 💡 **Tips**:
+>
+> - `VITE_TEMPLATE_CLIENT_ID`: Your app/client ID from Thirdweb or other integration.
+> - `VITE_TEMPLATE_CONTRACT_ADDRESS`: The address of your deployed smart contract.
+> - `VITE_SUPABASE_URL`: Your Supabase project URL.
+> - `VITE_SUPABASE_ANON_KEY`: Your Supabase anon/public API key.
+
+---
+
 ## 🚀 Usage
 
 To run the project locally:
