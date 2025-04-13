@@ -66,7 +66,7 @@ const DonationTracker: React.FC<DonationTrackerProps> = ({ tracker, className = 
                 </div>
               </div>
               <p className="text-2xl font-bold text-[var(--headline)] mb-1">
-                ${tracker.donations.campaignSpecificTotal?.toLocaleString() || 0}
+                RM{tracker.donations.campaignSpecificTotal?.toLocaleString() || 0}
               </p>
               <p className="text-xs text-[var(--paragraph)]">
                 {tracker.donations.campaignSpecificTotal && tracker.donations.total ? 
@@ -86,7 +86,7 @@ const DonationTracker: React.FC<DonationTrackerProps> = ({ tracker, className = 
                 </div>
               </div>
               <p className="text-2xl font-bold text-[var(--headline)] mb-1">
-                ${tracker.donations.alwaysDonateTotal?.toLocaleString() || 0}
+                RM{tracker.donations.alwaysDonateTotal?.toLocaleString() || 0}
               </p>
               <p className="text-xs text-[var(--paragraph)]">
                 {tracker.donations.alwaysDonateTotal && tracker.donations.total ? 
@@ -120,7 +120,7 @@ const DonationTracker: React.FC<DonationTrackerProps> = ({ tracker, className = 
                 </div>
                 <div className="overflow-hidden">
                   <div className="font-medium text-[var(--headline)]">
-                    ${day.amount.toLocaleString()}
+                    RM{day.amount.toLocaleString()}
                   </div>
                   <div className="text-sm text-[var(--paragraph)] truncate">
                     {new Date(day.date).toLocaleDateString()} at {new Date(day.date).toLocaleTimeString([], {

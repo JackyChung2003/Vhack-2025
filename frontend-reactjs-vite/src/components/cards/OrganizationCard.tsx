@@ -88,10 +88,11 @@ const OrganizationCard: React.FC<OrganizationCardProps> = ({
             <span className="font-semibold">{campaigns}</span> active campaigns
           </div>
           <div className="text-sm flex items-center gap-1">
-            <span className="font-semibold">${totalRaised.toLocaleString()}</span> raised
+            <span className="font-semibold">RM{totalRaised.toLocaleString()}</span> raised
           </div>
         </div>
 
+        {/* Only show contact button for vendors */}
         {userRole === 'vendor' && (
           <button
             onClick={handleContactClick}

@@ -22,7 +22,7 @@ const DonorSupportedCampaigns: React.FC = () => {
                 deadline={campaign.deadline}
               />
               <div className="absolute top-0 right-0 bg-[var(--highlight)] text-white px-3 py-1 rounded-bl-lg rounded-tr-lg text-sm font-medium">
-                Your contribution: ${campaign.donorContribution}
+                Your contribution: RM{campaign.donorContribution}
               </div>
             </div>
           ))}

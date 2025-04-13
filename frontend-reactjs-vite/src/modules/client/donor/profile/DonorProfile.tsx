@@ -53,7 +53,7 @@ const DonorProfile: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex items-center justify-between gap-4">
-                  <LoginButton />
+                  {/* <LoginButton /> */}
                   {/* <div className="mt-4 md:mt-0">
                   <div className="bg-[var(--background)] px-4 py-2 rounded-lg text-sm font-medium text-[var(--headline)] flex items-center gap-2 border border-[var(--stroke)]">
                     <span className="font-bold">Wallet:</span>
@@ -65,7 +65,7 @@ const DonorProfile: React.FC = () => {
               </div>
               
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-                <Stat icon={<FaHandHoldingHeart />} value={`$${userData.totalDonations.toLocaleString()}`} label="Total Donated" />
+                <Stat icon={<FaHandHoldingHeart />} value={`RM${userData.totalDonations.toLocaleString()}`} label="Total Donated" />
                 <Stat icon={<FaTrophy />} value={userData.totalCampaigns} label="Campaigns Supported" />
                 <Stat icon={<FaUsers />} value={userData.communitiesJoined} label="Communities" />
                 <Stat icon={<FaComments />} value={userData.postsCount} label="Posts" />

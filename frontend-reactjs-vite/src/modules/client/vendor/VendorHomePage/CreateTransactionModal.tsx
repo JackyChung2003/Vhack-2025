@@ -134,9 +134,9 @@ const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({ onClose
               <div key={item.id} className="flex items-center gap-4 p-2 bg-[var(--background)] rounded-lg">
                 <div className="flex-1">{item.name}</div>
                 <div className="w-24 text-right">{item.quantity}</div>
-                <div className="w-32 text-right">${item.price.toLocaleString()}</div>
+                <div className="w-32 text-right">RM{item.price.toLocaleString()}</div>
                 <div className="w-40 text-right font-semibold">
-                  ${(item.quantity * item.price).toLocaleString()}
+                  RM{(item.quantity * item.price).toLocaleString()}
                 </div>
                 <button
                   onClick={() => handleRemoveItem(item.id)}
@@ -154,7 +154,7 @@ const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({ onClose
           <div className="flex justify-between items-center text-lg font-semibold text-[var(--headline)]">
             <span>Total Amount:</span>
             <span>
-              ${items.reduce((sum, item) => sum + (item.quantity * item.price), 0).toLocaleString()}
+              RM{items.reduce((sum, item) => sum + (item.quantity * item.price), 0).toLocaleString()}
             </span>
           </div>
         </div>

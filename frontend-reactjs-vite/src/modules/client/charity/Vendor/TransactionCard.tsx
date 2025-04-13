@@ -1,4 +1,8 @@
 import React from "react";
+import { FaTimes, FaCheck, FaBuilding, FaTruck, FaMoneyBillWave, FaBoxOpen } from "react-icons/fa";
+
+// Define transaction status type
+type TransactionStatus = 'pending' | 'approved' | 'payment_held' | 'shipped' | 'delivered' | 'completed' | 'rejected';
 
 interface TransactionCardProps {
   transaction: {
@@ -11,16 +15,35 @@ interface TransactionCardProps {
     }>;
     totalPrice: number;
     vendor: string;
-    status: 'pending' | 'approved' | 'rejected' | 'completed';
+    status: TransactionStatus;
     fundSource: string;
     createdBy: 'charity' | 'vendor';
     date: string;
   };
   onClose: () => void;
-  onApprove?: () => void;
+  onConfirmDelivery?: () => void;
 }
 
-const TransactionCard: React.FC<TransactionCardProps> = ({ transaction, onClose, onApprove }) => {
+const TransactionCard: React.FC<TransactionCardProps> = ({ 
+  transaction, 
+  onClose, 
+  onConfirmDelivery 
+}) => {
+  // Define the steps in the transaction process
+  const steps = [
+    { status: 'pending', label: 'Order Placed', icon: <FaBoxOpen /> },
+    { status: 'approved', label: 'Order Approved', icon: <FaCheck /> },
+    { status: 'payment_held', label: 'Payment Held', icon: <FaMoneyBillWave /> },
+    { status: 'shipped', label: 'Shipped', icon: <FaTruck /> },
+    { status: 'delivered', label: 'Delivered', icon: <FaCheck /> },
+    { status: 'completed', label: 'Payment Released', icon: <FaMoneyBillWave /> }
+  ];
+  
+  // Find the current step index
+  const currentStepIndex = steps.findIndex(step => step.status === transaction.status);
+  const currentStep = currentStepIndex !== -1 ? currentStepIndex : 
+                     (transaction.status === 'rejected' ? -1 : 0);
+  
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
       <div className="bg-[var(--background)] p-6 rounded-lg shadow-xl border border-[var(--card-border)] max-w-md w-full">
@@ -32,9 +55,13 @@ const TransactionCard: React.FC<TransactionCardProps> = ({ transaction, onClose,
             <span className={`text-sm px-2 py-1 rounded-full ${
               transaction.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
               transaction.status === 'approved' ? 'bg-blue-100 text-blue-800' :
-              'bg-green-100 text-green-800'
+              transaction.status === 'payment_held' ? 'bg-purple-100 text-purple-800' :
+              transaction.status === 'shipped' ? 'bg-indigo-100 text-indigo-800' :
+              transaction.status === 'delivered' ? 'bg-teal-100 text-teal-800' :
+              transaction.status === 'completed' ? 'bg-green-100 text-green-800' :
+              'bg-red-100 text-red-800'
             }`}>
-              {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
+              {transaction.status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
             </span>
           </div>
           <p className="text-sm text-[var(--paragraph)]">Created by: {transaction.createdBy === 'charity' ? 'You' : transaction.vendor}</p>
@@ -42,46 +69,72 @@ const TransactionCard: React.FC<TransactionCardProps> = ({ transaction, onClose,
           <p className="text-sm text-[var(--paragraph)]">Fund Source: {transaction.fundSource}</p>
         </div>
         
-        <div className="mb-4">
-          <h3 className="font-semibold text-[var(--headline)] mb-2">Items</h3>
-          <div className="bg-[var(--background)] rounded-lg p-3">
-            <table className="w-full text-sm text-[var(--paragraph)]">
-              <thead>
-                <tr className="border-b border-[var(--stroke)]">
-                  <th className="text-left py-2">Item</th>
-                  <th className="text-right py-2">Qty</th>
-                  <th className="text-right py-2">Price</th>
-                  <th className="text-right py-2">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transaction.items.map(item => (
-                  <tr key={item.id} className="border-b border-[var(--stroke)] last:border-0">
-                    <td className="py-2">{item.name}</td>
-                    <td className="text-right py-2">{item.quantity}</td>
-                    <td className="text-right py-2">${item.price}</td>
-                    <td className="text-right py-2">${(item.quantity * item.price).toLocaleString()}</td>
-                  </tr>
-                ))}
-                <tr className="font-semibold">
-                  <td colSpan={3} className="text-right py-2 text-[var(--headline)]">Total:</td>
-                  <td className="text-right py-2 text-[var(--headline)]">${transaction.totalPrice.toLocaleString()}</td>
-                </tr>
-              </tbody>
-            </table>
+        {/* Transaction Progress Bar */}
+        <div className="mb-6">
+          <h3 className="text-md font-semibold text-[var(--headline)] mb-2">Transaction Progress</h3>
+          <div className="relative">
+            {/* Progress Bar */}
+            <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-gray-200">
+              <div 
+                className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-[var(--highlight)]" 
+                style={{ width: `${Math.max((currentStep / (steps.length - 1)) * 100, 5)}%` }}
+              ></div>
+            </div>
+            
+            {/* Steps */}
+            <div className="flex justify-between">
+              {steps.map((step, index) => (
+                <div 
+                  key={index} 
+                  className={`flex flex-col items-center ${
+                    index <= currentStep ? 'text-[var(--highlight)]' : 'text-gray-400'
+                  }`}
+                  style={{ width: '16.66%' }}
+                >
+                  <div className={`rounded-full h-8 w-8 flex items-center justify-center mb-1 ${
+                    index <= currentStep ? 'bg-[var(--highlight)] text-white' : 'bg-gray-200'
+                  }`}>
+                    {step.icon}
+                  </div>
+                  <span className="text-xs text-center">{step.label}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
         
+        {/* Items List */}
+        <div className="mb-6">
+          <h3 className="text-md font-semibold text-[var(--headline)] mb-2">Items</h3>
+          <div className="bg-[var(--card-background)] rounded-lg border border-[var(--card-border)]">
+            {transaction.items.map((item) => (
+              <div key={item.id} className="p-3 flex justify-between">
+                <div>
+                  <p className="text-[var(--headline)]">{item.name}</p>
+                  <p className="text-xs text-[var(--paragraph)]">Quantity: {item.quantity}</p>
+                </div>
+                <p className="text-[var(--headline)]">RM{(item.price * item.quantity).toLocaleString()}</p>
+              </div>
+            ))}
+            <div className="p-3 flex justify-between font-bold">
+              <p>Total</p>
+              <p>RM{transaction.totalPrice.toLocaleString()}</p>
+            </div>
+          </div>
+        </div>
+        
+        {/* Action Buttons */}
         <div className="mt-6 flex justify-end space-x-4">
-          {/* Show Approve button only for pending vendor-created transactions */}
-          {transaction.status === 'pending' && transaction.createdBy === 'vendor' && onApprove && (
+          {/* Show Confirm Delivery button for shipped transactions */}
+          {transaction.status === 'shipped' && onConfirmDelivery && (
             <button
-              onClick={onApprove}
-              className="px-4 py-2 bg-green-500 text-white rounded-lg shadow-md hover:bg-green-600 transition-all"
+              onClick={onConfirmDelivery}
+              className="px-4 py-2 bg-teal-500 text-white rounded-lg shadow-md hover:bg-teal-600 transition-all flex items-center gap-2"
             >
-              Approve
+              <FaCheck /> Confirm Delivery
             </button>
           )}
+          
           <button
             onClick={onClose}
             className="px-4 py-2 bg-blue-500 text-white rounded-lg shadow-md hover:bg-blue-600 transition-all"

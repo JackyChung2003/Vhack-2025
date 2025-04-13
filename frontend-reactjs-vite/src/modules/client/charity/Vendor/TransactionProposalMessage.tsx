@@ -23,14 +23,14 @@ const TransactionProposalMessage: React.FC<TransactionProposalMessageProps> = ({
         {proposal.items.map((item, index) => (
           <div key={index} className="flex justify-between text-sm text-[var(--paragraph)]">
             <span>{item.name} x{item.quantity}</span>
-            <span>${(item.price * item.quantity).toLocaleString()}</span>
+            <span>RM{(item.price * item.quantity).toLocaleString()}</span>
           </div>
         ))}
         
         <div className="border-t border-[var(--stroke)] pt-2 mt-2">
           <div className="flex justify-between font-semibold text-[var(--headline)]">
             <span>Total Amount:</span>
-            <span>${proposal.totalAmount.toLocaleString()}</span>
+            <span>RM{proposal.totalAmount.toLocaleString()}</span>
           </div>
         </div>
 

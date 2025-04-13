@@ -37,7 +37,7 @@ const Withdrawal: React.FC<WithdrawalProps> = ({ withdrawalRequests }) => {
               <div>
                 <p className="text-[var(--card-headline)] font-semibold">{request.name}</p>
                 <p className="text-sm text-[var(--card-paragraph)]">
-                  Goal: ${request.goal.toLocaleString()} | Contributions: ${request.currentContributions.toLocaleString()}
+                  Goal: RM{request.goal.toLocaleString()} | Contributions: RM{request.currentContributions.toLocaleString()}
                 </p>
                 <p className="text-sm text-[var(--card-paragraph)]">Deadline: {request.deadline}</p>
               </div>

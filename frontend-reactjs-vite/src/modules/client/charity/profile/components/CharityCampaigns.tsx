@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { FaHandHoldingHeart, FaDollarSign, FaCalendarAlt, FaChartLine, FaChevronRight } from "react-icons/fa";
+import { FaHandHoldingHeart, FaMoneyBillWave, FaCalendarAlt, FaChartLine, FaChevronRight } from "react-icons/fa";
 import { mockCampaigns } from "../../../../../utils/mockData";
 
 const CharityCampaigns: React.FC = () => {
@@ -39,10 +39,10 @@ const CharityCampaigns: React.FC = () => {
           
           <div className="p-6 flex flex-col items-center justify-center">
             <div className="flex items-center gap-2 text-[var(--secondary)] mb-2">
-              <FaDollarSign className="text-xl" />
+              <FaMoneyBillWave className="text-xl" />
               <span className="text-sm font-medium">Total Raised</span>
             </div>
-            <span className="text-3xl font-bold text-[var(--headline)]">${totalRaised.toLocaleString()}</span>
+            <span className="text-3xl font-bold text-[var(--headline)]">RM{totalRaised.toLocaleString()}</span>
           </div>
           
           <div className="p-6 flex flex-col items-center justify-center">
@@ -109,12 +109,12 @@ const CharityCampaigns: React.FC = () => {
 
                     <div className="flex items-center gap-4 text-sm text-[var(--paragraph)]">
                       <span className="flex items-center gap-1">
-                        <FaDollarSign className="text-[var(--tertiary)]" />
-                        Goal: ${campaign.goal.toLocaleString()}
+                        <FaMoneyBillWave className="text-[var(--tertiary)]" />
+                        Goal: RM{campaign.goal.toLocaleString()}
                       </span>
                       <span className="flex items-center gap-1">
                         <FaChartLine className="text-[var(--secondary)]" />
-                        Raised: ${campaign.currentContributions.toLocaleString()}
+                        Raised: RM{campaign.currentContributions.toLocaleString()}
                       </span>
                       <span className="flex items-center gap-1">
                         <FaCalendarAlt className="text-[var(--paragraph)]" />
@@ -132,7 +132,7 @@ const CharityCampaigns: React.FC = () => {
                     </div>
                     <div className="mt-1 text-xs text-[var(--paragraph)] flex justify-between">
                       <span>{progress.toFixed(0)}% Complete</span>
-                      <span>${campaign.currentContributions.toLocaleString()} of ${campaign.goal.toLocaleString()}</span>
+                      <span>RM{campaign.currentContributions.toLocaleString()} of RM{campaign.goal.toLocaleString()}</span>
                     </div>
                   </div>
                   <FaChevronRight className="text-[var(--paragraph)] opacity-0 group-hover:opacity-100 group-hover:text-[var(--highlight)] transition-all" />

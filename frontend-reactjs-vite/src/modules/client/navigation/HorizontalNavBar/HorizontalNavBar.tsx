@@ -82,7 +82,7 @@ const HorizontalNavbar: React.FC<NavbarProps> = ({ toggle }) => {
   return (
     <nav className={styles.nav}>
       <Link to={userRole === 'charity' ? "/Vhack-2025/charity/home" : userRole === 'vendor' ? "/Vhack-2025/vendor/dashboard" : "/"} className={styles.link}>
-        <img src={logoPNGImage} alt="Power Stake Name" className={styles.logoIcon} />
+        <img src={logoPNGImage} alt="DermaNow " className={styles.logoIcon} />
         {/* <img src={logoNameImage} alt="Power Stake Name" className={styles.logoName} /> */}
         <span className={styles.logoName}>DermaNow</span>
       </Link>

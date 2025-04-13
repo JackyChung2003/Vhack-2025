@@ -55,9 +55,9 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ id, name, description, goal
         <div className="flex justify-between items-center text-sm">
           <span className="font-semibold flex items-center gap-1">
             <FaMoneyBillWave className="text-[var(--highlight)]" />
-            ${currentContributions}
+            RM{currentContributions}
           </span>
-          <span className="text-[var(--paragraph)]">${goal} goal</span>
+          <span className="text-[var(--paragraph)]">RM{goal} goal</span>
         </div>
       </div>
       

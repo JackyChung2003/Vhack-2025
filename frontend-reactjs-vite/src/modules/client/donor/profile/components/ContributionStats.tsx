@@ -19,7 +19,7 @@ const ContributionStats: React.FC = () => {
         <StatCard
           icon={<FaHandHoldingHeart />}
           title="Largest Donation"
-          value={`$${stats.largestDonation}`}
+          value={`RM${stats.largestDonation}`}
         />
         <StatCard
           icon={<FaTrophy />}

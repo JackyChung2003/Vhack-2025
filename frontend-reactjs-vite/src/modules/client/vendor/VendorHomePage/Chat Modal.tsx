@@ -1,8 +1,17 @@
 import React, { useState, useEffect, useRef } from "react";
-import { FaTimes, FaUserCircle, FaPaperPlane, FaPaperclip, FaFileInvoiceDollar } from "react-icons/fa";
+import { FaTimes, FaUserCircle, FaPaperPlane, FaPaperclip, FaMoneyBillWave } from "react-icons/fa";
 import { useVendorChatStore } from "../../../../services/VendorChatService";
 import TransactionProposalMessage from "./TransactionProposalMessage";
 import ChatTransactionModal from "./ChatTransactionModal";
+
+// Import or define vendors data
+const vendors = [
+  { id: 1, name: "ABC Supplies" },
+  { id: 2, name: "XYZ Traders" },
+  { id: 3, name: "Global Goods" },
+  { id: 4, name: "Tech4Good" },
+  { id: 5, name: "Clean Water Solutions" },
+];
 
 interface ChatModalProps {
   chatId: number;
@@ -51,6 +60,9 @@ const ChatModal: React.FC<ChatModalProps> = ({ chatId, onClose }) => {
     return null;
   }
   
+  // Get vendor name from vendors array
+  const vendorName = vendors.find(v => v.id === currentChat.organizationId)?.name || "Unknown Vendor";
+  
   return (
     <>
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -60,7 +72,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ chatId, onClose }) => {
             <div className="flex items-center">
               <FaUserCircle className="text-[var(--highlight)] w-10 h-10 mr-3" />
               <div>
-                <h2 className="text-lg font-bold text-[var(--headline)]">{currentChat.vendorName}</h2>
+                <h2 className="text-lg font-bold text-[var(--headline)]">{vendorName}</h2>
                 <p className="text-xs text-gray-500">
                   {currentChat.online ? "Online" : "Offline"}
                 </p>
@@ -90,8 +102,15 @@ const ChatModal: React.FC<ChatModalProps> = ({ chatId, onClose }) => {
                 >
                   {message.transactionProposal ? (
                     <TransactionProposalMessage
-                      proposal={message.transactionProposal}
-                      isFromVendor={message.fromVendor}
+                      message={{
+                        id: message.id,
+                        content: message.text,
+                        isFromVendor: message.fromVendor,
+                        timestamp: Date.now(),
+                        type: "transaction",
+                        status: message.transactionProposal?.status,
+                        proposal: message.transactionProposal
+                      }}
                       onAccept={() => handleAcceptProposal(message.id)}
                       onReject={() => handleRejectProposal(message.id)}
                     />
@@ -121,7 +140,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ chatId, onClose }) => {
               onClick={() => setShowTransactionModal(true)}
               className="p-2 text-gray-500 hover:text-[var(--highlight)] transition-all"
             >
-              <FaFileInvoiceDollar />
+              <FaMoneyBillWave />
             </button>
             <button 
               type="button"

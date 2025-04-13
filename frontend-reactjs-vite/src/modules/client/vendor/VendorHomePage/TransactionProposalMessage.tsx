@@ -74,11 +74,11 @@ const TransactionProposalMessage: React.FC<TransactionProposalMessageProps> = ({
               <div>
                 <p className="text-[var(--headline)]">{item.name}</p>
                 <p className="text-xs text-[var(--paragraph-light)]">
-                  {item.quantity} × ${item.price.toFixed(2)}
+                  {item.quantity} × RM{item.price.toFixed(2)}
                 </p>
               </div>
               <p className="font-medium text-[var(--headline)]">
-                ${(item.quantity * item.price).toFixed(2)}
+                RM{(item.quantity * item.price).toFixed(2)}
               </p>
             </div>
           ))}
@@ -86,7 +86,7 @@ const TransactionProposalMessage: React.FC<TransactionProposalMessageProps> = ({
 
         <div className="flex justify-between items-center font-medium text-[var(--headline)] pt-2 border-t border-gray-200">
           <span>Total</span>
-          <span>${proposal.totalAmount.toFixed(2)}</span>
+          <span>RM{proposal.totalAmount.toFixed(2)}</span>
         </div>
 
         <div className="text-xs text-[var(--paragraph-light)] mt-2 text-right">

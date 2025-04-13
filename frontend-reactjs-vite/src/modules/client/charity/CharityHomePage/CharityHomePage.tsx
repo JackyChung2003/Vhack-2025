@@ -142,7 +142,7 @@ const CharityHomePage: React.FC = () => {
         <StatCard 
           icon={<FaMoneyBillWave className="text-green-500" />} 
           title="Total Funds" 
-          value={`$${(generalFundBalance + campaignFundsRaised).toLocaleString()}`}
+          value={`RM${(generalFundBalance + campaignFundsRaised).toLocaleString()}`}
           onClick={() => handleNavigate("/charity-management")}
           colorClass="from-green-50 to-green-100"
           iconBg="bg-green-100"
@@ -210,7 +210,7 @@ const CharityHomePage: React.FC = () => {
                   <span className="text-sm font-medium text-[var(--highlight)]">Combined Balance</span>
                 </div>
                 <div className="text-3xl font-bold text-[var(--headline)] mb-1">
-                  ${(generalFundBalance + campaignFundsRaised).toLocaleString()}
+                  RM{(generalFundBalance + campaignFundsRaised).toLocaleString()}
                 </div>
                 <div className="flex items-center text-xs text-green-600">
                   <FaArrowUp className="mr-1" /> 12% increase from last month
@@ -232,7 +232,7 @@ const CharityHomePage: React.FC = () => {
                     </span>
                   </div>
                   <p className="text-2xl font-bold text-[var(--headline)] mb-1">
-                    ${generalFundBalance.toLocaleString()}
+                    RM{generalFundBalance.toLocaleString()}
                   </p>
                   <div className="flex justify-between items-center">
                     <p className="text-xs text-[var(--paragraph)]">
@@ -256,7 +256,7 @@ const CharityHomePage: React.FC = () => {
                     </span>
                   </div>
                   <p className="text-2xl font-bold text-[var(--headline)] mb-1">
-                    ${campaignFundsRaised.toLocaleString()}
+                    RM{campaignFundsRaised.toLocaleString()}
                   </p>
                   <div className="flex justify-between items-center">
                     <p className="text-xs text-[var(--paragraph)]">
@@ -376,7 +376,7 @@ const CharityHomePage: React.FC = () => {
                         </div>
                       </div>
                       <div className="text-right">
-                        <span className="font-bold text-red-500 block">-$1,250.00</span>
+                        <span className="font-bold text-red-500 block">-RM1,250.00</span>
                         <span className="text-xs text-[var(--paragraph)] bg-gray-100 px-2 py-1 rounded-full inline-block mt-1">Purchase</span>
                       </div>
                     </div>
@@ -407,7 +407,7 @@ const CharityHomePage: React.FC = () => {
                         </div>
                       </div>
                       <div className="text-right">
-                        <span className="font-bold text-red-500 block">-$3,750.00</span>
+                        <span className="font-bold text-red-500 block">-RM3,750.00</span>
                         <span className="text-xs text-[var(--paragraph)] bg-gray-100 px-2 py-1 rounded-full inline-block mt-1">Purchase</span>
                       </div>
                     </div>
@@ -528,10 +528,10 @@ const CharityHomePage: React.FC = () => {
                         <div className="flex justify-between text-xs text-[var(--paragraph)]">
                           <div className="flex items-center">
                             <FaMoneyBillWave className="mr-1" />
-                            <span>${campaign.currentContributions.toLocaleString()} raised</span>
+                            <span>RM{campaign.currentContributions.toLocaleString()} raised</span>
                           </div>
                           <div className="flex items-center font-medium">
-                            <span>{Math.round(progress)}% of ${campaign.goal.toLocaleString()}</span>
+                            <span>{Math.round(progress)}% of RM{campaign.goal.toLocaleString()}</span>
                           </div>
                         </div>
                       </motion.div>

@@ -303,7 +303,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
                       }`}
                       onClick={() => handleAmountSelect(presetAmount)}
                     >
-                      ${presetAmount}
+                      RM{presetAmount}
                     </button>
                   ))}
                   <button
@@ -324,7 +324,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
                 {customAmount && (
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <span className="text-[var(--paragraph)]">$</span>
+                      <span className="text-[var(--paragraph)]">RM</span>
                     </div>
                     <input
                       type="text"
@@ -357,7 +357,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
                   </div>
                   <div className="flex justify-between mb-2">
                     <span>Amount:</span>
-                    <span className="font-semibold">${amount}</span>
+                    <span className="font-semibold">RM{amount}</span>
                   </div>
                   <div className="flex justify-between mb-2">
                     <span>Frequency:</span>
@@ -430,7 +430,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
               </div>
               <h3 className="text-2xl font-bold text-[var(--headline)] mb-2">Thank You for Your Support!</h3>
               <p className="text-[var(--paragraph)] mb-6">
-                Your donation of ${amount} {donationType === 'monthly' ? 'per month ' : ''}to {displayName} has been processed successfully.
+                Your donation of RM{amount} {donationType === 'monthly' ? 'per month ' : ''}to {displayName} has been processed successfully.
               </p>
               {campaignId && (
                 <div className="bg-[var(--background)] p-4 rounded-lg mb-6 text-left">
@@ -506,7 +506,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
               </div>
               <h3 className="text-xl font-bold text-[var(--headline)]">Monthly Donation Set Up!</h3>
               <p className="text-[var(--paragraph)] mt-2">
-                Your monthly donation of ${amount} to {displayName} has been set up successfully.
+                Your monthly donation of RM{amount} to {displayName} has been set up successfully.
               </p>
             </div>
             

@@ -50,7 +50,7 @@ const PurchaseRequest: React.FC = () => {
             >
               <div className="flex-1">
                 <p className="text-[var(--headline)] font-semibold">{request.itemName}</p>
-                <p className="text-sm text-[var(--paragraph)]">Price: ${request.price.toLocaleString()}</p>
+                <p className="text-sm text-[var(--paragraph)]">Price: RM{request.price.toLocaleString()}</p>
                 <p className="text-sm text-[var(--paragraph)]">Vendor: {request.vendor}</p>
               </div>
               {/* Empty circle for pending requests */}
@@ -74,7 +74,7 @@ const PurchaseRequest: React.FC = () => {
             >
               <div className="flex-1">
                 <p className="text-[var(--headline)] font-semibold line-through">{request.itemName}</p>
-                <p className="text-sm text-[var(--paragraph)] line-through">Price: ${request.price.toLocaleString()}</p>
+                <p className="text-sm text-[var(--paragraph)] line-through">Price: RM{request.price.toLocaleString()}</p>
                 <p className="text-sm text-[var(--paragraph)] line-through">Vendor: {request.vendor}</p>
               </div>
               {/* Check icon for completed requests */}

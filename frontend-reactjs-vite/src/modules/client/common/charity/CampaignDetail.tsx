@@ -159,7 +159,7 @@ const CampaignDetail: React.FC = () => {
 
   const handleDonationComplete = (amount: number, donationPolicy?: string) => {
     // In a real app, you would update the campaign data after a successful donation
-    console.log(`Donation of $${amount} completed for campaign: ${campaign.name}`);
+    console.log(`Donation of RM${amount} completed for campaign: ${campaign.name}`);
     console.log(`Donation policy: ${donationPolicy || 'N/A'}`);
     
     // Add donation to campaign-specific or always-donate total based on policy
@@ -167,12 +167,12 @@ const CampaignDetail: React.FC = () => {
     if (donationPolicy) {
       // For demonstration, let's show a toast message about the donation policy
       if (donationPolicy === 'campaign-specific') {
-        toast.success(`Thank you for your campaign-specific donation of $${amount}! You can get a refund if the campaign doesn't reach its goal.`);
+        toast.success(`Thank you for your campaign-specific donation of RM${amount}! You can get a refund if the campaign doesn't reach its goal.`);
       } else if (donationPolicy === 'always-donate') {
-        toast.success(`Thank you for your always-donate donation of $${amount}! Your donation will support the organization even if the campaign doesn't reach its goal.`);
+        toast.success(`Thank you for your always-donate donation of RM${amount}! Your donation will support the organization even if the campaign doesn't reach its goal.`);
       }
     } else {
-      toast.success(`Thank you for your donation of $${amount}!`);
+      toast.success(`Thank you for your donation of RM${amount}!`);
     }
   };
 
@@ -221,15 +221,15 @@ const CampaignDetail: React.FC = () => {
               ></div>
             </div>
             <div className="flex justify-between items-center text-sm text-white">
-              <span>${campaign.currentContributions} raised</span>
-              <span>${campaign.goal} goal</span>
+              <span>RM{campaign.currentContributions} raised</span>
+              <span>RM{campaign.goal} goal</span>
             </div>
           </div>
           
           {/* Campaign stats */}
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-white bg-opacity-20 p-3 rounded-lg text-center">
-              <div className="text-2xl font-bold">${campaign.currentContributions}</div>
+              <div className="text-2xl font-bold">RM{campaign.currentContributions}</div>
               <div className="text-sm">Raised</div>
             </div>
             <div className="bg-white bg-opacity-20 p-3 rounded-lg text-center">
@@ -447,7 +447,7 @@ const CampaignDetail: React.FC = () => {
                     </div>
                     <div className="flex-grow ml-4">
                       <div className="font-bold text-[var(--headline)]">Current Progress</div>
-                      <div className="text-[var(--paragraph)] mt-1">${campaign.currentContributions} raised of ${campaign.goal} goal</div>
+                      <div className="text-[var(--paragraph)] mt-1">RM{campaign.currentContributions} raised of RM{campaign.goal} goal</div>
                       <div className="w-full bg-[var(--stroke)] rounded-full h-2 mt-2">
                         <div 
                           className="h-full rounded-full bg-[var(--highlight)]"
@@ -549,7 +549,7 @@ const CampaignDetail: React.FC = () => {
                 <div className="grid grid-cols-1 gap-4 mb-6">
                   <div className="relative overflow-hidden rounded-lg border border-[var(--stroke)] bg-gradient-to-r from-[var(--highlight)] to-[var(--highlight)] bg-opacity-5 p-4">
                     <div className="absolute top-0 right-0 w-16 h-16 bg-[var(--highlight)] opacity-5 rounded-bl-full"></div>
-                    <span className="text-3xl font-bold text-white">${donorContribution.totalAmount}</span>
+                    <span className="text-3xl font-bold text-white">RM{donorContribution.totalAmount}</span>
                     <p className="text-sm text-white font-medium mt-1">Total Contributed</p>
                   </div>
                   
@@ -592,7 +592,7 @@ const CampaignDetail: React.FC = () => {
                             </p>
                           </div>
                         </div>
-                        <div className="font-bold text-[var(--highlight)]">${contribution.amount}</div>
+                        <div className="font-bold text-[var(--highlight)]">RM{contribution.amount}</div>
                       </div>
                     ))}
                   </div>

@@ -18,7 +18,7 @@ const PurchaseRequestCard: React.FC<PurchaseRequestCardProps> = ({ request, onCl
       <div className="bg-[var(--card-background)] p-6 rounded-lg shadow-xl border border-[var(--card-border)] max-w-md w-full">
         <h2 className="text-2xl font-bold text-[var(--headline)] mb-4">Purchase Request Details</h2>
         <p className="text-[var(--headline)] font-semibold">{request.itemName}</p>
-        <p className="text-sm text-[var(--paragraph)]">Price: ${request.price.toLocaleString()}</p>
+        <p className="text-sm text-[var(--paragraph)]">Price: RM{request.price.toLocaleString()}</p>
         <p className="text-sm text-[var(--paragraph)]">Vendor: {request.vendor}</p>
         <div className="mt-6 flex justify-end space-x-4">
           {/* Show Approve button only for pending requests */}

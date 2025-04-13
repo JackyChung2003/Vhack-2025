@@ -85,11 +85,11 @@ const CommunityDetail: React.FC = () => {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-[var(--paragraph)] font-medium">Campaign Goal</span>
-                    <span className="text-[var(--headline)] font-bold">$50,000</span>
+                    <span className="text-[var(--headline)] font-bold">RM50,000</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-[var(--paragraph)] font-medium">Raised So Far</span>
-                    <span className="text-[var(--headline)] font-bold">$32,450</span>
+                    <span className="text-[var(--headline)] font-bold">RM32,450</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-[var(--paragraph)] font-medium">Contributors</span>

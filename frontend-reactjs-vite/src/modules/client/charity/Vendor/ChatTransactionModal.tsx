@@ -110,7 +110,7 @@ const ChatTransactionModal: React.FC<ChatTransactionModalProps> = ({ onClose, on
           </button>
 
           <div className="mt-4 text-right font-semibold">
-            Total: ${calculateTotal().toLocaleString()}
+            Total: RM{calculateTotal().toLocaleString()}
           </div>
 
           <div className="mt-6 flex justify-end space-x-4">

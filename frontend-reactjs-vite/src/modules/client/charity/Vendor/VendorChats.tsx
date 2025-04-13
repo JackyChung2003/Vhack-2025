@@ -4,6 +4,15 @@ import { useVendorChatStore } from "../../../../services/VendorChatService";
 import ChatModal from "./ChatModal";
 import NewChatModal from "./NewChatModal";
 
+// Import or define vendors data
+const vendors = [
+  { id: 1, name: "ABC Supplies" },
+  { id: 2, name: "XYZ Traders" },
+  { id: 3, name: "Global Goods" },
+  { id: 4, name: "Tech4Good" },
+  { id: 5, name: "Clean Water Solutions" },
+];
+
 interface VendorChatsProps {
   limit?: number;
 }
@@ -15,9 +24,10 @@ const VendorChats: React.FC<VendorChatsProps> = ({ limit }) => {
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   
   // Filter and sort chats
-  const filteredChats = chats.filter(chat => 
-    chat.vendorName.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredChats = chats.filter(chat => {
+    const vendor = vendors.find(v => v.id === chat.organizationId);
+    return vendor?.name.toLowerCase().includes(searchTerm.toLowerCase());
+  });
   
   const sortedChats = [...filteredChats].sort((a, b) => {
     const getTimeValue = (timestamp: string) => {
@@ -77,7 +87,9 @@ const VendorChats: React.FC<VendorChatsProps> = ({ limit }) => {
               </div>
               <div className="flex-1">
                 <div className="flex justify-between">
-                  <h3 className="font-semibold text-[var(--headline)]">{chat.vendorName}</h3>
+                  <h3 className="font-semibold text-[var(--headline)]">
+                    {vendors.find(v => v.id === chat.organizationId)?.name || "Unknown Vendor"}
+                  </h3>
                   <span className="text-xs text-gray-500">{chat.timestamp}</span>
                 </div>
                 <p className="text-sm text-[var(--paragraph)] truncate">{chat.lastMessage}</p>

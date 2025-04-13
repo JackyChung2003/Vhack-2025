@@ -219,7 +219,7 @@ const GeneralFundCommunities: React.FC = () => {
                 <div className="mt-4 grid grid-cols-2 gap-2">
                   <div className="bg-[var(--background)] p-3 rounded-lg">
                     <p className="text-xs text-[var(--paragraph)]">Total Donations</p>
-                    <p className="text-lg font-bold text-[var(--headline)]">${community.donationTotal.toLocaleString()}</p>
+                    <p className="text-lg font-bold text-[var(--headline)]">RM{community.donationTotal.toLocaleString()}</p>
                   </div>
                   <div className="bg-[var(--background)] p-3 rounded-lg">
                     <p className="text-xs text-[var(--paragraph)]">Donors</p>

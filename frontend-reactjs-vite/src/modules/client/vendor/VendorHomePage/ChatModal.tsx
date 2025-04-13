@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { FaPaperPlane, FaTimes, FaFile, FaDollarSign } from "react-icons/fa";
+import { FaPaperPlane, FaTimes, FaFile, FaMoneyBillWave } from "react-icons/fa";
 import { useVendorChatStore } from "../../../../services/VendorChatService";
 import { mockOrganizations } from "../../../../utils/mockData";
 import TransactionProposalMessage from "./TransactionProposalMessage";
@@ -128,7 +128,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ chatId, onClose }) => {
             title="Create Transaction Proposal"
             onClick={() => setShowTransactionModal(true)}
           >
-            <FaDollarSign />
+            <FaMoneyBillWave />
           </button>
         </div>
         

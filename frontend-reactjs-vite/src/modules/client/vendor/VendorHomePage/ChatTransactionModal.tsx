@@ -119,7 +119,7 @@ const ChatTransactionModal: React.FC<ChatTransactionModalProps> = ({
                   </div>
                   <div className="col-span-3">
                     <label className="text-xs text-[var(--paragraph-light)] mb-1 block">
-                      Price ($)
+                      Price (RM)
                     </label>
                     <input
                       type="number"
@@ -159,7 +159,7 @@ const ChatTransactionModal: React.FC<ChatTransactionModalProps> = ({
             <div className="flex justify-between items-center py-2 border-t border-b border-gray-200 my-4">
               <span className="font-medium text-[var(--headline)]">Total</span>
               <span className="font-bold text-[var(--headline)]">
-                ${calculateTotal().toFixed(2)}
+                RM{calculateTotal().toFixed(2)}
               </span>
             </div>
 

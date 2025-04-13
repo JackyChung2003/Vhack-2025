@@ -167,7 +167,7 @@ const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({ onClose
           
           {/* Total */}
           <div className="text-right font-semibold text-[var(--headline)]">
-            Total: ${calculateTotal().toLocaleString()}
+            Total: RM{calculateTotal().toLocaleString()}
           </div>
         </div>
         

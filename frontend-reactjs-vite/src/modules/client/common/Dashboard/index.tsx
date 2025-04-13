@@ -52,7 +52,7 @@ const LandingPage = () => {
                 <div className="max-w-6xl mx-auto px-6">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
                         <div className="p-4">
-                            <p className="text-3xl font-bold text-[var(--highlight)]">$2.5M+</p>
+                            <p className="text-3xl font-bold text-[var(--highlight)]">RM2.5M+</p>
                             <p className="text-[var(--paragraph)]">Total Raised</p>
                         </div>
                         <div className="p-4">
@@ -166,8 +166,8 @@ const LandingPage = () => {
                                     <div className="h-full rounded-full bg-gradient-to-r from-[var(--highlight)] to-[var(--secondary)]" style={{width: `${30 + id * 20}%`}}></div>
                                 </div>
                                 <div className="flex justify-between text-sm mb-4">
-                                    <span>${5000 * id} raised</span>
-                                    <span>${10000 * id} goal</span>
+                                    <span>RM{5000 * id} raised</span>
+                                    <span>RM{10000 * id} goal</span>
                                 </div>
                             </div>
                         ))}

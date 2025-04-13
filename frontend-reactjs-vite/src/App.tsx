@@ -24,10 +24,13 @@ import CharityHomePage from "./modules/client/charity/CharityHomePage/CharityHom
 import CharityManagementPage from "./modules/client/charity/management/CharityManagementPage";
 import CreateCampaign from "./components/form/CreateCampaign";
 import VendorPage from "./modules/client/charity/Vendor/VendorPage";
-import CharityCommunityAdmin from "./modules/client/charity/community/CharityCommunityAdmin";
-import GeneralFundCommunities from "./modules/client/charity/community/GeneralFundCommunities";
 import VendorDashboard from "./modules/client/vendor/VendorHomePage/VendorDashboard";
 import VendorProfile from "./modules/client/vendor/VendorProfile";
+import OrderHistoryDetails from "./modules/client/vendor/OrderManagement/OrderHistoryDetails";
+import OrderHistoryCard from "./modules/client/vendor/OrderManagement/OrderHistoryCard";
+import OrderTracker from "./modules/client/vendor/OrderManagement/OrderTracker";
+import OrderTrackerDetails from "./modules/client/vendor/OrderManagement/OrderTrackerDetails";
+import TransactionHistoryDetails from "./modules/client/vendor/FinancialManagement/TransactionHistoryDetails";
 
 const CommunityRedirect = () => {
 	const { id } = useParams();
@@ -135,16 +138,20 @@ export function App() {
 								path="/charity/community/organization/:id" 
 								element={<OrganizationRedirect />} 
 							/>
-							
-							{/* Keep the admin route for now, but consider updating it later */}
-							<Route path="/charity/community/:type/:id" element={<CharityCommunityAdmin />} />
-							<Route path="/charity/general-communities" element={<GeneralFundCommunities />} />
 						</Route>
 
 						{/* Vendor-Specific Routes */}
 						<Route element={<ProtectedRoute allowedRoles={['vendor']} redirectPath="/" />}>
 							<Route path="/Vhack-2025/vendor/dashboard" element={<VendorDashboard />} />
 							<Route path="/Vhack-2025/vendor/profile" element={<VendorProfile />} />
+              <Route path="/vendor/profile" element={<VendorProfile />} />
+              <Route path="/vendor/order-history/:id" element={<OrderHistoryCard />} />
+              <Route path="/vendor/order-history-details" element={<OrderHistoryDetails />} />
+              <Route path="/vendor/order-tracker" element={<OrderTracker />} />
+              <Route path="/vendor/order-tracker-details" element={<OrderTrackerDetails />} />
+			  <Route path="/vendor/transaction-history-details" element={<TransactionHistoryDetails />} />
+
+
 						</Route>
 
 						{/* Donor-Specific Routes */}

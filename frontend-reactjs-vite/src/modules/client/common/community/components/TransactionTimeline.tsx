@@ -118,7 +118,7 @@ const TransactionTimeline: React.FC<TransactionTimelineProps> = ({ communityId, 
                   <h4 className="font-semibold text-[var(--headline)]">{monthYear}</h4>
                   <div className="flex-1 border-b border-dashed border-[var(--stroke)]"></div>
                   <div className="text-sm text-[var(--paragraph)]">
-                    <span className="text-red-600">-${group.totalExpenses.toLocaleString()}</span>
+                    <span className="text-red-600">-RM{group.totalExpenses.toLocaleString()}</span>
                   </div>
                 </div>
 
@@ -154,7 +154,7 @@ const TransactionTimeline: React.FC<TransactionTimelineProps> = ({ communityId, 
                             ? 'text-red-600' 
                             : 'text-green-600'
                         }`}>
-                          {transaction.type === 'expense' ? '-' : '+'} ${transaction.amount.toLocaleString()}
+                          {transaction.type === 'expense' ? '-' : '+'} RM{transaction.amount.toLocaleString()}
                         </span>
                       </div>
 

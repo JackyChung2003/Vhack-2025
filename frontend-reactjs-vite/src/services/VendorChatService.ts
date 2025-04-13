@@ -65,7 +65,7 @@ export const useVendorChatStore = create<VendorChatStore>((set) => ({
                 { id: 3, sender: "Vendor", text: "We need filters for our clean water initiative in rural areas.", timestamp: "Yesterday, 3:20 PM", status: 'read' },
                 { id: 4, sender: "Vendor", text: "Our Model X200 would be perfect for that. It's designed for rural settings with limited infrastructure.", timestamp: "Yesterday, 3:45 PM", status: 'read' },
                 { id: 5, sender: "Vendor", text: "Great! What's the price for 100 units?", timestamp: "Yesterday, 4:00 PM", status: 'read' },
-                { id: 6, sender: "Vendor", text: "For 100 units, the regular price would be $5,000, but we can offer a 10% discount on your next order.", timestamp: "2 hours ago", status: 'read' },
+                { id: 6, sender: "Vendor", text: "For 100 units, the regular price would be RM5,000, but we can offer a 10% discount on your next order.", timestamp: "2 hours ago", status: 'read' },
                 { id: 7, sender: "Vendor", text: "Transaction Proposal", timestamp: "1 hour ago", status: 'read', transactionProposal: {
                     items: [
                         { name: "Water Filter X200", quantity: 100, price: 50 }
@@ -154,7 +154,7 @@ export const useVendorChatStore = create<VendorChatStore>((set) => ({
             },
             {
                 id: 6,
-                text: "For 100 units, the regular price would be $5,000, but we can offer a 10% discount on your next order.",
+                text: "For 100 units, the regular price would be RM5,000, but we can offer a 10% discount on your next order.",
                 timestamp: "2 hours ago",
                 fromVendor: true,
             },

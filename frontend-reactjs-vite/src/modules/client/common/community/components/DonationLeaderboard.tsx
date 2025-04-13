@@ -82,7 +82,7 @@ const DonationLeaderboard: React.FC<DonationLeaderboardProps> = ({
           <h3 className="text-xl font-bold text-[var(--headline)] mb-2">Top Donors</h3>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <p className="text-[var(--paragraph)]">
-              Total Donations: <span className="font-bold text-[var(--headline)]">${totalDonations.toLocaleString()}</span>
+              Total Donations: <span className="font-bold text-[var(--headline)]">RM{totalDonations.toLocaleString()}</span>
             </p>
             <div className="flex items-center gap-4">
               <button
@@ -158,7 +158,7 @@ const DonationLeaderboard: React.FC<DonationLeaderboardProps> = ({
                   </div>
                 </td>
                 <td className={`px-4 py-3 whitespace-nowrap ${simplified ? 'text-xs' : 'text-sm'}`}>
-                  <div className="font-bold text-[var(--headline)]">${donor.amount.toLocaleString()}</div>
+                  <div className="font-bold text-[var(--headline)]">RM{donor.amount.toLocaleString()}</div>
                 </td>
                 {!simplified && (
                   <>

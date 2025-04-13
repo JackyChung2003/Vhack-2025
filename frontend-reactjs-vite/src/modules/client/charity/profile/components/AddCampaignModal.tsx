@@ -90,7 +90,7 @@ const AddCampaignModal: React.FC<AddCampaignModalProps> = ({ onClose, onSave }) 
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-[var(--headline)] mb-2">Funding Goal (USD) *</label>
+              <label className="block text-sm font-medium text-[var(--headline)] mb-2">Funding Goal (RM) *</label>
               <input
                 type="number"
                 name="goal"

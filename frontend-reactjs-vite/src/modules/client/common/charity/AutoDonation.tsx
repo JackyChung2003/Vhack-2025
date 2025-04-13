@@ -70,7 +70,7 @@ const AutoDonationSetupModal: React.FC<{
             <h3 className="text-lg font-semibold text-[var(--headline)] mb-3">Donation Amount</h3>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <span className="text-[var(--paragraph)]">$</span>
+                <span className="text-[var(--paragraph)]">RM</span>
               </div>
               <input
                 type="number"
@@ -209,7 +209,7 @@ const DistributionDetails: React.FC<{
             Distribution on {new Date(distribution.date).toLocaleDateString()}
           </div>
           <div className="text-sm text-[var(--paragraph)]">
-            ${totalAmount} distributed to {distribution.recipients.length} recipient{distribution.recipients.length !== 1 ? 's' : ''}
+            RM{totalAmount} distributed to {distribution.recipients.length} recipient{distribution.recipients.length !== 1 ? 's' : ''}
           </div>
         </div>
         <button className="text-[var(--paragraph)] hover:text-[var(--headline)]">
@@ -237,7 +237,7 @@ const DistributionDetails: React.FC<{
                       {recipient.name}
                     </span>
                   </div>
-                  <span className="font-semibold text-[var(--highlight)]">${recipient.amount}</span>
+                  <span className="font-semibold text-[var(--highlight)]">RM{recipient.amount}</span>
                 </div>
                 <div className="flex justify-between items-center text-xs text-[var(--paragraph)]">
                   <div>
@@ -266,7 +266,7 @@ const AutoDonation: React.FC = () => {
   const autoDonations = mockDonorAutoDonations;
   
   const handleSetupComplete = (amount: number, frequency: string, categories: string[]) => {
-    console.log(`Auto donation setup: $${amount} ${frequency} to categories:`, categories);
+    console.log(`Auto donation setup: RM${amount} ${frequency} to categories:`, categories);
     // In a real app, this would call an API to set up the auto donation
     // For now, we'll just log it
   };
@@ -322,7 +322,7 @@ const AutoDonation: React.FC = () => {
                   <div>
                     <div className="flex items-center gap-2">
                       <h4 className="font-semibold text-[var(--headline)]">
-                        ${donation.amount} {donation.frequency}
+                        RM{donation.amount} {donation.frequency}
                       </h4>
                       <span className={`px-2 py-0.5 text-xs rounded-full ${
                         donation.donationType === 'direct' 

@@ -1,31 +1,31 @@
 import React, { useState } from "react";
-import { FaCheckCircle, FaPlus, FaFilter, FaBuilding } from "react-icons/fa";
+import { FaCheckCircle, FaPlus, FaFilter, FaBuilding, FaTruck, FaMoneyBillWave } from "react-icons/fa";
 import TransactionCard from "./TransactionCard";
 import CreateTransactionModal from "./CreateTransactionModal";
 import { mockOrganizations } from "../../../../utils/mockData";
 
+// Define transaction status type
+type TransactionStatus = 'pending' | 'approved' | 'payment_held' | 'shipped' | 'delivered' | 'completed' | 'rejected';
+
+// Define a Transaction type
+type Transaction = {
+  id: number;
+  items: Array<{
+    id: number;
+    name: string;
+    quantity: number;
+    price: number;
+  }>;
+  totalPrice: number;
+  organizationId: number;
+  status: TransactionStatus;
+  fundSource: string;
+  createdBy: 'charity' | 'vendor';
+  date: string;
+};
+
 const OrderManagement: React.FC = () => {
   const [selectedTransaction, setSelectedTransaction] = useState<null | {
-    id: number;
-    items: Array<{
-      id: number;
-      name: string;
-      quantity: number;
-      price: number;
-    }>;
-    totalPrice: number;
-    organizationId: number;
-    status: 'pending' | 'approved' | 'rejected' | 'completed';
-    fundSource: string;
-    createdBy: 'charity' | 'vendor';
-    date: string;
-  }>(null);
-  
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'completed'>('all');
-
-  type TransactionStatus = 'pending' | 'approved' | 'completed';
-  type Transaction = {
     id: number;
     items: Array<{
       id: number;
@@ -39,9 +39,12 @@ const OrderManagement: React.FC = () => {
     fundSource: string;
     createdBy: 'charity' | 'vendor';
     date: string;
-  };
+  }>(null);
+  
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [filter, setFilter] = useState<'all' | TransactionStatus>('all');
 
-  // Mock data for transactions
+  // Mock data for transactions with expanded statuses
   const transactions: Transaction[] = [
     {
       id: 1,
@@ -50,9 +53,9 @@ const OrderManagement: React.FC = () => {
       ],
       totalPrice: 5000,
       organizationId: 1, // Global Relief
-      status: 'completed',
+      status: 'completed' as TransactionStatus,
       fundSource: "Clean Water Initiative",
-      createdBy: 'charity',
+      createdBy: 'charity' as 'charity' | 'vendor',
       date: "2023-05-15"
     },
     {
@@ -63,9 +66,9 @@ const OrderManagement: React.FC = () => {
       ],
       totalPrice: 1000,
       organizationId: 1, // Global Relief
-      status: 'pending',
+      status: 'pending' as TransactionStatus,
       fundSource: "Clean Water Initiative",
-      createdBy: 'charity',
+      createdBy: 'charity' as 'charity' | 'vendor',
       date: "2023-05-15"
     },
     {
@@ -75,9 +78,9 @@ const OrderManagement: React.FC = () => {
       ],
       totalPrice: 1200,
       organizationId: 2, // EduCare
-      status: 'approved',
+      status: 'approved' as TransactionStatus,
       fundSource: "Education for All",
-      createdBy: 'vendor',
+      createdBy: 'vendor' as 'charity' | 'vendor',
       date: "2023-05-10"
     },
     {
@@ -87,9 +90,9 @@ const OrderManagement: React.FC = () => {
       ],
       totalPrice: 800,
       organizationId: 4, // Health Alliance
-      status: 'completed',
+      status: 'payment_held' as TransactionStatus,
       fundSource: "General Fund",
-      createdBy: 'charity',
+      createdBy: 'charity' as 'charity' | 'vendor',
       date: "2023-04-28"
     },
     {
@@ -99,16 +102,37 @@ const OrderManagement: React.FC = () => {
       ],
       totalPrice: 1500,
       organizationId: 3, // Nature First
-      status: 'completed',
+      status: 'shipped' as TransactionStatus,
       fundSource: "Hunger Relief",
-      createdBy: 'vendor',
+      createdBy: 'vendor' as 'charity' | 'vendor',
       date: "2023-04-20"
+    },
+    {
+      id: 6,
+      items: [
+        { id: 7, name: "Hygiene Kits", quantity: 120, price: 8 }
+      ],
+      totalPrice: 960,
+      organizationId: 1, // Global Relief
+      status: 'delivered' as TransactionStatus,
+      fundSource: "Emergency Response",
+      createdBy: 'charity' as 'charity' | 'vendor',
+      date: "2023-04-15"
     },
   ];
 
-  // Sort transactions by status (pending -> approved -> completed)
+  // Sort transactions by status
   const sortTransactions = (transactions: Transaction[]) => {
-    const statusOrder: Record<TransactionStatus, number> = { 'pending': 0, 'approved': 1, 'completed': 2 };
+    const statusOrder: Record<TransactionStatus, number> = { 
+      'pending': 0, 
+      'approved': 1, 
+      'payment_held': 2, 
+      'shipped': 3, 
+      'delivered': 4, 
+      'completed': 5,
+      'rejected': 6
+    };
+    
     return [...transactions].sort((a, b) => {
       // First sort by status
       const statusDiff = statusOrder[a.status] - statusOrder[b.status];
@@ -133,12 +157,89 @@ const OrderManagement: React.FC = () => {
   };
 
   const handleApprove = () => {
-    console.log(`Approved transaction ID: ${selectedTransaction?.id}`);
-    setSelectedTransaction(null);
+    if (selectedTransaction) {
+      console.log(`Approved transaction ID: ${selectedTransaction.id}`);
+      // In a real app, you would call an API to update the transaction
+      // For now, we'll just simulate the update
+      const updatedTransaction = {
+        ...selectedTransaction,
+        status: 'payment_held' as TransactionStatus
+      };
+      setSelectedTransaction(updatedTransaction);
+      
+      // Here you would typically update the transactions list as well
+      // For demo purposes, we're just logging
+      console.log("Payment is now held in escrow until delivery confirmation");
+    }
+  };
+
+  const handleMarkAsShipped = () => {
+    if (selectedTransaction) {
+      console.log(`Marked as shipped transaction ID: ${selectedTransaction.id}`);
+      // In a real app, you would call an API to update the transaction
+      const updatedTransaction = {
+        ...selectedTransaction,
+        status: 'shipped' as TransactionStatus
+      };
+      setSelectedTransaction(updatedTransaction);
+      
+      // Here you would typically update the transactions list as well
+      console.log("Order has been marked as shipped. Waiting for charity to confirm delivery.");
+    }
   };
 
   const handleCreateTransaction = () => {
     setShowCreateModal(true);
+  };
+
+  // Get status icon based on transaction status
+  const getStatusIcon = (status: TransactionStatus) => {
+    switch(status) {
+      case 'pending':
+        return <FaCheckCircle className="w-5 h-5 opacity-30 text-gray-400" />;
+      case 'approved':
+        return <FaCheckCircle className="w-5 h-5 text-blue-500" />;
+      case 'payment_held':
+        return <FaMoneyBillWave className="w-5 h-5 text-purple-500" />;
+      case 'shipped':
+        return <FaTruck className="w-5 h-5 text-indigo-500" />;
+      case 'delivered':
+        return <FaCheckCircle className="w-5 h-5 text-teal-500" />;
+      case 'completed':
+        return <FaCheckCircle className="w-5 h-5 text-green-500" />;
+      case 'rejected':
+        return <FaCheckCircle className="w-5 h-5 text-red-500" />;
+      default:
+        return <FaCheckCircle className="w-5 h-5 opacity-30 text-gray-400" />;
+    }
+  };
+
+  // Function to get progress percentage based on status
+  const getProgressPercentage = (status: TransactionStatus) => {
+    switch(status) {
+      case 'pending': return 10;
+      case 'approved': return 25;
+      case 'payment_held': return 40;
+      case 'shipped': return 60;
+      case 'delivered': return 80;
+      case 'completed': return 100;
+      case 'rejected': return 0;
+      default: return 0;
+    }
+  };
+
+  // Function to get step value based on status
+  const getStepValue = (status: TransactionStatus): number => {
+    const stepMap: Record<TransactionStatus, number> = {
+      'pending': 0,
+      'approved': 1,
+      'payment_held': 2,
+      'shipped': 3,
+      'delivered': 4,
+      'completed': 5,
+      'rejected': -1
+    };
+    return stepMap[status];
   };
 
   return (
@@ -155,6 +256,9 @@ const OrderManagement: React.FC = () => {
               <option value="all">All Orders</option>
               <option value="pending">Pending Approval</option>
               <option value="approved">Approved</option>
+              <option value="payment_held">Payment Held</option>
+              <option value="shipped">Shipped</option>
+              <option value="delivered">Delivered</option>
               <option value="completed">Completed</option>
             </select>
             <FaFilter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -177,36 +281,61 @@ const OrderManagement: React.FC = () => {
               <div
                 key={transaction.id}
                 onClick={() => handleTransactionClick(transaction)}
-                className="bg-[var(--card-background)] p-4 rounded-lg shadow-md border border-[var(--card-border)] flex items-center cursor-pointer hover:bg-[var(--background)] transition-all"
+                className="bg-[var(--card-background)] p-4 rounded-lg shadow-md border border-[var(--card-border)] cursor-pointer hover:bg-[var(--background)] transition-all"
               >
-                <div className="flex-1">
-                  <div className="flex justify-between">
-                    <div className="flex items-center gap-2">
-                      <FaBuilding className="text-[var(--highlight)]" />
-                      <p className={`text-[var(--headline)] font-semibold ${
-                        transaction.status === 'completed' ? 'line-through' : ''
+                <div className="flex items-center">
+                  <div className="flex-1">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <FaBuilding className="text-[var(--highlight)]" />
+                        <p className={`text-[var(--headline)] font-semibold ${
+                          transaction.status === 'completed' ? 'line-through' : ''
+                        }`}>
+                          {organization?.name || 'Unknown Organization'} - {transaction.items.length} item(s)
+                        </p>
+                      </div>
+                      <span className={`text-sm px-2 py-1 rounded-full ${
+                        transaction.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        transaction.status === 'approved' ? 'bg-blue-100 text-blue-800' :
+                        transaction.status === 'payment_held' ? 'bg-purple-100 text-purple-800' :
+                        transaction.status === 'shipped' ? 'bg-indigo-100 text-indigo-800' :
+                        transaction.status === 'delivered' ? 'bg-teal-100 text-teal-800' :
+                        transaction.status === 'completed' ? 'bg-green-100 text-green-800' :
+                        'bg-red-100 text-red-800'
                       }`}>
-                        {organization?.name || 'Unknown Organization'} - {transaction.items.length} item(s)
-                      </p>
+                        {transaction.status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                      </span>
                     </div>
-                    <span className={`text-sm px-2 py-1 rounded-full ${
-                      transaction.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                      transaction.status === 'approved' ? 'bg-blue-100 text-blue-800' :
-                      'bg-green-100 text-green-800'
-                    }`}>
-                      {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
-                    </span>
+                    <p className="text-sm text-[var(--paragraph)]">
+                      Total: RM{transaction.totalPrice.toLocaleString()} | Fund: {transaction.fundSource}
+                    </p>
+                    <p className="text-sm text-[var(--paragraph)]">
+                      Created by: {transaction.createdBy === 'vendor' ? 'You' : organization?.name} | Date: {transaction.date}
+                    </p>
+                    
+                    {/* Compact step indicators */}
+                    <div className="flex mt-3 space-x-1">
+                      {['pending', 'approved', 'payment_held', 'shipped', 'delivered', 'completed'].map((step, index) => {
+                        const isActive = getStepValue(transaction.status) >= index;
+                        const isCurrentStep = getStepValue(transaction.status) === index;
+                        return (
+                          <div 
+                            key={index}
+                            className={`h-1.5 flex-1 rounded-full ${
+                              isActive ? 
+                                (isCurrentStep ? 'bg-[var(--highlight)]' : 'bg-[var(--highlight)] bg-opacity-60') : 
+                                'bg-gray-200'
+                            }`}
+                          />
+                        );
+                      })}
+                    </div>
                   </div>
-                  <p className="text-sm text-[var(--paragraph)]">
-                    Total: ${transaction.totalPrice.toLocaleString()} | Fund: {transaction.fundSource}
-                  </p>
-                  <p className="text-sm text-[var(--paragraph)]">
-                    Created by: {transaction.createdBy === 'vendor' ? 'You' : organization?.name} | Date: {transaction.date}
-                  </p>
-                </div>
-                {/* Status icon */}
-                <div className={transaction.status === 'completed' ? "text-green-500" : "text-gray-400"}>
-                  <FaCheckCircle className={`w-5 h-5 ${transaction.status === 'completed' ? '' : 'opacity-30'}`} />
+                  
+                  {/* Status icon */}
+                  <div className="ml-4">
+                    {getStatusIcon(transaction.status)}
+                  </div>
                 </div>
               </div>
             );
@@ -223,7 +352,8 @@ const OrderManagement: React.FC = () => {
         <TransactionCard
           transaction={selectedTransaction}
           onClose={handleCloseCard}
-          onApprove={selectedTransaction.status === 'pending' && selectedTransaction.createdBy === 'vendor' ? handleApprove : undefined}
+          onApprove={selectedTransaction.status === 'pending' && selectedTransaction.createdBy === 'charity' ? handleApprove : undefined}
+          onMarkAsShipped={selectedTransaction.status === 'payment_held' ? handleMarkAsShipped : undefined}
         />
       )}
 

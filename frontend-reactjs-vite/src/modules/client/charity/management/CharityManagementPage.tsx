@@ -216,7 +216,7 @@ const CharityManagementPage: React.FC = () => {
             <div>
               <p className="text-[var(--paragraph)] mb-1">Campaign Funds</p>
               <h3 className="text-2xl font-bold text-[var(--headline)]">
-                ${campaignFundsRaised.toLocaleString()}
+                RM{campaignFundsRaised.toLocaleString()}
               </h3>
             </div>
             <div className="p-3 bg-green-100 text-green-600 rounded-full">
@@ -230,7 +230,7 @@ const CharityManagementPage: React.FC = () => {
             <div>
               <p className="text-[var(--paragraph)] mb-1">General Fund</p>
               <h3 className="text-2xl font-bold text-[var(--headline)]">
-                ${generalFundBalance.toLocaleString()}
+                RM{generalFundBalance.toLocaleString()}
               </h3>
             </div>
             <div className="p-3 bg-purple-100 text-purple-600 rounded-full">
@@ -244,7 +244,7 @@ const CharityManagementPage: React.FC = () => {
             <div>
               <p className="text-[var(--paragraph)] mb-1">Total Funds</p>
               <h3 className="text-2xl font-bold text-[var(--headline)]">
-                ${totalFunds.toLocaleString()}
+                RM{totalFunds.toLocaleString()}
               </h3>
             </div>
             <div className="p-3 bg-yellow-100 text-yellow-600 rounded-full">
@@ -296,7 +296,7 @@ const CharityManagementPage: React.FC = () => {
                       </span>
                     </div>
                     <p className="text-2xl font-bold text-[var(--headline)] mb-1">
-                      ${generalFundBalance.toLocaleString()}
+                      RM{generalFundBalance.toLocaleString()}
                     </p>
                     <p className="text-xs text-[var(--paragraph)]">
                       Available for any charitable purpose
@@ -317,7 +317,7 @@ const CharityManagementPage: React.FC = () => {
                       </span>
                     </div>
                     <p className="text-2xl font-bold text-[var(--headline)] mb-1">
-                      ${campaignFundsRaised.toLocaleString()}
+                      RM{campaignFundsRaised.toLocaleString()}
                     </p>
                     <p className="text-xs text-[var(--paragraph)] mb-3">
                       Designated for specific campaigns
@@ -336,7 +336,7 @@ const CharityManagementPage: React.FC = () => {
                             <span className="text-xs font-medium">Campaign-Specific</span>
                           </div>
                           <p className="text-sm font-bold text-[var(--headline)]">
-                            ${Math.round(campaignFundsRaised * 0.6).toLocaleString()}
+                            RM{Math.round(campaignFundsRaised * 0.6).toLocaleString()}
                           </p>
                           <p className="text-xs text-[var(--paragraph)]">Refundable if goal not met</p>
                         </div>
@@ -348,7 +348,7 @@ const CharityManagementPage: React.FC = () => {
                             <span className="text-xs font-medium">Always Donate</span>
                           </div>
                           <p className="text-sm font-bold text-[var(--headline)]">
-                            ${Math.round(campaignFundsRaised * 0.4).toLocaleString()}
+                            RM{Math.round(campaignFundsRaised * 0.4).toLocaleString()}
                           </p>
                           <p className="text-xs text-[var(--paragraph)]">Moves to general fund if needed</p>
                         </div>
@@ -440,7 +440,7 @@ const CharityManagementPage: React.FC = () => {
                             ></div>
                           </div>
                           <p className="text-xs text-[var(--paragraph)] mt-1">
-                            ${campaign.amount.toLocaleString()}
+                            RM{campaign.amount.toLocaleString()}
                           </p>
                         </div>
                       ))}
@@ -472,7 +472,7 @@ const CharityManagementPage: React.FC = () => {
                                 </div>
                               </td>
                               <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                                ${activity.amount.toLocaleString()}
+                                RM{activity.amount.toLocaleString()}
                               </td>
                               <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                                 {activity.date}
@@ -504,7 +504,7 @@ const CharityManagementPage: React.FC = () => {
                             return (
                               <div key={index} className="flex flex-col items-center flex-1">
                                 <div className="text-xs text-center mb-1 text-[var(--paragraph)]">
-                                  ${month.amount.toLocaleString()}
+                                  RM{month.amount.toLocaleString()}
                                 </div>
                                 <div 
                                   className="w-full bg-blue-500 rounded-t-sm" 
@@ -519,7 +519,7 @@ const CharityManagementPage: React.FC = () => {
                           })}
                         </div>
                         <div className="mt-4 text-sm text-center text-[var(--headline)] font-medium">
-                          Total donations: ${donationTracker.donations.total.toLocaleString()}
+                          Total donations: RM{donationTracker.donations.total.toLocaleString()}
                         </div>
                       </div>
                     </div>
@@ -677,7 +677,7 @@ const CharityManagementPage: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-1 text-sm text-[var(--paragraph)]">
                           <FaMoneyBillWave />
-                          <span>${campaign.currentContributions.toLocaleString()} of ${campaign.goal.toLocaleString()}</span>
+                          <span>RM{campaign.currentContributions.toLocaleString()} of RM{campaign.goal.toLocaleString()}</span>
                         </div>
                       </div>
                       

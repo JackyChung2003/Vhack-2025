@@ -25,7 +25,7 @@ const DonationHistory: React.FC = () => {
           <div key={donation.id} className="p-6 hover:bg-[var(--background)] transition-colors">
             <div className="flex justify-between items-start mb-2">
               <h3 className="font-semibold text-[var(--headline)]">{donation.campaign}</h3>
-              <span className="text-[var(--highlight)] font-bold">${donation.amount}</span>
+              <span className="text-[var(--highlight)] font-bold">RM{donation.amount}</span>
             </div>
             <div className="flex items-center gap-4 text-sm text-[var(--paragraph)]">
               <span className="flex items-center gap-1">

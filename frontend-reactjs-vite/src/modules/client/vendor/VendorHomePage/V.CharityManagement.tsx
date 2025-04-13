@@ -43,7 +43,7 @@ const VendorManagement: React.FC = () => {
                   <span className="text-sm px-2 py-1 rounded-full bg-yellow-100 text-yellow-800">Pending</span>
                 </div>
                 <p className="text-sm text-[var(--paragraph)]">
-                  Total: $1,000 | Fund: Clean Water Initiative
+                  Total: RM1,000 | Fund: Clean Water Initiative
                 </p>
               </div>
             </div>
@@ -55,7 +55,7 @@ const VendorManagement: React.FC = () => {
                   <span className="text-sm px-2 py-1 rounded-full bg-blue-100 text-blue-800">Approved</span>
                 </div>
                 <p className="text-sm text-[var(--paragraph)]">
-                  Total: $1,200 | Fund: Education for All
+                  Total: RM1,200 | Fund: Education for All
                 </p>
               </div>
             </div>
