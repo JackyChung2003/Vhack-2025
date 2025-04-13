@@ -5,6 +5,7 @@ import CharityCampaigns from "./components/CharityCampaigns";
 import CommunityManagement from "./components/CommunityManagement";
 import { charityService, CharityProfile as CharityProfileType } from "../../../../services/supabase/charityService";
 import { toast } from "react-toastify";
+import AddCampaignModal from "../../../../components/modals/AddCampaignModal";
 import LoginButton from "../../../../components/Button/LoginButton";
 
 const CharityProfile: React.FC = () => {
@@ -12,6 +13,7 @@ const CharityProfile: React.FC = () => {
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAddCampaignModal, setShowAddCampaignModal] = useState(false);
   
   // Initialize with empty data structure
   const [charityData, setCharityData] = useState<CharityProfileType>({
@@ -81,14 +83,81 @@ const CharityProfile: React.FC = () => {
     }
   };
 
+  // Handle campaign modal
+  const handleOpenCampaignModal = () => {
+    setShowAddCampaignModal(true);
+  };
+
+  const handleCloseCampaignModal = () => {
+    setShowAddCampaignModal(false);
+  };
+
+  const handleSaveCampaign = async (campaignData: FormData) => {
+    try {
+      await charityService.createCampaign(campaignData);
+      toast.success("Campaign created successfully!");
+      setShowAddCampaignModal(false);
+      // Force refresh of campaigns
+      window.dispatchEvent(new CustomEvent('refreshCampaigns'));
+    } catch (err: any) {
+      console.error("Error creating campaign:", err);
+      toast.error(err.message || "Failed to create campaign. Please try again.");
+      throw err;
+    }
+  };
+
   if (loading && !charityData.name) {
-    return <div className="min-h-screen flex items-center justify-center">Loading charity profile...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="bg-[var(--main)] p-8 rounded-xl shadow-xl border border-[var(--stroke)]">
+          <div className="flex flex-col items-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--highlight)] mb-4"></div>
+            <p className="text-[var(--paragraph)]">Loading charity profile...</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (error && !charityData.name) {
-    return <div className="min-h-screen flex items-center justify-center text-red-500">{error}</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="bg-[var(--main)] p-8 rounded-xl shadow-xl border border-[var(--stroke)]">
+          <div className="flex flex-col items-center">
+            <div className="text-red-500 text-xl mb-4">⚠️</div>
+            <p className="text-red-500">{error}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="mt-4 px-4 py-2 rounded-lg bg-[var(--highlight)] text-white hover:bg-opacity-90"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
+  // Show message if no profile found
+  if (!loading && !error && !charityData.name) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="bg-[var(--main)] p-8 rounded-xl shadow-xl border border-[var(--stroke)]">
+          <div className="flex flex-col items-center">
+            <p className="text-[var(--paragraph)] mb-4">No charity profile found.</p>
+            <button 
+              onClick={() => setIsEditing(true)}
+              className="px-4 py-2 rounded-lg bg-[var(--highlight)] text-white hover:bg-opacity-90"
+            >
+              Create Profile
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // The rest of the component remains the same
   return (
     <div className="min-h-screen bg-[var(--background)]">
       {/* Hero Section with Gradient Background */}
@@ -218,9 +287,15 @@ const CharityProfile: React.FC = () => {
               <FaHandHoldingHeart className="text-[var(--highlight)] text-xl mr-3" />
               <h2 className="text-2xl font-bold text-[var(--headline)]">Campaigns</h2>
             </div>
+            <button 
+              onClick={handleOpenCampaignModal}
+              className="px-4 py-2 rounded-lg bg-[var(--highlight)] text-white hover:bg-opacity-90 flex items-center gap-2 transition-colors"
+            >
+              <FaPlus /> New Campaign
+            </button>
           </div>
           <div className="bg-[var(--main)] rounded-xl overflow-hidden">
-            <CharityCampaigns />
+            <CharityCampaigns onAddCampaign={handleOpenCampaignModal} />
           </div>
         </section>
 
@@ -252,8 +327,8 @@ const CharityProfile: React.FC = () => {
       {/* Edit Profile Modal */}
       {isEditing && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-[var(--main)] rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-[var(--stroke)] flex justify-between items-center">
+          <div className="bg-[var(--main)] rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-[var(--stroke)] flex justify-between items-center sticky top-0 bg-[var(--main)] z-10">
               <h2 className="text-xl font-bold text-[var(--headline)]">Edit Organization Profile</h2>
               <button 
                 onClick={() => setIsEditing(false)}
@@ -272,24 +347,26 @@ const CharityProfile: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Add Campaign Modal - Moved to page root level */}
+      {showAddCampaignModal && (
+        <AddCampaignModal 
+          onClose={handleCloseCampaignModal} 
+          onSave={handleSaveCampaign} 
+        />
+      )}
     </div>
   );
 };
 
-// Stat component for displaying statistics
+// Stats component for showing metrics
 const Stat: React.FC<{ icon: React.ReactNode; value: string | number; label: string }> = ({ 
   icon, value, label 
 }) => (
-  <div className="bg-[var(--main)] rounded-lg p-4 border border-[var(--stroke)] hover:shadow-md transition-all">
-    <div className="flex items-center gap-3">
-      <div className="w-10 h-10 rounded-full bg-[var(--highlight)] bg-opacity-10 flex items-center justify-center text-[var(--highlight)]">
-        {icon}
-      </div>
-      <div>
-        <p className="text-2xl font-bold text-[var(--headline)]">{value}</p>
-        <p className="text-sm text-[var(--paragraph)]">{label}</p>
-      </div>
-    </div>
+  <div className="bg-[var(--background)] rounded-lg p-4 flex flex-col items-center justify-center text-center">
+    <div className="text-[var(--highlight)] mb-2">{icon}</div>
+    <div className="font-bold text-xl mb-1 text-[var(--headline)]">{value}</div>
+    <div className="text-xs text-[var(--paragraph)]">{label}</div>
   </div>
 );
 

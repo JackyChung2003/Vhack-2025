@@ -27,12 +27,16 @@ import {
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { mockCampaigns, mockOrganizations } from "../../../../utils/mockData";
+import AddCampaignModal from "../../../../components/modals/AddCampaignModal";
+import { charityService } from "../../../../services/supabase/charityService";
+import { toast } from "react-toastify";
 
 // Mock current charity organization ID (Global Relief)
 const CURRENT_CHARITY_ORG_ID = 1;
 
 const CharityHomePage: React.FC = () => {
   const navigate = useNavigate();
+  const [showAddCampaignModal, setShowAddCampaignModal] = useState(false);
   
   // Get the current organization
   const currentOrganization = mockOrganizations.find(org => org.id === CURRENT_CHARITY_ORG_ID);
@@ -63,7 +67,25 @@ const CharityHomePage: React.FC = () => {
 
   // Navigation handlers
   const handleNavigate = (path: string) => {
-    navigate(path);
+    if (path === "/create-campaign") {
+      setShowAddCampaignModal(true);
+    } else {
+      navigate(path);
+    }
+  };
+
+  // Handle creating a new campaign
+  const handleSaveCampaign = async (campaignData: FormData) => {
+    try {
+      await charityService.createCampaign(campaignData);
+      toast.success("Campaign created successfully!");
+      setShowAddCampaignModal(false);
+      // Refresh campaigns
+      window.dispatchEvent(new CustomEvent('refreshCampaigns'));
+    } catch (err: any) {
+      console.error("Error creating campaign:", err);
+      toast.error(err.message || "Failed to create campaign. Please try again.");
+    }
   };
 
   // Animation variants for staggered child animations
@@ -94,6 +116,14 @@ const CharityHomePage: React.FC = () => {
       transition={{ duration: 0.5 }}
       className="p-6 bg-[var(--background)] text-[var(--paragraph)] min-h-screen"
     >
+      {/* AddCampaignModal */}
+      {showAddCampaignModal && (
+        <AddCampaignModal 
+          onClose={() => setShowAddCampaignModal(false)}
+          onSave={handleSaveCampaign}
+        />
+      )}
+      
       {/* Welcome Header */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}

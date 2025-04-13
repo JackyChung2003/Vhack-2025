@@ -4,7 +4,11 @@ import { FaHandHoldingHeart, FaMoneyBillWave, FaCalendarAlt, FaChartLine, FaChev
 import { charityService, Campaign } from "../../../../../services/supabase/charityService";
 import { toast } from "react-toastify";
 
-const CharityCampaigns: React.FC = () => {
+interface CharityCampaignsProps {
+  onAddCampaign?: () => void;
+}
+
+const CharityCampaigns: React.FC<CharityCampaignsProps> = ({ onAddCampaign }) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -12,25 +16,42 @@ const CharityCampaigns: React.FC = () => {
   
   // Fetch actual campaigns from database
   useEffect(() => {
-    const fetchCampaigns = async () => {
-      try {
-        setLoading(true);
-        const campaignsData = await charityService.getCharityCampaigns();
-        setCampaigns(campaignsData);
-        setError(null);
-      } catch (err: any) {
-        console.error("Error fetching campaigns:", err);
-        setError(err.message || "Failed to load campaigns. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchCampaigns();
+
+    // Listen for refresh events from parent component
+    const handleRefresh = () => {
+      fetchCampaigns();
+    };
+    
+    window.addEventListener('refreshCampaigns', handleRefresh);
+    
+    return () => {
+      window.removeEventListener('refreshCampaigns', handleRefresh);
+    };
   }, []);
+
+  const fetchCampaigns = async () => {
+    try {
+      setLoading(true);
+      const campaignsData = await charityService.getCharityCampaigns();
+      setCampaigns(campaignsData);
+      setError(null);
+    } catch (err: any) {
+      console.error("Error fetching campaigns:", err);
+      setError(err.message || "Failed to load campaigns. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleView = (id: string) => {
     navigate(`/charity/${id}`);
+  };
+
+  const handleAddCampaign = () => {
+    if (onAddCampaign) {
+      onAddCampaign();
+    }
   };
 
   // Calculate statistics for the overview section
@@ -111,12 +132,15 @@ const CharityCampaigns: React.FC = () => {
               View and manage your fundraising campaigns
             </p>
           </div>
-          <button 
-            onClick={() => navigate("/charity-management")}
-            className="px-4 py-2 rounded-lg bg-[var(--highlight)] text-white hover:bg-opacity-90 flex items-center gap-2"
-          >
-            <FaPlus /> New Campaign
-          </button>
+          {/* Only show this button if there's no parent button */}
+          {!onAddCampaign && (
+            <button 
+              onClick={handleAddCampaign}
+              className="px-4 py-2 rounded-lg bg-[var(--highlight)] text-white hover:bg-opacity-90 flex items-center gap-2"
+            >
+              <FaPlus /> New Campaign
+            </button>
+          )}
         </div>
         
         {campaigns.length > 0 ? (
@@ -207,7 +231,7 @@ const CharityCampaigns: React.FC = () => {
               You haven't created any fundraising campaigns yet. Start your first campaign to begin raising funds for your cause.
             </p>
             <button 
-              onClick={() => navigate("/charity-management")}
+              onClick={handleAddCampaign}
               className="px-6 py-3 rounded-lg bg-[var(--highlight)] text-white hover:bg-opacity-90 flex items-center gap-2"
             >
               <FaPlus /> Create Your First Campaign
@@ -217,6 +241,10 @@ const CharityCampaigns: React.FC = () => {
       </div>
     </div>
   );
+};
+
+CharityCampaigns.defaultProps = {
+  onAddCampaign: undefined
 };
 
 export default CharityCampaigns;

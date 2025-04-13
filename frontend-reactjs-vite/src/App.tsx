@@ -22,7 +22,6 @@ import DonorProfile from "./modules/client/donor/profile/DonorProfile";
 import CharityProfile from "./modules/client/charity/profile/CharityProfile";
 import CharityHomePage from "./modules/client/charity/CharityHomePage/CharityHomePage";
 import CharityManagementPage from "./modules/client/charity/management/CharityManagementPage";
-import CreateCampaign from "./components/form/CreateCampaign";
 import VendorPage from "./modules/client/charity/Vendor/VendorPage";
 import VendorDashboard from "./modules/client/vendor/VendorHomePage/VendorDashboard";
 import VendorProfile from "./modules/client/vendor/VendorProfile";
@@ -125,7 +124,6 @@ export function App() {
 						<Route element={<ProtectedRoute allowedRoles={['charity']} redirectPath="/" />}>
 							<Route path="/Vhack-2025/charity/home" element={<CharityHomePage />} />
 							<Route path="/Vhack-2025/charity/profile" element={<CharityProfile />} />
-							<Route path="/create-campaign" element={<CreateCampaign />} />
 							<Route path="/Vhack-2025/charity/vendor-page" element={<VendorPage />} />
 							<Route path="/charity-management" element={<CharityManagementPage />} />
 							
