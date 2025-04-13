@@ -5,8 +5,6 @@ import CharityCampaigns from "./components/CharityCampaigns";
 import CommunityManagement from "./components/CommunityManagement";
 import { charityService, CharityProfile as CharityProfileType } from "../../../../services/supabase/charityService";
 import { toast } from "react-toastify";
-import { mockOrganizations, mockCampaigns, mockCommunities } from "../../../../utils/mockData";
-
 import LoginButton from "../../../../components/Button/LoginButton";
 
 const CharityProfile: React.FC = () => {
@@ -15,39 +13,45 @@ const CharityProfile: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Get Global Relief organization data (id: 1)
-  const [charityData, setCharityData] = useState({
-    ...(mockOrganizations.find(org => org.id === 1) || {
-      id: 1,
-      name: "Global Relief",
-      description: "A worldwide organization dedicated to providing humanitarian aid in crisis situations.",
-      logo: "",
-      campaigns: 0,
-      totalRaised: 0
-    }),
-    email: "contact@globalrelief.org",
-    phone: "+1 (234) 567-890",
-    website: "globalrelief.org",
-    location: "New York, USA",
-    founded: "2005",
-    wallet_address: "0x123456789abcdef",
+  // Initialize with empty data structure
+  const [charityData, setCharityData] = useState<CharityProfileType>({
+    id: "",
+    name: "",
+    description: "",
+    logo: "",
+    founded: "",
+    location: "",
+    website: "",
+    email: "",
+    phone: "",
+    wallet_address: "",
     role: "charity",
-    verified: true,
-    created_at: new Date().toISOString()
+    verified: false,
+    created_at: "",
+    totalRaised: 0,
+    activeCampaigns: 0,
+    supporters: 0,
+    communities: 0
   });
 
-  // Calculate additional stats from mock data
-  const activeCampaigns = mockCampaigns.filter(
-    campaign => campaign.organizationId === 1 && 
-    new Date(campaign.deadline) > new Date() && 
-    campaign.currentContributions < campaign.goal
-  ).length;
+  // Fetch actual charity profile data
+  useEffect(() => {
+    const fetchCharityProfile = async () => {
+      try {
+        setLoading(true);
+        const profileData = await charityService.getCharityProfile();
+        setCharityData(profileData);
+        setError(null);
+      } catch (err: any) {
+        console.error("Error fetching charity profile:", err);
+        setError(err.message || "Failed to load charity profile. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const supporters = mockCampaigns
-    .filter(campaign => campaign.organizationId === 1)
-    .reduce((sum, campaign) => sum + Math.floor(campaign.currentContributions / 100), 0);
-
-  const communities = mockCommunities.filter(community => community.organizationId === 1).length;
+    fetchCharityProfile();
+  }, []);
 
   // Function to scroll to section
   const scrollToSection = (id: string) => {
@@ -66,7 +70,6 @@ const CharityProfile: React.FC = () => {
       setCharityData(prevData => ({
         ...prevData,
         ...savedData,
-        id: typeof savedData.id === 'string' ? parseInt(savedData.id) : savedData.id
       }));
       setIsEditing(false);
       toast.success("Charity information updated successfully!");
@@ -200,9 +203,9 @@ const CharityProfile: React.FC = () => {
               
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
                 <Stat icon={<FaHandHoldingHeart />} value={`RM${charityData.totalRaised?.toLocaleString() || '0'}`} label="Total Raised" />
-                <Stat icon={<FaHandHoldingHeart />} value={activeCampaigns} label="Active Campaigns" />
-                <Stat icon={<FaUsers />} value={supporters} label="Supporters" />
-                <Stat icon={<FaUsers />} value={communities} label="Communities" />
+                <Stat icon={<FaHandHoldingHeart />} value={charityData.activeCampaigns || 0} label="Active Campaigns" />
+                <Stat icon={<FaUsers />} value={charityData.supporters || 0} label="Supporters" />
+                <Stat icon={<FaUsers />} value={charityData.communities || 0} label="Communities" />
               </div>
             </div>
           </div>
@@ -259,11 +262,13 @@ const CharityProfile: React.FC = () => {
                 <FaTimes />
               </button>
             </div>
-            <CharityInfo 
-              charity={{...charityData, id: charityData.id.toString()}} 
-              isEditing={true} 
-              onSave={handleSaveCharityData} 
-            />
+            <div className="p-6">
+              <CharityInfo 
+                charity={charityData} 
+                isEditing={true} 
+                onSave={handleSaveCharityData} 
+              />
+            </div>
           </div>
         </div>
       )}
@@ -288,4 +293,4 @@ const Stat: React.FC<{ icon: React.ReactNode; value: string | number; label: str
   </div>
 );
 
-export default CharityProfile; 
+export default CharityProfile;
