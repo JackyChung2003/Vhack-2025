@@ -37,6 +37,8 @@ export interface TransactionProposal {
     }>;
     totalAmount: number;
     status: 'pending' | 'accepted' | 'rejected';
+    fundSource: 'campaign' | 'general';
+    campaignId?: number; // Only required if fundSource is 'campaign'
 }
 
 interface VendorChatStore {
