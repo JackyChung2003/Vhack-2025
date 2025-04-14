@@ -20,7 +20,7 @@ import {
 } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { mockCampaigns, mockOrganizations, Campaign, mockDonationTrackers } from "../../../../utils/mockData";
-import AddCampaignModal from "../profile/components/AddCampaignModal";
+import AddCampaignModal from "../../../../components/modals/AddCampaignModal";
 import { motion, AnimatePresence } from "framer-motion";
 
 // Mock current charity organization ID (Global Relief)
