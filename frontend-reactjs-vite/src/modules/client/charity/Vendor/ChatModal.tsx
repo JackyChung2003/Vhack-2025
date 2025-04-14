@@ -164,6 +164,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ chatId, onClose }) => {
         <ChatTransactionModal
           onClose={() => setShowTransactionModal(false)}
           onSubmit={handleTransactionSubmit}
+          chatId={chatId}
         />
       )}
     </>

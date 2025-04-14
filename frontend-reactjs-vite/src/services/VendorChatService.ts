@@ -37,6 +37,8 @@ export interface TransactionProposal {
     }>;
     totalAmount: number;
     status: 'pending' | 'accepted' | 'rejected';
+    fundSource: 'campaign' | 'general';
+    campaignId?: number; // Only required if fundSource is 'campaign'
 }
 
 interface VendorChatStore {
@@ -315,8 +317,36 @@ export const useVendorChatStore = create<VendorChatStore>((set) => ({
     }),
 
     openChat: (organizationId) => {
-        // This will be handled by the chat modal component
-        // The chat modal will listen to this event and show the appropriate chat
+        // Check if a chat already exists for this organization
+        const existingChat = useVendorChatStore.getState().chats.find(
+            chat => chat.organizationId === organizationId
+        );
+
+        if (!existingChat) {
+            // Create a new chat
+            const newChatId = Math.max(...useVendorChatStore.getState().chats.map(chat => chat.id), 0) + 1;
+            const newChat = {
+                id: newChatId,
+                organizationId,
+                lastMessage: "",
+                timestamp: "Just now",
+                unread: 0,
+                online: true,
+                avatar: null,
+                messages: []
+            };
+
+            // Update the store with the new chat
+            useVendorChatStore.setState(state => ({
+                chats: [...state.chats, newChat],
+                messages: {
+                    ...state.messages,
+                    [newChatId]: []
+                }
+            }));
+        }
+
+        // Dispatch the event to open the chat
         const event = new CustomEvent('openVendorChat', { detail: { organizationId } });
         window.dispatchEvent(event);
     }

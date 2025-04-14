@@ -61,7 +61,15 @@ const OrganizationCard: React.FC<OrganizationCardProps> = ({
 
   const handleContactClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    // First open the chat
     openChat(id);
+    // Then find the chat ID and set it as active
+    const chat = useVendorChatStore.getState().chats.find(
+      chat => chat.organizationId === id
+    );
+    if (chat) {
+      setActiveChatId(chat.id);
+    }
   };
 
   return (
