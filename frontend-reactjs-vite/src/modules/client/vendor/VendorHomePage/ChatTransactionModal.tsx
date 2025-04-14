@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { FaTimes, FaPlus, FaTrash } from "react-icons/fa";
 import { mockCampaigns } from "../../../../utils/mockData";
+import { useVendorChatStore } from "../../../../services/VendorChatService";
 
 interface Item {
   name: string;
@@ -16,18 +17,34 @@ interface ChatTransactionModalProps {
     fundSource: 'campaign' | 'general';
     campaignId?: number;
   }) => void;
+  chatId: number;
 }
 
 const ChatTransactionModal: React.FC<ChatTransactionModalProps> = ({
   onClose,
   onSubmit,
+  chatId
 }) => {
+  const { chats } = useVendorChatStore();
+  const currentChat = chats.find(chat => chat.id === chatId);
   const [items, setItems] = useState<Array<{ id: number; name: string; quantity: number; price: number }>>([
     { id: 1, name: "", quantity: 1, price: 0 }
   ]);
   const [fundSource, setFundSource] = useState<'campaign' | 'general'>('general');
   const [selectedCampaignId, setSelectedCampaignId] = useState<number | undefined>(undefined);
-  const [activeCampaigns, setActiveCampaigns] = useState(mockCampaigns.filter(c => new Date(c.deadline) > new Date()));
+  const [activeCampaigns, setActiveCampaigns] = useState(mockCampaigns.filter(c => 
+    new Date(c.deadline) > new Date() && 
+    c.organizationId === currentChat?.organizationId
+  ));
+
+  useEffect(() => {
+    if (currentChat) {
+      setActiveCampaigns(mockCampaigns.filter(c => 
+        new Date(c.deadline) > new Date() && 
+        c.organizationId === currentChat.organizationId
+      ));
+    }
+  }, [currentChat]);
 
   const handleAddItem = () => {
     setItems([...items, { id: Date.now(), name: "", quantity: 1, price: 0 }]);
