@@ -1,21 +1,32 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useRole } from '../../../contexts/RoleContext';
+import { useNavigate } from 'react-router-dom';
 import './styles.css';
 
-interface LoginButtonProps {
-  onClick: () => void;
-  isLoading: boolean;
-}
-
-const LoginButton: React.FC<LoginButtonProps> = ({ onClick, isLoading }) => {
+const LoginButton: React.FC = () => {
   const { user, signOut } = useAuth();
   const { clearRole } = useRole();
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
 
   // Handle Logout and Role Clearing
   const handleLogout = async () => {
-    await signOut();
-    clearRole(); // Clear the role in context and localStorage
+    setIsLoading(true);
+    try {
+        await signOut();
+        clearRole(); // Clear the role in context and localStorage
+        navigate('/login'); // Redirect to login after logout
+    } catch (error) {
+        console.error("Logout failed:", error);
+        // Optionally show an error message to the user
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
+  const handleSignInClick = () => {
+    navigate('/login');
   };
 
   return (
@@ -30,11 +41,11 @@ const LoginButton: React.FC<LoginButtonProps> = ({ onClick, isLoading }) => {
         </button>
       ) : (
         <button 
-          onClick={onClick} 
+          onClick={handleSignInClick} 
           className="auth-button login-button"
           disabled={isLoading}
         >
-          {isLoading ? 'Connecting...' : 'Sign In'}
+          Sign In
         </button>
       )}
     </div>

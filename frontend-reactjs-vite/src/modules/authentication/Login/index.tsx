@@ -12,7 +12,6 @@ const LoginPage = () => {
     const [password, setPassword] = useState('');
     const [isLoggingIn, setIsLoggingIn] = useState(false);
     const [isGoogleLoggingIn, setIsGoogleLoggingIn] = useState(false);
-    const [isChecked, setIsChecked] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const { signIn, signInWithProvider, user } = useAuth();
@@ -40,7 +39,7 @@ const LoginPage = () => {
             console.log("🎯 Role Found:", userRole);
             switch (userRole) {
                 case 'charity':
-                    navigate('/charity');
+                    navigate('/charity/home');
                     break;
                 case 'vendor':
                     navigate('/Vhack-2025/vendor/dashboard');
@@ -57,11 +56,6 @@ const LoginPage = () => {
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        
-        if (!isChecked) {
-            setError('❗ Please accept the Privacy Policy to continue.');
-            return;
-        }
 
         if (!email || !password) {
             setError('❗ Please enter both email and password.');
@@ -87,11 +81,6 @@ const LoginPage = () => {
     };
 
     const handleGoogleLogin = async () => {
-        if (!isChecked) {
-            setError('❗ Please accept the Privacy Policy to continue.');
-            return;
-        }
-
         setIsGoogleLoggingIn(true);
         setError(null);
 
@@ -100,8 +89,7 @@ const LoginPage = () => {
             if (error) {
                 throw new Error(error.message);
             }
-            // No need to navigate here - OAuth redirect will happen and
-            // useEffect will handle it after the redirect back
+
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to login with Google';
             setError(`❌ ${errorMessage}`);
@@ -160,16 +148,6 @@ const LoginPage = () => {
                             placeholder="Enter your password"
                             required
                         />
-                    </div>
-
-                    <div className="form-group checkbox">
-                        <input
-                            type="checkbox"
-                            id="privacy"
-                            checked={isChecked}
-                            onChange={() => setIsChecked(!isChecked)}
-                        />
-                        <label htmlFor="privacy">I agree to the Privacy Policy</label>
                     </div>
 
                     <button 
