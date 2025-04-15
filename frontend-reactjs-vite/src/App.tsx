@@ -1,16 +1,14 @@
 import { Routes, Route, Navigate, useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { useActiveAccount } from "thirdweb/react";
+import { useAuth } from "./contexts/AuthContext";
 import "./App.css";
 
 import HorizontalNavbar from "./modules/client/navigation/HorizontalNavBar/HorizontalNavBar";
 import BottomNavBar from "./modules/client/navigation/BottomNavBar/BottomNavBar";
 import ProtectedRoute from "./utils/ProtectedRoute";
 
-// import { useAuthCheck } from "./hooks/useAuthCheck";
 import { useRole } from "./contexts/RoleContext"; // New role context
 import RegisterPage from "./modules/authentication/Register";
-import ConnectWalletPage from "./modules/authentication/ConnectWallet";
 import LoginPage from "./modules/authentication/Login";
 import HomePage from "./modules/client/common/Dashboard";
 
@@ -47,35 +45,29 @@ const TypedCommunityRedirect = () => {
 };
 
 export function App() {
-	const activeAccount = useActiveAccount();
-	console.log("address", activeAccount?.address);
+	const { user, loading: authLoading } = useAuth();
 	const { userRole, isLoading, roleChecked, clearRole } = useRole();
+
+	console.log("User:", user?.id);
 	console.log("userRole", userRole);
 
 	const [isConnected, setIsConnected] = useState(false);
-
-	const [isInitialCheckComplete, setIsInitialCheckComplete] = useState(false);
-
-	const toggleConnect = () => setIsConnected(!isConnected);
-
 	const navigate = useNavigate();
 	const [isopen, setisopen] = useState(false);
 
 	const toggle = () => setisopen(!isopen);
 
 	useEffect(() => {
-		if (activeAccount?.address) {
+		if (user) {
 			setIsConnected(true);
-			localStorage.setItem('walletAddress', activeAccount.address);
 		} else {
 			setIsConnected(false);
 			clearRole();
 		}
-		console.log("Address: now", activeAccount?.address);
-	}, [activeAccount]);
+	}, [user, clearRole]);
 
-	if (!roleChecked) {
-		return <div>Loading...</div>;  // ✅ Loading shown only during Supabase checks
+	if (authLoading || !roleChecked) {
+		return <div>Loading...</div>;
 	}
 
 	return (
@@ -85,7 +77,6 @@ export function App() {
 				<BottomNavBar toggle={toggle} />
 			</div>
 			<Routes>
-				{/* {(!isConnected ) ? ( */}
 				{(!isConnected || !roleChecked) ? (
 					<>
 						<Route path="/login" element={<LoginPage />} />
@@ -142,14 +133,12 @@ export function App() {
 						<Route element={<ProtectedRoute allowedRoles={['vendor']} redirectPath="/" />}>
 							<Route path="/Vhack-2025/vendor/dashboard" element={<VendorDashboard />} />
 							<Route path="/Vhack-2025/vendor/profile" element={<VendorProfile />} />
-              <Route path="/vendor/profile" element={<VendorProfile />} />
-              <Route path="/vendor/order-history/:id" element={<OrderHistoryCard />} />
-              <Route path="/vendor/order-history-details" element={<OrderHistoryDetails />} />
-              <Route path="/vendor/order-tracker" element={<OrderTracker />} />
-              <Route path="/vendor/order-tracker-details" element={<OrderTrackerDetails />} />
-			  <Route path="/vendor/transaction-history-details" element={<TransactionHistoryDetails />} />
-
-
+              				<Route path="/vendor/profile" element={<VendorProfile />} />
+              				<Route path="/vendor/order-history/:id" element={<OrderHistoryCard />} />
+              				<Route path="/vendor/order-history-details" element={<OrderHistoryDetails />} />
+              				<Route path="/vendor/order-tracker" element={<OrderTracker />} />
+              				<Route path="/vendor/order-tracker-details" element={<OrderTrackerDetails />} />
+							<Route path="/vendor/transaction-history-details" element={<TransactionHistoryDetails />} />
 						</Route>
 
 						{/* Donor-Specific Routes */}
