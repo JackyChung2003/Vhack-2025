@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuthCheck } from '../hooks/useAuthCheck';
+import { useAuth } from './AuthContext';
 
 interface RoleContextType {
     userRole: string | null;
     isLoading: boolean;
-    roleChecked: boolean;  // ✅ New state added
+    roleChecked: boolean;
+    roleFetched: boolean;
     clearRole: () => void;
     refetchRole: () => void;
 }
@@ -12,8 +14,9 @@ interface RoleContextType {
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
 
 export const RoleProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { userRole, isLoading, refetchRole, roleChecked } = useAuthCheck();
-    const [role, setRole] = useState<string | null>(null);  // Changed from `userRole` to `null` for better sync
+    const { userRole, isLoading, refetchRole, roleChecked, roleFetched } = useAuthCheck();
+    const [role, setRole] = useState<string | null>(null);
+    const { user } = useAuth();
 
     const clearRole = () => {
         setRole(null);
@@ -34,8 +37,22 @@ export const RoleProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     }, [userRole, roleChecked]);
 
+    // Reset role when the user logs out
+    useEffect(() => {
+        if (!user) {
+            clearRole();
+        }
+    }, [user]);
+
     return (
-        <RoleContext.Provider value={{ userRole: role, isLoading, roleChecked, clearRole, refetchRole }}>
+        <RoleContext.Provider value={{ 
+            userRole: role, 
+            isLoading, 
+            roleChecked, 
+            roleFetched,
+            clearRole, 
+            refetchRole 
+        }}>
             {children}
         </RoleContext.Provider>
     );

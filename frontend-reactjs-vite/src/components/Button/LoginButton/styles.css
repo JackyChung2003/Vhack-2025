@@ -1,0 +1,41 @@
+.login-button-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin: 10px 0;
+}
+
+.auth-button {
+  width: 100%;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  text-align: center;
+}
+
+.login-button {
+  background-color: #faae2b;
+  color: #00473e;
+}
+
+.login-button:hover {
+  background-color: #f29d18;
+}
+
+.logout-button {
+  background-color: #fa5246;
+  color: #ffffff;
+}
+
+.logout-button:hover {
+  background-color: #e64235;
+}
+
+.auth-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+} 
