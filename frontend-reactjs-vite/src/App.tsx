@@ -28,6 +28,7 @@ import OrderHistoryCard from "./modules/client/vendor/OrderManagement/OrderHisto
 import OrderTracker from "./modules/client/vendor/OrderManagement/OrderTracker";
 import OrderTrackerDetails from "./modules/client/vendor/OrderManagement/OrderTrackerDetails";
 import TransactionHistoryDetails from "./modules/client/vendor/FinancialManagement/TransactionHistoryDetails";
+import SettingsPage from "./modules/client/settings/SettingsPage";
 
 const CommunityRedirect = () => {
 	const { id } = useParams();
@@ -91,24 +92,7 @@ export function App() {
 							<Route path="/charity" element={<CharityPage />} />
 							<Route path="/charity/:id" element={<CampaignDetail />} />
 							<Route path="/organization/:id" element={<OrganizationDetail />} />
-							
-							{/* Redirect community routes to campaign details */}
-							<Route 
-								path="/community" 
-								element={<Navigate to="/charity" replace />} 
-							/>
-							<Route 
-								path="/community/campaign/:id" 
-								element={<CommunityRedirect />} 
-							/>
-							<Route 
-								path="/community/organization/:id" 
-								element={<OrganizationRedirect />} 
-							/>
-							<Route 
-								path="/community/:type/:id" 
-								element={<TypedCommunityRedirect />} 
-							/>
+							<Route path="/settings" element={<SettingsPage />} />
 						</Route>
 
 						{/* Charity-Specific Routes */}
@@ -117,16 +101,6 @@ export function App() {
 							<Route path="/Vhack-2025/charity/profile" element={<CharityProfile />} />
 							<Route path="/Vhack-2025/charity/vendor-page" element={<VendorPage />} />
 							<Route path="/charity-management" element={<CharityManagementPage />} />
-							
-							{/* Update charity community admin route to point to campaign details */}
-							<Route 
-								path="/charity/community/campaign/:id" 
-								element={<CommunityRedirect />} 
-							/>
-							<Route 
-								path="/charity/community/organization/:id" 
-								element={<OrganizationRedirect />} 
-							/>
 						</Route>
 
 						{/* Vendor-Specific Routes */}
@@ -144,6 +118,7 @@ export function App() {
 						{/* Donor-Specific Routes */}
 						<Route element={<ProtectedRoute allowedRoles={['donor']} redirectPath="/" />}>
 							<Route path="/donor/profile" element={<DonorProfile />} />
+							
 						</Route>
 
 						<Route path="/register" element={<RegisterPage />} />
