@@ -13,7 +13,7 @@ export const useAuthCheck = () => {
     /**
      * 🔄 Ensures Supabase role fetching is attempted immediately once AND retries if needed.
      */
-    const fetchRoleWithRetry = async (retryCount = 3) => {
+    const fetchRoleWithRetry = async (retryCount = 1) => {
         if (!user?.id) return;  // 🚨 Prevent fetching if no user ID
 
         console.log(`🟡 Attempting to fetch role... (Remaining Retries: ${retryCount})`);
