@@ -263,7 +263,7 @@ export const charityService = {
       const { data: userData, error: profileError } = await supabase
         .from('users')
         .select('id')
-        .eq('wallet_address', user.id)
+        .eq('id', user.id)
         .eq('role', 'charity')
         .single();
       
@@ -341,7 +341,7 @@ export const charityService = {
       const { data: userData, error: profileError } = await supabase
         .from('users')
         .select('id')
-        .eq('wallet_address', user.id)
+        .eq('id', user.id)
         .eq('role', 'charity')
         .single();
       
@@ -436,7 +436,7 @@ export const charityService = {
       const { data: userData, error: profileError } = await supabase
         .from('users')
         .select('id')
-        .eq('wallet_address', user.id)
+        .eq('id', user.id)
         .eq('role', 'charity')
         .single();
       
