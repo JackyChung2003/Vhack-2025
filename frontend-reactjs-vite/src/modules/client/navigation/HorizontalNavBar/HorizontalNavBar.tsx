@@ -1,11 +1,11 @@
 import React from "react";
 import { Link, NavLink } from "react-router-dom";
-import { FaBars, FaHome, FaListAlt, FaUsers, FaUserCircle, FaComments, FaChartLine } from "react-icons/fa";
+import { FaBars, FaHome, FaListAlt, FaUsers, FaUserCircle, FaComments, FaChartLine, FaReceipt } from "react-icons/fa";
 import LoginButton from "../../../../components/Button/LoginButton";
 import logoNameImage from "../../../../assets/images/logo-name.png";
 import logoPNGImage from "../../../../assets/images/logo-png.png";
 import { useRole } from "../../../../contexts/RoleContext";
-import styles from "./HorizontalNavBar.module.css"; // Module CSS Import
+import styles from "./HorizontalNavBar.module.css";
 
 interface NavbarProps {
   toggle: () => void;
@@ -45,6 +45,11 @@ const HorizontalNavbar: React.FC<NavbarProps> = ({ toggle }) => {
       link: "/Vhack-2025/vendor/dashboard",
       icon: <FaHome />,
     },
+      {
+        title: "Order",
+        link: "/vendor/order-management",
+        icon: <FaReceipt />,
+      },
     {
       title: "Profile",
       link: "/Vhack-2025/vendor/profile",

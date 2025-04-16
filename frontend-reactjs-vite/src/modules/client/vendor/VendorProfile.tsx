@@ -1,18 +1,12 @@
 import React, { useState } from "react";
 import { FaBox, FaClipboardList, FaTruck, FaCalendarAlt, FaMoneyBillWave, FaChartLine } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import OrderHistory from "./OrderManagement/OrderHistory";
-import OrderRequest from "./OrderManagement/OrderRequest";
-import OrderManagement from "./VendorHomePage/OrderManagement";
 import FinancialDashboard from "./FinancialManagement/FinancialDashboard"; // Import Financial Dashboard
 import TransactionHistory from "./FinancialManagement/TransactionHistory"; // Import Transaction History
 import Report from "./FinancialManagement/Report"; // Import Report
 
 const VendorProfile: React.FC = () => {
   const navigate = useNavigate();
-
-  // State for active tab
-  const [activeTab, setActiveTab] = useState<"manageOrders" | "financialReport">("manageOrders");
 
   // Mock vendor data - In a real app, fetch this from your backend
   const vendorData = {
@@ -23,10 +17,6 @@ const VendorProfile: React.FC = () => {
     pendingOrders: 5,
     completedOrders: 10,
     totalEarnings: "RM120,000",
-  };
-
-  const handleViewAllOrders = () => {
-    navigate("/vendor/order-history-details"); // Redirect to the detailed order history page
   };
 
   return (
@@ -79,89 +69,25 @@ const VendorProfile: React.FC = () => {
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] mb-8">
-          <div className="flex p-2">
-            <button
-              onClick={() => setActiveTab("manageOrders")}
-              className={`flex-1 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                activeTab === "manageOrders"
-                  ? "bg-[var(--highlight)] text-white font-bold shadow-sm"
-                  : "text-[var(--paragraph)] hover:text-[var(--headline)] hover:bg-[var(--background)]"
-              }`}
-            >
-              <FaBox className="inline mr-2" />
-              Manage Your Orders
-            </button>
-            <button
-              onClick={() => setActiveTab("financialReport")}
-              className={`flex-1 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                activeTab === "financialReport"
-                  ? "bg-[var(--highlight)] text-white font-bold shadow-sm"
-                  : "text-[var(--paragraph)] hover:text-[var(--headline)] hover:bg-[var(--background)]"
-              }`}
-            >
-              <FaChartLine className="inline mr-2" />
-              Financial Report
-            </button>
-          </div>
-        </div>
-
-        {/* Content Sections */}
+        {/* Content Sections - Now only showing Financial Report */}
         <div className="space-y-8 mb-12">
-          {activeTab === "manageOrders" && (
-            <>
-              {/* Order History Section */}
-              <div className="animate-fadeIn">
-                <div className="bg-[var(--main)] rounded-xl shadow-md border border-[var(--stroke)] p-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-bold text-[var(--headline)]">Order History</h2>
-                    <button
-                      onClick={handleViewAllOrders}
-                      className="flex items-center justify-center w-10 h-10 bg-white text-[var(--highlight)] rounded-full shadow-md hover:opacity-90 transition-all"
-                    >
-                      →
-                    </button>
-                  </div>
-                  <OrderHistory />
-                </div>
-              </div>
+          {/* Always render Financial Report Content */}
+          <>
+            {/* Financial Dashboard Section */}
+            <div className="animate-fadeIn">
+              <FinancialDashboard />
+            </div>
 
-              {/* Order Management Section */}
-              <div className="animate-fadeIn delay-100">
-                <div className="bg-[var(--main)] rounded-xl shadow-md border border-[var(--stroke)] p-6">
-                  <OrderManagement />
-                </div>
-              </div>
+            {/* Transaction History Section */}
+            <div className="animate-fadeIn delay-100">
+              <TransactionHistory />
+            </div>
 
-              {/* Order Request Section */}
-              <div className="animate-fadeIn delay-200">
-                <div className="bg-[var(--main)] rounded-xl shadow-md border border-[var(--stroke)] p-6">
-                  <h2 className="text-xl font-bold text-[var(--headline)] mb-4">Order Requests</h2>
-                  <OrderRequest />
-                </div>
-              </div>
-            </>
-          )}
-
-          {activeTab === "financialReport" && (
-            <>
-              {/* Financial Dashboard Section */}
-              <div className="animate-fadeIn">
-                <FinancialDashboard />
-              </div>
-
-              {/* Transaction History Section */}
-              <div className="animate-fadeIn delay-100">
-                <TransactionHistory />
-              </div>
-
-              {/* Reports Section */}
-              <div className="animate-fadeIn delay-200">
-                <Report />
-              </div>
-            </>
-          )}
+            {/* Reports Section */}
+            <div className="animate-fadeIn delay-200">
+              <Report />
+            </div>
+          </>
         </div>
       </div>
     </div>
