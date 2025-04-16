@@ -21,6 +21,7 @@ const SettingsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('account');
   const [anonymousDonation, setAnonymousDonation] = useState(false);
   const [displayName, setDisplayName] = useState('');
+  const [userName, setUserName] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [savePaymentMethod, setSavePaymentMethod] = useState(true);
@@ -31,20 +32,33 @@ const SettingsPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load user settings from database on component mount
+  // Load user settings and name from database on component mount
   useEffect(() => {
     if (user) {
-      fetchUserSettings();
+      fetchUserData();
     }
   }, [user]);
 
-  // Function to fetch user settings from the database
-  const fetchUserSettings = async () => {
+  // Function to fetch user data including settings and name
+  const fetchUserData = async () => {
     if (!user) return;
     
     setIsLoading(true);
     try {
-      // Fetch user settings from Supabase
+      // First fetch the user's name from the users table
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('name')
+        .eq('id', user.id)
+        .single();
+      
+      if (userError) {
+        console.error('Error fetching user data:', userError);
+      } else if (userData) {
+        setUserName(userData.name || '');
+      }
+      
+      // Then fetch user settings
       const { data, error } = await supabase
         .from('user_settings')
         .select('*')
@@ -55,8 +69,8 @@ const SettingsPage: React.FC = () => {
         console.error('Error fetching user settings:', error);
         // If no settings found, create default settings
         if (error.code === 'PGRST116') {
-          // Use default settings for new users
-          setDisplayName(user?.user_metadata?.full_name || user?.email?.split('@')[0] || '');
+          // Use name from users table as default display name, fallback to other sources if needed
+          setDisplayName(userData?.name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || '');
           
           // For demo purposes, we'll still use localStorage for other settings
           const savedAnonymousSetting = localStorage.getItem('anonymousDonation');
@@ -90,8 +104,8 @@ const SettingsPage: React.FC = () => {
           }
         }
       } else if (data) {
-        // Apply settings from database
-        setDisplayName(data.display_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || '');
+        // Apply settings from database, still prioritizing name from users table
+        setDisplayName(data.display_name || userData?.name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || '');
         setAnonymousDonation(data.anonymous_donation || false);
         setSavePaymentMethod(data.save_payment_method || true);
         setEmailNotifications(data.email_notifications || true);
@@ -100,7 +114,7 @@ const SettingsPage: React.FC = () => {
         setTwoFactorAuth(data.two_factor_auth || false);
       }
     } catch (err) {
-      console.error('Error in fetchUserSettings:', err);
+      console.error('Error in fetchUserData:', err);
       setError('Failed to load user settings');
     } finally {
       setIsLoading(false);
@@ -115,6 +129,19 @@ const SettingsPage: React.FC = () => {
     setError(null);
     
     try {
+      // First update the user's name in the users table
+      const { error: nameError } = await supabase
+        .from('users')
+        .update({ name: displayName })
+        .eq('id', user.id);
+        
+      if (nameError) {
+        console.error('Error updating user name:', nameError);
+        setError('Failed to update user name');
+        return false;
+      }
+      
+      // Then update user settings
       const settings = {
         user_id: user.id,
         display_name: displayName,
@@ -137,6 +164,9 @@ const SettingsPage: React.FC = () => {
         setError('Failed to save settings');
         return false;
       }
+      
+      // Update local state with the new name
+      setUserName(displayName);
       
       return true;
     } catch (err) {
@@ -271,7 +301,7 @@ const SettingsPage: React.FC = () => {
                     )}
                   </div>
                   <div className="profile-info">
-                    <h3>{displayName || user?.email}</h3>
+                    <h3>{userName || displayName || user?.email}</h3>
                     <p>{user?.email}</p>
                     <p>Role: {userRole}</p>
                   </div>

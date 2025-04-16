@@ -40,14 +40,17 @@ export const charityService = {
   // Get the current charity's profile
   getCharityProfile: async (): Promise<CharityProfile> => {
     try {
-      const walletAddress = localStorage.getItem('walletAddress');
-      if (!walletAddress) throw new Error('User not authenticated');
+      // Get current authenticated user from Supabase Auth
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) throw authError;
+      if (!user) throw new Error('User not authenticated');
 
-      // First get the user data
+      // First get the user data from users table using auth id
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('*')
-        .eq('wallet_address', walletAddress)
+        .eq('id', user.id)
         .eq('role', 'charity')
         .single();
 
@@ -55,11 +58,43 @@ export const charityService = {
       if (!userData) throw new Error('Charity profile not found');
 
       // Then get the charity profile data
-      const { data: profileData, error: profileError } = await supabase
+      let { data: profileData, error: profileError } = await supabase
         .from('charity_profiles')
         .select('*')
         .eq('user_id', userData.id)
         .maybeSingle(); // Use maybeSingle instead of single to handle case where profile doesn't exist yet
+      
+      // If profile doesn't exist, create a new one automatically
+      if (!profileData) {
+        console.log('No charity profile found, creating a default one');
+        
+        // Create a default charity profile
+        const defaultProfile = {
+          user_id: userData.id,
+          description: `${userData.name}'s charity organization`,
+          founded: new Date().getFullYear().toString(),
+          location: '',
+          website: '',
+          email: user.email || userData.email || '',
+          phone: '',
+          created_at: new Date().toISOString()
+        };
+        
+        // Insert the default profile
+        const { data: newProfile, error: insertError } = await supabase
+          .from('charity_profiles')
+          .insert(defaultProfile)
+          .select()
+          .single();
+          
+        if (insertError) {
+          console.error('Error creating default charity profile:', insertError);
+          // Continue without the profile - we'll still return the user data
+        } else {
+          // If successfully created, use this as the profile data
+          profileData = newProfile;
+        }
+      }
 
       // Get additional stats
       const { data: campaignsData, error: campaignsError } = await supabase
@@ -107,14 +142,17 @@ export const charityService = {
   // Update charity profile
   updateCharityProfile: async (profileData: Partial<CharityProfile>): Promise<CharityProfile> => {
     try {
-      const walletAddress = localStorage.getItem('walletAddress');
-      if (!walletAddress) throw new Error('User not authenticated');
+      // Get current authenticated user 
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) throw authError;
+      if (!user) throw new Error('User not authenticated');
 
       // Get the charity ID
       const { data: userData, error: profileError } = await supabase
         .from('users')
         .select('id')
-        .eq('wallet_address', walletAddress)
+        .eq('id', user.id)
         .eq('role', 'charity')
         .single();
 
@@ -177,14 +215,17 @@ export const charityService = {
   // Get charity campaigns
   getCharityCampaigns: async (): Promise<Campaign[]> => {
     try {
-      const walletAddress = localStorage.getItem('walletAddress');
-      if (!walletAddress) throw new Error('User not authenticated');
+      // Get current authenticated user
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) throw authError;
+      if (!user) throw new Error('User not authenticated');
 
       // Get the charity ID
       const { data: userData, error: profileError } = await supabase
         .from('users')
         .select('id')
-        .eq('wallet_address', walletAddress)
+        .eq('id', user.id)
         .eq('role', 'charity')
         .single();
 
@@ -442,14 +483,17 @@ export const charityService = {
   // Upload logo
   uploadLogo: async (imageFile: File): Promise<string> => {
     try {
-      const walletAddress = localStorage.getItem('walletAddress');
-      if (!walletAddress) throw new Error('User not authenticated');
+      // Get current authenticated user
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) throw authError;
+      if (!user) throw new Error('User not authenticated');
 
       // Get the charity ID
       const { data: userData, error: profileError } = await supabase
         .from('users')
         .select('id')
-        .eq('wallet_address', walletAddress)
+        .eq('id', user.id)
         .eq('role', 'charity')
         .single();
 
