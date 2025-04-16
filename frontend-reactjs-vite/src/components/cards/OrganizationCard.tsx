@@ -91,9 +91,11 @@ const OrganizationCard: React.FC<OrganizationCardProps> = ({
         <p className="mb-5 text-[var(--paragraph)] line-clamp-3">{description}</p>
         
         <div className="flex justify-between items-center mt-4 pt-3 border-t border-gray-200">
-          <div className="text-sm flex items-center gap-1">
-            <FaHandHoldingHeart className="text-[var(--tertiary)]" />
-            <span className="font-semibold">{campaigns}</span> active campaigns
+          <div className="text-center">
+            <FaHandHoldingHeart className="text-[var(--tertiary)] mx-auto mb-1 text-lg" />
+            <span className="text-xs font-semibold bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full">
+              {campaigns} Active
+            </span>
           </div>
           <div className="text-sm flex items-center gap-1">
             <span className="font-semibold">RM{totalRaised.toLocaleString()}</span> raised

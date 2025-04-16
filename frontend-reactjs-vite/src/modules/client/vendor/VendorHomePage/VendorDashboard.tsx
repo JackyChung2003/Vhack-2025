@@ -1,45 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FaSearch, FaComments } from "react-icons/fa";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import CharityChats from "./V.CharityChats";
 import CharitySearch from "./CharitySearch";
 
 const VendorDashboard: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState<"charities" | "chats">("charities");
-
-  // Read tab from URL parameters on component mount and when URL changes
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const tab = params.get("tab");
-
-    if (tab === "chats" || tab === "charities") {
-      setActiveTab(tab);
-    }
-  }, [location.search]);
-
-  // Update URL when tab changes
-  const handleTabChange = (tab: "charities" | "chats") => {
-    setActiveTab(tab);
-    navigate(`/Vhack-2025/vendor/dashboard?tab=${tab}`, { replace: true });
-  };
-
-  // Define animation variants
-  const tabContentVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.5 },
-    },
-    exit: {
-      opacity: 0,
-      y: -20,
-      transition: { duration: 0.3 },
-    },
-  };
 
   return (
     <motion.div
@@ -67,132 +35,36 @@ const VendorDashboard: React.FC = () => {
           <p className="mt-3 opacity-90 max-w-2xl">
             Communicate with charity organizations and discover new opportunities to collaborate.
           </p>
-          <div className="flex mt-6 gap-3">
-            <button
-              onClick={() => handleTabChange("charities")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-                activeTab === "charities"
-                  ? "bg-white text-[var(--highlight)] shadow-md"
-                  : "bg-white bg-opacity-20 text-white hover:bg-opacity-30"
-              }`}
-            >
-              <FaSearch size={14} /> Find Organisations
-            </button>
-            <button
-              onClick={() => handleTabChange("chats")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-                activeTab === "chats"
-                  ? "bg-white text-[var(--highlight)] shadow-md"
-                  : "bg-white bg-opacity-20 text-white hover:bg-opacity-30"
-              }`}
-            >
-              <FaComments size={14} /> Charity Chat
-            </button>
-          </div>
         </div>
       </motion.div>
 
-      {/* Secondary Tab Navigation */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.2 }}
-        className="bg-[var(--main)] rounded-xl shadow-md border border-[var(--stroke)] mb-6 overflow-hidden"
-      >
-        <div className="flex border-b border-[var(--stroke)]">
-          <TabButton
-            isActive={activeTab === "charities"}
-            onClick={() => handleTabChange("charities")}
-            icon={<FaSearch />}
-            label="Find Organisations"
-          />
-          <TabButton
-            isActive={activeTab === "chats"}
-            onClick={() => handleTabChange("chats")}
-            icon={<FaComments />}
-            label="Charity Chat"
-          />
+      {/* Combined Content Area */}
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Find Organizations Section (3/4 width) */}
+        <div className="w-full lg:w-3/4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="bg-[var(--main)] rounded-xl shadow-md overflow-hidden h-full"
+          >
+            <CharitySearch />
+          </motion.div>
         </div>
-
-        {/* Tab Description */}
-        <div className="p-4 bg-[var(--background)] bg-opacity-50">
-          {activeTab === "charities" && (
-            <div className="flex items-center">
-              <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mr-3">
-                <FaSearch className="text-purple-600" />
-              </div>
-              <div>
-                <h2 className="font-medium text-[var(--headline)]">Find Organisations</h2>
-                <p className="text-sm text-[var(--paragraph)]">
-                  Discover charity organizations that might need your products.
-                </p>
-              </div>
-            </div>
-          )}
-          {activeTab === "chats" && (
-            <div className="flex items-center">
-              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
-                <FaComments className="text-green-600" />
-              </div>
-              <div>
-                <h2 className="font-medium text-[var(--headline)]">Charity Communications</h2>
-                <p className="text-sm text-[var(--paragraph)]">
-                  Chat with charity organizations and respond to inquiries.
-                </p>
-              </div>
-            </div>
-          )}
+        
+        {/* Charity Chat Section (1/4 width) */}
+        <div className="w-full lg:w-1/4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="bg-[var(--main)] rounded-xl shadow-md overflow-hidden h-full"
+          >
+            <CharityChats />
+          </motion.div>
         </div>
-      </motion.div>
-
-      {/* Content based on active tab */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={activeTab}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-          variants={tabContentVariants}
-          className="bg-[var(--main)] rounded-xl shadow-md overflow-hidden"
-        >
-          {activeTab === "charities" && <CharitySearch />}
-          {activeTab === "chats" && <CharityChats />}
-        </motion.div>
-      </AnimatePresence>
+      </div>
     </motion.div>
-  );
-};
-
-// Tab button component
-interface TabButtonProps {
-  isActive: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-}
-
-const TabButton: React.FC<TabButtonProps> = ({ isActive, onClick, icon, label }) => {
-  return (
-    <button
-      className={`px-5 py-3 font-medium flex items-center relative transition-all ${
-        isActive
-          ? "text-[var(--highlight)]"
-          : "text-[var(--paragraph)] hover:text-[var(--headline)]"
-      }`}
-      onClick={onClick}
-    >
-      <span className="mr-2">{icon}</span>
-      {label}
-      {isActive && (
-        <motion.div
-          layoutId="activeTab"
-          className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--highlight)]"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3 }}
-        />
-      )}
-    </button>
   );
 };
 
