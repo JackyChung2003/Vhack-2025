@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FaTimes, FaHandHoldingHeart, FaCreditCard, FaRegCreditCard, FaRegCalendarAlt, FaLock, FaInfoCircle, FaArrowRight, FaMoneyBillWave, FaEye, FaEyeSlash, FaHeart } from "react-icons/fa";
 import { mockDonorAutoDonations } from "../../utils/mockData";
 import { motion, AnimatePresence } from "framer-motion";
+import { createPortal } from "react-dom";
 
 interface DonationModalProps {
   isOpen: boolean;
@@ -58,6 +59,10 @@ const DonationModal: React.FC<DonationModalProps> = ({
   const heartContainerRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const monthlyInfoRef = useRef<HTMLDivElement>(null);
+
+  const [activeTooltip, setActiveTooltip] = useState<'always-donate' | 'campaign-specific' | null>(null);
+  const tooltipRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
+  const tooltipContentRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   const predefinedAmounts = [10, 25, 50, 100, 250];
 
@@ -234,6 +239,91 @@ const DonationModal: React.FC<DonationModalProps> = ({
     }, 400);
   };
 
+  // Handle outside clicks for tooltips
+  const handleOutsideClick = useCallback((e: MouseEvent) => {
+    if (activeTooltip) {
+      const tooltipButton = tooltipRefs.current[activeTooltip];
+      const tooltipContent = tooltipContentRefs.current[activeTooltip];
+
+      // Check if click is outside both tooltip button and content
+      if (
+        tooltipButton &&
+        tooltipContent &&
+        !tooltipButton.contains(e.target as Node) &&
+        !tooltipContent.contains(e.target as Node)
+      ) {
+        setActiveTooltip(null);
+      }
+    }
+  }, [activeTooltip]);
+
+  // Add click event listener for tooltip outside clicks
+  useEffect(() => {
+    if (activeTooltip) {
+      document.addEventListener('mousedown', handleOutsideClick);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [activeTooltip, handleOutsideClick]);
+
+  // Toggle tooltip visibility
+  const handleTooltipToggle = (type: 'always-donate' | 'campaign-specific' | null) => {
+    setActiveTooltip(type === activeTooltip ? null : type);
+  };
+
+  // Get tooltip position based on button element
+  const getTooltipPosition = (type: 'always-donate' | 'campaign-specific') => {
+    const button = tooltipRefs.current[type];
+    if (!button || !modalRef.current) return { top: 0, left: 0 };
+
+    const buttonRect = button.getBoundingClientRect();
+    const modalRect = modalRef.current.getBoundingClientRect();
+
+    return {
+      top: buttonRect.top + buttonRect.height + 5,
+      left: buttonRect.left + buttonRect.width / 2 - 128, // Center the 256px wide tooltip
+    };
+  };
+
+  // Tooltip component using Portal
+  const Tooltip = ({ type, isVisible }: { type: 'always-donate' | 'campaign-specific', isVisible: boolean }) => {
+    if (!isVisible) return null;
+
+    const position = getTooltipPosition(type);
+
+    return createPortal(
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -10 }}
+        transition={{ duration: 0.2 }}
+        className="fixed z-[999] w-64 bg-[#1E293B] text-white p-3 rounded-lg shadow-lg text-sm"
+        style={{ top: `${position.top}px`, left: `${position.left}px` }}
+        ref={(el) => (tooltipContentRefs.current[type] = el)}
+      >
+        <div className="flex items-start gap-2">
+          <FaInfoCircle className="text-[#F9A826] mt-1 flex-shrink-0" />
+          <div>
+            <p className="font-bold mb-1">{type === 'always-donate' ? 'Always Donate' : 'Campaign-Specific'} Explained:</p>
+            <p className="text-xs">
+              {type === 'always-donate'
+                ? 'Your donation will support the organization regardless of campaign outcome. The organization can use these funds for related initiatives or operational costs.'
+                : 'Your donation is exclusively for this campaign. If the campaign doesn\'t reach its goal, you\'ll be eligible for a refund of your donation amount.'}
+            </p>
+          </div>
+        </div>
+        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-2 text-[#1E293B]">
+          <svg width="16" height="8" viewBox="0 0 16 8" fill="currentColor">
+            <polygon points="8,0 16,8 0,8" />
+          </svg>
+        </div>
+      </motion.div>,
+      document.body
+    );
+  };
+
   if (!isOpen) return null;
 
   const displayName = campaignName || organizationName || "this cause";
@@ -372,75 +462,143 @@ const DonationModal: React.FC<DonationModalProps> = ({
                 </AnimatePresence>
               </div>
 
-              {/* Campaign donation policy - only show for campaign donations */}
+              {/* Campaign donation policy - only show for campaign donations - IMPROVED */}
               {campaignId && (
                 <div className="mb-6">
-                  <h3 className="text-md font-semibold text-[#006838] mb-2 flex items-center">
+                  <h3 className="text-md font-semibold text-[#006838] mb-3 flex items-center">
                     <span className="bg-[#F9A826] text-white w-6 h-6 rounded-full inline-flex items-center justify-center mr-2 text-sm">2</span>
                     Donation Policy
                   </h3>
-                  <div className="space-y-3 mt-2">
-                    <motion.button
-                      whileTap={{ scale: 0.98 }}
-                      className={`w-full p-3 rounded-lg transition-all duration-300 text-left relative ${selectedDonationPolicy === 'always-donate'
-                        ? 'bg-[#F9A826] text-white'
-                        : 'border border-gray-300 text-gray-700 hover:border-[#F9A826]'
-                        }`}
-                      onClick={() => setSelectedDonationPolicy('always-donate')}
-                    >
-                      {selectedDonationPolicy === 'always-donate' && (
-                        <div className="absolute top-2 right-2 text-xs font-medium">
-                          Selected
-                        </div>
-                      )}
-                      <div className="flex items-start">
-                        <div className={`w-5 h-5 rounded-full mr-3 mt-0.5 flex items-center justify-center ${selectedDonationPolicy === 'always-donate'
-                          ? 'border-2 border-white'
-                          : 'border border-gray-400'
-                          }`}>
-                          {selectedDonationPolicy === 'always-donate' && (
-                            <div className="w-2 h-2 bg-white rounded-full"></div>
-                          )}
-                        </div>
-                        <div>
-                          <h4 className="font-bold">Always Donate</h4>
-                          <p className="text-sm mt-1">
-                            Your donation will support the organization even if the campaign doesn't reach its goal.
-                          </p>
-                        </div>
-                      </div>
-                    </motion.button>
 
-                    <motion.button
-                      whileTap={{ scale: 0.98 }}
-                      className={`w-full p-3 rounded-lg transition-all duration-300 text-left relative ${selectedDonationPolicy === 'campaign-specific'
-                        ? 'bg-[#F9A826] text-white'
-                        : 'border border-gray-300 text-gray-700 hover:border-[#F9A826]'
-                        }`}
-                      onClick={() => setSelectedDonationPolicy('campaign-specific')}
+                  <div className="grid grid-cols-1 gap-3">
+                    {/* Always Donate Option */}
+                    <div className={`relative rounded-lg transition-all duration-300 overflow-hidden ${selectedDonationPolicy === 'always-donate'
+                      ? 'ring-2 ring-[#F9A826] bg-[#FFFAF0]'
+                      : 'border border-gray-300 hover:border-[#F9A826]'
+                      }`}
                     >
-                      {selectedDonationPolicy === 'campaign-specific' && (
-                        <div className="absolute top-2 right-2 text-xs font-medium">
-                          Selected
+                      {/* Remove the elaborate badge */}
+
+                      <button
+                        type="button"
+                        className={`absolute top-2 right-2 z-10 ${activeTooltip === 'always-donate' ? 'text-[#E68A00]' : 'text-[#F9A826]'
+                          } hover:text-[#E68A00] focus:outline-none`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleTooltipToggle('always-donate');
+                        }}
+                        ref={(el) => (tooltipRefs.current['always-donate'] = el)}
+                        aria-label="Show more information about Always Donate"
+                      >
+                        <FaInfoCircle className="text-lg" />
+                      </button>
+
+                      {/* Tooltip rendered via portal */}
+                      <AnimatePresence>
+                        <Tooltip
+                          type="always-donate"
+                          isVisible={activeTooltip === 'always-donate'}
+                        />
+                      </AnimatePresence>
+
+                      <motion.button
+                        whileTap={{ scale: 0.98 }}
+                        className="w-full p-4 text-left relative"
+                        onClick={() => setSelectedDonationPolicy('always-donate')}
+                      >
+                        <div className="flex items-start">
+                          <div className={`w-5 h-5 rounded-full mr-3 mt-0.5 flex items-center justify-center ${selectedDonationPolicy === 'always-donate'
+                            ? 'bg-[#F9A826] border-2 border-[#F9A826]'
+                            : 'border border-gray-400'
+                            }`}
+                          >
+                            {selectedDonationPolicy === 'always-donate' && (
+                              <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </div>
+                          <div>
+                            <h4 className={`font-bold text-base ${selectedDonationPolicy === 'always-donate' ? 'text-[#F9A826]' : 'text-gray-700'} flex items-center`}>
+                              Always Donate
+                              <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#F9A826] text-white">
+                                Recommended
+                              </span>
+                            </h4>
+                            <div className="flex items-center mt-1">
+                              <div className={`mr-2 flex-shrink-0 ${selectedDonationPolicy === 'always-donate' ? 'text-[#F9A826]' : 'text-gray-500'}`}>
+                                <FaMoneyBillWave />
+                              </div>
+                              <p className={`text-sm ${selectedDonationPolicy === 'always-donate' ? 'text-gray-700' : 'text-gray-500'}`}>
+                                Support the organization regardless of outcome
+                              </p>
+                            </div>
+                          </div>
                         </div>
-                      )}
-                      <div className="flex items-start">
-                        <div className={`w-5 h-5 rounded-full mr-3 mt-0.5 flex items-center justify-center ${selectedDonationPolicy === 'campaign-specific'
-                          ? 'border-2 border-white'
-                          : 'border border-gray-400'
-                          }`}>
-                          {selectedDonationPolicy === 'campaign-specific' && (
-                            <div className="w-2 h-2 bg-white rounded-full"></div>
-                          )}
+                      </motion.button>
+                    </div>
+
+                    {/* Campaign-Specific Option */}
+                    <div className={`relative rounded-lg transition-all duration-300 overflow-hidden ${selectedDonationPolicy === 'campaign-specific'
+                      ? 'ring-2 ring-[#F9A826] bg-[#FFFAF0]'
+                      : 'border border-gray-300 hover:border-[#F9A826]'
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        className={`absolute top-2 right-2 z-10 ${activeTooltip === 'campaign-specific' ? 'text-[#E68A00]' : 'text-[#F9A826]'
+                          } hover:text-[#E68A00] focus:outline-none`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleTooltipToggle('campaign-specific');
+                        }}
+                        ref={(el) => (tooltipRefs.current['campaign-specific'] = el)}
+                        aria-label="Show more information about Campaign-Specific"
+                      >
+                        <FaInfoCircle className="text-lg" />
+                      </button>
+
+                      {/* Tooltip rendered via portal */}
+                      <AnimatePresence>
+                        <Tooltip
+                          type="campaign-specific"
+                          isVisible={activeTooltip === 'campaign-specific'}
+                        />
+                      </AnimatePresence>
+
+                      <motion.button
+                        whileTap={{ scale: 0.98 }}
+                        className="w-full p-4 text-left relative"
+                        onClick={() => setSelectedDonationPolicy('campaign-specific')}
+                      >
+                        <div className="flex items-start">
+                          <div className={`w-5 h-5 rounded-full mr-3 mt-0.5 flex items-center justify-center ${selectedDonationPolicy === 'campaign-specific'
+                            ? 'bg-[#F9A826] border-2 border-[#F9A826]'
+                            : 'border border-gray-400'
+                            }`}
+                          >
+                            {selectedDonationPolicy === 'campaign-specific' && (
+                              <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </div>
+                          <div>
+                            <h4 className={`font-bold text-base ${selectedDonationPolicy === 'campaign-specific' ? 'text-[#F9A826]' : 'text-gray-700'}`}>
+                              Campaign-Specific
+                            </h4>
+                            <div className="flex items-center mt-1">
+                              <div className={`mr-2 flex-shrink-0 ${selectedDonationPolicy === 'campaign-specific' ? 'text-[#F9A826]' : 'text-gray-500'}`}>
+                                <FaHandHoldingHeart />
+                              </div>
+                              <p className={`text-sm ${selectedDonationPolicy === 'campaign-specific' ? 'text-gray-700' : 'text-gray-500'}`}>
+                                Refundable if campaign goal not reached
+                              </p>
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <h4 className="font-bold">Campaign-Specific</h4>
-                          <p className="text-sm mt-1">
-                            You can get a refund if the campaign doesn't reach its goal.
-                          </p>
-                        </div>
-                      </div>
-                    </motion.button>
+                      </motion.button>
+                    </div>
                   </div>
                 </div>
               )}
