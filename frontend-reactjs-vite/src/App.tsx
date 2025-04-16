@@ -1,16 +1,14 @@
 import { Routes, Route, Navigate, useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { useActiveAccount } from "thirdweb/react";
+import { useAuth } from "./contexts/AuthContext";
 import "./App.css";
 
 import HorizontalNavbar from "./modules/client/navigation/HorizontalNavBar/HorizontalNavBar";
 import BottomNavBar from "./modules/client/navigation/BottomNavBar/BottomNavBar";
 import ProtectedRoute from "./utils/ProtectedRoute";
 
-// import { useAuthCheck } from "./hooks/useAuthCheck";
 import { useRole } from "./contexts/RoleContext"; // New role context
 import RegisterPage from "./modules/authentication/Register";
-import ConnectWalletPage from "./modules/authentication/ConnectWallet";
 import LoginPage from "./modules/authentication/Login";
 import HomePage from "./modules/client/common/Dashboard";
 
@@ -30,7 +28,11 @@ import OrderHistoryCard from "./modules/client/vendor/OrderManagement/OrderHisto
 import OrderTracker from "./modules/client/vendor/OrderManagement/OrderTracker";
 import OrderTrackerDetails from "./modules/client/vendor/OrderManagement/OrderTrackerDetails";
 import TransactionHistoryDetails from "./modules/client/vendor/FinancialManagement/TransactionHistoryDetails";
+<<<<<<< HEAD
 import OrderManagement from "./modules/client/vendor/OrderManagement/OrderManagement";
+=======
+import SettingsPage from "./modules/client/settings/SettingsPage";
+>>>>>>> 6474e98c03fb3cddde7a62f21be628181d0451f2
 
 const CommunityRedirect = () => {
 	const { id } = useParams();
@@ -48,35 +50,34 @@ const TypedCommunityRedirect = () => {
 };
 
 export function App() {
-	const activeAccount = useActiveAccount();
-	console.log("address", activeAccount?.address);
+	const { user, loading: authLoading } = useAuth();
 	const { userRole, isLoading, roleChecked, clearRole } = useRole();
+
+	console.log("User:", user?.id);
 	console.log("userRole", userRole);
 
 	const [isConnected, setIsConnected] = useState(false);
-
-	const [isInitialCheckComplete, setIsInitialCheckComplete] = useState(false);
-
-	const toggleConnect = () => setIsConnected(!isConnected);
-
 	const navigate = useNavigate();
 	const [isopen, setisopen] = useState(false);
 
 	const toggle = () => setisopen(!isopen);
 
 	useEffect(() => {
-		if (activeAccount?.address) {
+		if (user) {
 			setIsConnected(true);
-			localStorage.setItem('walletAddress', activeAccount.address);
 		} else {
 			setIsConnected(false);
 			clearRole();
 		}
-		console.log("Address: now", activeAccount?.address);
-	}, [activeAccount]);
+	}, [user, clearRole]);
 
+<<<<<<< HEAD
 	if (!roleChecked) {
 		return <div>Loading...</div>;  
+=======
+	if (authLoading || !roleChecked) {
+		return <div>Loading...</div>;
+>>>>>>> 6474e98c03fb3cddde7a62f21be628181d0451f2
 	}
 
 	return (
@@ -86,7 +87,6 @@ export function App() {
 				<BottomNavBar toggle={toggle} />
 			</div>
 			<Routes>
-				{/* {(!isConnected ) ? ( */}
 				{(!isConnected || !roleChecked) ? (
 					<>
 						<Route path="/login" element={<LoginPage />} />
@@ -101,24 +101,7 @@ export function App() {
 							<Route path="/charity" element={<CharityPage />} />
 							<Route path="/charity/:id" element={<CampaignDetail />} />
 							<Route path="/organization/:id" element={<OrganizationDetail />} />
-							
-							{/* Redirect community routes to campaign details */}
-							<Route 
-								path="/community" 
-								element={<Navigate to="/charity" replace />} 
-							/>
-							<Route 
-								path="/community/campaign/:id" 
-								element={<CommunityRedirect />} 
-							/>
-							<Route 
-								path="/community/organization/:id" 
-								element={<OrganizationRedirect />} 
-							/>
-							<Route 
-								path="/community/:type/:id" 
-								element={<TypedCommunityRedirect />} 
-							/>
+							<Route path="/settings" element={<SettingsPage />} />
 						</Route>
 
 						{/* Charity-Specific Routes */}
@@ -127,22 +110,13 @@ export function App() {
 							<Route path="/Vhack-2025/charity/profile" element={<CharityProfile />} />
 							<Route path="/Vhack-2025/charity/vendor-page" element={<VendorPage />} />
 							<Route path="/charity-management" element={<CharityManagementPage />} />
-							
-							{/* Update charity community admin route to point to campaign details */}
-							<Route 
-								path="/charity/community/campaign/:id" 
-								element={<CommunityRedirect />} 
-							/>
-							<Route 
-								path="/charity/community/organization/:id" 
-								element={<OrganizationRedirect />} 
-							/>
 						</Route>
 
 						{/* Vendor-Specific Routes */}
 						<Route element={<ProtectedRoute allowedRoles={['vendor']} redirectPath="/" />}>
 							<Route path="/Vhack-2025/vendor/dashboard" element={<VendorDashboard />} />
 							<Route path="/Vhack-2025/vendor/profile" element={<VendorProfile />} />
+<<<<<<< HEAD
               <Route path="/vendor/profile" element={<VendorProfile />} />
               <Route path="/vendor/order-history/:id" element={<OrderHistoryCard />} />
               <Route path="/vendor/order-history-details" element={<OrderHistoryDetails />} />
@@ -152,11 +126,20 @@ export function App() {
 			  <Route path="/vendor/order-management" element={<OrderManagement />} />
 
 
+=======
+              				<Route path="/vendor/profile" element={<VendorProfile />} />
+              				<Route path="/vendor/order-history/:id" element={<OrderHistoryCard />} />
+              				<Route path="/vendor/order-history-details" element={<OrderHistoryDetails />} />
+              				<Route path="/vendor/order-tracker" element={<OrderTracker />} />
+              				<Route path="/vendor/order-tracker-details" element={<OrderTrackerDetails />} />
+							<Route path="/vendor/transaction-history-details" element={<TransactionHistoryDetails />} />
+>>>>>>> 6474e98c03fb3cddde7a62f21be628181d0451f2
 						</Route>
 
 						{/* Donor-Specific Routes */}
 						<Route element={<ProtectedRoute allowedRoles={['donor']} redirectPath="/" />}>
 							<Route path="/donor/profile" element={<DonorProfile />} />
+							
 						</Route>
 
 						<Route path="/register" element={<RegisterPage />} />

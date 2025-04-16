@@ -1,6 +1,7 @@
 import React from 'react';
 import { FaCheck, FaTimes } from 'react-icons/fa';
 import { TransactionProposal } from '../../../../services/VendorChatService';
+import { mockCampaigns } from '../../../../utils/mockData';
 
 interface TransactionProposalMessageProps {
   proposal: TransactionProposal;
@@ -15,6 +16,10 @@ const TransactionProposalMessage: React.FC<TransactionProposalMessageProps> = ({
   onAccept,
   onReject
 }) => {
+  const campaign = proposal.fundSource === 'campaign' && proposal.campaignId 
+    ? mockCampaigns.find(c => c.id === proposal.campaignId)
+    : null;
+
   return (
     <div className="bg-[var(--card-background)] p-4 rounded-lg border border-[var(--stroke)] shadow-sm">
       <h4 className="font-semibold mb-2 text-[var(--headline)]">Transaction Proposal</h4>
@@ -32,6 +37,17 @@ const TransactionProposalMessage: React.FC<TransactionProposalMessageProps> = ({
             <span>Total Amount:</span>
             <span>RM{proposal.totalAmount.toLocaleString()}</span>
           </div>
+        </div>
+
+        <div className="text-sm text-[var(--paragraph)] mt-2">
+          <span className="font-medium">Fund Source: </span>
+          {proposal.fundSource === 'general' ? (
+            <span>General Fund</span>
+          ) : (
+            <span>
+              Campaign: {campaign?.name || 'Unknown Campaign'}
+            </span>
+          )}
         </div>
 
         {proposal.status === 'pending' && isFromVendor && (

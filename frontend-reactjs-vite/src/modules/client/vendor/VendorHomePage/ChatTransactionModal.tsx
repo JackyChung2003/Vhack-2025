@@ -1,5 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FaTimes, FaPlus, FaTrash } from "react-icons/fa";
+import { mockCampaigns } from "../../../../utils/mockData";
+import { useVendorChatStore } from "../../../../services/VendorChatService";
 
 interface Item {
   name: string;
@@ -9,19 +11,43 @@ interface Item {
 
 interface ChatTransactionModalProps {
   onClose: () => void;
-  onSubmit: (proposal: { items: Item[]; totalAmount: number }) => void;
+  onSubmit: (proposal: { 
+    items: Array<{ name: string; quantity: number; price: number }>; 
+    totalAmount: number;
+    fundSource: 'campaign' | 'general';
+    campaignId?: number;
+  }) => void;
+  chatId: number;
 }
 
 const ChatTransactionModal: React.FC<ChatTransactionModalProps> = ({
   onClose,
   onSubmit,
+  chatId
 }) => {
-  const [items, setItems] = useState<Item[]>([
-    { name: "", quantity: 1, price: 0 },
+  const { chats } = useVendorChatStore();
+  const currentChat = chats.find(chat => chat.id === chatId);
+  const [items, setItems] = useState<Array<{ id: number; name: string; quantity: number; price: number }>>([
+    { id: 1, name: "", quantity: 1, price: 0 }
   ]);
+  const [fundSource, setFundSource] = useState<'campaign' | 'general'>('general');
+  const [selectedCampaignId, setSelectedCampaignId] = useState<number | undefined>(undefined);
+  const [activeCampaigns, setActiveCampaigns] = useState(mockCampaigns.filter(c => 
+    new Date(c.deadline) > new Date() && 
+    c.organizationId === currentChat?.organizationId
+  ));
+
+  useEffect(() => {
+    if (currentChat) {
+      setActiveCampaigns(mockCampaigns.filter(c => 
+        new Date(c.deadline) > new Date() && 
+        c.organizationId === currentChat.organizationId
+      ));
+    }
+  }, [currentChat]);
 
   const handleAddItem = () => {
-    setItems([...items, { name: "", quantity: 1, price: 0 }]);
+    setItems([...items, { id: Date.now(), name: "", quantity: 1, price: 0 }]);
   };
 
   const handleRemoveItem = (index: number) => {
@@ -56,9 +82,18 @@ const ChatTransactionModal: React.FC<ChatTransactionModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const totalAmount = items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+    
+    if (fundSource === 'campaign' && !selectedCampaignId) {
+      alert("Please select a campaign");
+      return;
+    }
+
     onSubmit({
-      items: items.filter(item => item.name.trim() !== ""),
-      totalAmount: calculateTotal(),
+      items: items.map(({ name, quantity, price }) => ({ name, quantity, price })),
+      totalAmount,
+      fundSource,
+      campaignId: fundSource === 'campaign' ? selectedCampaignId : undefined
     });
   };
 
@@ -81,6 +116,59 @@ const ChatTransactionModal: React.FC<ChatTransactionModalProps> = ({
             <div className="text-sm text-[var(--paragraph)]">
               Create a transaction proposal by adding items below.
             </div>
+
+            {/* Fund Source Selection */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-[var(--headline)]">
+                Fund Source
+              </label>
+              <div className="flex gap-4">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="fundSource"
+                    value="general"
+                    checked={fundSource === 'general'}
+                    onChange={() => setFundSource('general')}
+                    className="mr-2"
+                  />
+                  General Fund
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="fundSource"
+                    value="campaign"
+                    checked={fundSource === 'campaign'}
+                    onChange={() => setFundSource('campaign')}
+                    className="mr-2"
+                  />
+                  Campaign
+                </label>
+              </div>
+            </div>
+
+            {/* Campaign Selection - Only show if campaign is selected */}
+            {fundSource === 'campaign' && (
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-[var(--headline)]">
+                  Select Campaign
+                </label>
+                <select
+                  value={selectedCampaignId || ''}
+                  onChange={(e) => setSelectedCampaignId(Number(e.target.value))}
+                  className="w-full p-2 border border-[var(--stroke)] rounded-lg"
+                  required
+                >
+                  <option value="">Select a campaign</option>
+                  {activeCampaigns.map(campaign => (
+                    <option key={campaign.id} value={campaign.id}>
+                      {campaign.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Item list */}
             <div className="space-y-3">

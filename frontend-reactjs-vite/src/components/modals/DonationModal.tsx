@@ -1,11 +1,11 @@
-import React, { useState } from "react";
-import { FaTimes, FaHandHoldingHeart, FaCreditCard, FaRegCreditCard, FaRegCalendarAlt, FaLock, FaInfoCircle, FaArrowRight, FaMoneyBillWave } from "react-icons/fa";
+import React, { useState, useEffect } from "react";
+import { FaTimes, FaHandHoldingHeart, FaCreditCard, FaRegCreditCard, FaRegCalendarAlt, FaLock, FaInfoCircle, FaArrowRight, FaMoneyBillWave, FaEye, FaEyeSlash } from "react-icons/fa";
 import { mockDonorAutoDonations } from "../../utils/mockData";
 
 interface DonationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onDonationComplete: (amount: number, donationPolicy?: string) => void;
+  onDonationComplete: (amount: number, donationPolicy?: string, isAnonymous?: boolean) => void;
   
   // Support either the new props
   targetName?: string;
@@ -41,11 +41,21 @@ const DonationModal: React.FC<DonationModalProps> = ({
   const [selectedDonationPolicy, setSelectedDonationPolicy] = useState<'always-donate' | 'campaign-specific'>('always-donate');
   const [amount, setAmount] = useState<number | ''>('');
   const [customAmount, setCustomAmount] = useState<boolean>(false);
+  const [isAnonymous, setIsAnonymous] = useState<boolean>(false);
   
   // Payment form state (placeholder for Stripe)
   const [cardName, setCardName] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showAutodonationInfo, setShowAutodonationInfo] = useState(false);
+
+  // Check for user's preference for anonymous donations
+  useEffect(() => {
+    // Get setting from localStorage
+    const anonymousSetting = localStorage.getItem('anonymousDonation');
+    if (anonymousSetting === 'true') {
+      setIsAnonymous(true);
+    }
+  }, []);
 
   const predefinedAmounts = [10, 25, 50, 100, 250];
 
@@ -68,6 +78,10 @@ const DonationModal: React.FC<DonationModalProps> = ({
 
   const handlePolicyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedDonationPolicy(e.target.value === "always-donate" ? 'always-donate' : 'campaign-specific');
+  };
+
+  const handleAnonymousToggle = () => {
+    setIsAnonymous(!isAnonymous);
   };
 
   const handleNextStep = () => {
@@ -108,9 +122,9 @@ const DonationModal: React.FC<DonationModalProps> = ({
       if (onDonationComplete && typeof amount === 'number') {
         // Pass the selectedDonationPolicy for campaigns to onDonationComplete
         if (derivedTargetType === 'campaign') {
-          onDonationComplete(amount, selectedDonationPolicy);
+          onDonationComplete(amount, selectedDonationPolicy, isAnonymous);
         } else {
-          onDonationComplete(amount);
+          onDonationComplete(amount, undefined, isAnonymous);
         }
       }
       setIsProcessing(false);
@@ -126,6 +140,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
     setCardName('');
     setDonationType('one-time');
     setSelectedDonationPolicy('always-donate');
+    // Don't reset isAnonymous as it depends on user preference
   };
 
   const createAutodonationRecord = () => {
@@ -146,6 +161,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
       amount: amount,
       frequency: "monthly",
       donationType: "direct" as const,
+      isAnonymous: isAnonymous,
       directRecipient: {
         id: derivedTargetId,
         name: derivedTargetName,
@@ -184,11 +200,11 @@ const DonationModal: React.FC<DonationModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-[var(--main)] rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-[var(--main)] rounded-xl shadow-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="p-6 border-b border-[var(--stroke)] flex justify-between items-center">
           <h2 className="text-xl font-bold text-[var(--headline)]">
-            {step === 'confirmation' ? 'Thank You!' : `Support ${displayName}`}
+            Make a Donation
           </h2>
           <button 
             onClick={handleClose}
@@ -234,17 +250,9 @@ const DonationModal: React.FC<DonationModalProps> = ({
                       onClick={() => setSelectedDonationPolicy('always-donate')}
                     >
                       <div className="flex items-start gap-3">
-                        <div className={`w-5 h-5 rounded-full border flex-shrink-0 mt-0.5 ${
-                          selectedDonationPolicy === 'always-donate' 
-                            ? 'border-[var(--highlight)] bg-[var(--highlight)]' 
-                            : 'border-[var(--stroke)]'
-                        }`}>
+                        <div className="w-5 h-5 rounded-full border border-[var(--highlight)] flex items-center justify-center mt-1">
                           {selectedDonationPolicy === 'always-donate' && (
-                            <div className="w-full h-full flex items-center justify-center text-white">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                              </svg>
-                            </div>
+                            <div className="w-3 h-3 rounded-full bg-[var(--highlight)]"></div>
                           )}
                         </div>
                         <div>
@@ -265,23 +273,15 @@ const DonationModal: React.FC<DonationModalProps> = ({
                       onClick={() => setSelectedDonationPolicy('campaign-specific')}
                     >
                       <div className="flex items-start gap-3">
-                        <div className={`w-5 h-5 rounded-full border flex-shrink-0 mt-0.5 ${
-                          selectedDonationPolicy === 'campaign-specific' 
-                            ? 'border-[var(--highlight)] bg-[var(--highlight)]' 
-                            : 'border-[var(--stroke)]'
-                        }`}>
+                        <div className="w-5 h-5 rounded-full border border-[var(--highlight)] flex items-center justify-center mt-1">
                           {selectedDonationPolicy === 'campaign-specific' && (
-                            <div className="w-full h-full flex items-center justify-center text-white">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                              </svg>
-                            </div>
+                            <div className="w-3 h-3 rounded-full bg-[var(--highlight)]"></div>
                           )}
                         </div>
                         <div>
-                          <h4 className="font-medium text-[var(--headline)]">Campaign Specific</h4>
+                          <h4 className="font-medium text-[var(--headline)]">Campaign-Specific</h4>
                           <p className="text-sm text-[var(--paragraph)]">
-                            If the campaign doesn't reach its target, your donation will be refunded to you.
+                            If the campaign doesn't reach its target, your donation will be refunded to your wallet.
                           </p>
                         </div>
                       </div>
@@ -290,58 +290,79 @@ const DonationModal: React.FC<DonationModalProps> = ({
                 </div>
               )}
               
+              {/* Donation Amount */}
               <div>
-                <h3 className="text-lg font-semibold text-[var(--headline)] mb-2">Select Amount</h3>
-                <div className="grid grid-cols-3 gap-3 mb-4">
-                  {predefinedAmounts.map((presetAmount) => (
+                <h3 className="text-lg font-semibold text-[var(--headline)] mb-2">Donation Amount</h3>
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  {predefinedAmounts.map((predefinedAmount) => (
                     <button
-                      key={presetAmount}
+                      key={predefinedAmount}
+                      onClick={() => handleAmountSelect(predefinedAmount)}
                       className={`py-3 rounded-lg border ${
-                        amount === presetAmount && !customAmount
-                          ? 'border-[var(--highlight)] bg-[var(--highlight)] bg-opacity-10 text-white'
-                          : 'border-[var(--stroke)] hover:border-[var(--highlight)]'
+                        amount === predefinedAmount && !customAmount
+                          ? 'bg-[var(--highlight)] text-white border-[var(--highlight)]'
+                          : 'border-[var(--stroke)] hover:bg-[var(--background)]'
                       }`}
-                      onClick={() => handleAmountSelect(presetAmount)}
                     >
-                      RM{presetAmount}
+                      RM{predefinedAmount}
                     </button>
                   ))}
                   <button
-                    className={`py-3 rounded-lg border ${
-                      customAmount
-                        ? 'border-[var(--highlight)] bg-[var(--highlight)] bg-opacity-10 text-white'
-                        : 'border-[var(--stroke)] hover:border-[var(--highlight)]'
-                    }`}
                     onClick={() => {
                       setCustomAmount(true);
                       setAmount('');
                     }}
+                    className={`py-3 rounded-lg border ${
+                      customAmount
+                        ? 'bg-[var(--highlight)] text-white border-[var(--highlight)]'
+                        : 'border-[var(--stroke)] hover:bg-[var(--background)]'
+                    }`}
                   >
                     Custom
                   </button>
                 </div>
                 
                 {customAmount && (
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <span className="text-[var(--paragraph)]">RM</span>
+                  <div className="mt-3">
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span className="text-[var(--paragraph)]">RM</span>
+                      </div>
+                      <input
+                        type="text"
+                        value={amount}
+                        onChange={handleCustomAmountChange}
+                        className="w-full pl-10 pr-4 py-3 border border-[var(--stroke)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--highlight)]"
+                        placeholder="Enter amount"
+                        autoFocus
+                      />
                     </div>
-                    <input
-                      type="text"
-                      className="w-full pl-8 pr-4 py-3 border border-[var(--stroke)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--highlight)]"
-                      placeholder="Enter amount"
-                      value={amount}
-                      onChange={handleCustomAmountChange}
-                      autoFocus
-                    />
                   </div>
                 )}
-                
-                <p className="text-sm text-[var(--paragraph)] mt-4">
-                  {donationType === 'monthly' 
-                    ? 'You will be charged this amount monthly until you cancel.' 
-                    : 'This is a one-time donation.'}
-                </p>
+              </div>
+
+              {/* Anonymous Donation Toggle */}
+              <div className="flex items-center justify-between p-4 bg-[var(--background)] rounded-lg border border-[var(--stroke)]">
+                <div className="flex items-start gap-3">
+                  <div className="mt-1 text-[var(--highlight)]">
+                    {isAnonymous ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-[var(--headline)]">Anonymous Donation</h4>
+                    <p className="text-sm text-[var(--paragraph)] mt-1">
+                      Your name will not be shown on public leaderboards or donor lists
+                    </p>
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    className="sr-only peer" 
+                    checked={isAnonymous}
+                    onChange={handleAnonymousToggle}
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-[var(--highlight)]"></div>
+                </label>
               </div>
             </div>
           )}
@@ -364,31 +385,47 @@ const DonationModal: React.FC<DonationModalProps> = ({
                     <span className="font-semibold">{donationType === 'monthly' ? 'Monthly' : 'One-time'}</span>
                   </div>
                   {campaignId && (
-                    <div className="flex justify-between">
+                    <div className="flex justify-between mb-2">
                       <span>Policy:</span>
                       <span className="font-semibold">
                         {selectedDonationPolicy === 'always-donate' ? 'Always Donate' : 'Campaign Specific'}
                       </span>
                     </div>
                   )}
+                  <div className="flex justify-between">
+                    <span>Anonymity:</span>
+                    <span className="font-semibold flex items-center gap-1">
+                      {isAnonymous ? (
+                        <>
+                          <FaEyeSlash className="text-[var(--highlight)]" />
+                          Anonymous
+                        </>
+                      ) : (
+                        <>
+                          <FaEye className="text-[var(--highlight)]" />
+                          Public
+                        </>
+                      )}
+                    </span>
+                  </div>
                 </div>
               </div>
               
+              {/* Credit Card Form (Placeholder) */}
               <div>
-                <h3 className="text-lg font-semibold text-[var(--headline)] mb-2">Payment Details</h3>
+                <h3 className="text-lg font-semibold text-[var(--headline)] mb-4">Payment Details</h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-[var(--paragraph)] mb-1">Name on Card</label>
+                    <label className="block text-sm font-medium text-[var(--paragraph)] mb-1">Card Holder Name</label>
                     <input
                       type="text"
-                      className="w-full px-4 py-3 border border-[var(--stroke)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--highlight)]"
-                      placeholder="John Doe"
+                      className="w-full px-4 py-3 border border-[var(--stroke)] rounded-lg"
+                      placeholder="Enter name on card"
                       value={cardName}
                       onChange={(e) => setCardName(e.target.value)}
                     />
                   </div>
                   
-                  {/* Placeholder for Stripe Elements */}
                   <div>
                     <label className="block text-sm font-medium text-[var(--paragraph)] mb-1">Card Number</label>
                     <div className="w-full px-4 py-3 border border-[var(--stroke)] rounded-lg bg-white flex items-center">
@@ -447,6 +484,21 @@ const DonationModal: React.FC<DonationModalProps> = ({
                         {selectedDonationPolicy === 'always-donate' 
                           ? 'If this campaign does not reach its target by the deadline and not extended, your donation will support other initiatives by the organization.' 
                           : 'If this campaign does not reach its target by the deadline and not extended, your donation will be refunded to you.'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {isAnonymous && (
+                <div className="bg-[var(--background)] p-4 rounded-lg mb-6 text-left">
+                  <div className="flex items-start gap-2">
+                    <FaEyeSlash className="text-[var(--highlight)] mt-1 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm mb-2">
+                        <span className="font-medium">Anonymous Donation</span>
+                      </p>
+                      <p className="text-sm">
+                        Your donation will be recorded privately. Your name won't appear on public donor lists.
                       </p>
                     </div>
                   </div>

@@ -1,6 +1,7 @@
 import React from 'react';
-import { Navigate, Outlet, useLocation  } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useRole } from '../contexts/RoleContext';
+import { useAuth } from '../contexts/AuthContext';
 
 interface ProtectedRouteProps {
     allowedRoles?: string[];  
@@ -14,18 +15,22 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     redirectPath
 }) => {
     const { userRole, isLoading, roleChecked } = useRole();
+    const { user, loading: authLoading } = useAuth();
     const location = useLocation();
 
-    if (!roleChecked || isLoading) {
+    // Show loading state while authentication or role checks are in progress
+    if (!roleChecked || isLoading || authLoading) {
         return <div>Loading...</div>;
-        // return <div>Loading...</div>;
     }
 
-    // Redirect **New Users** to Register Page (Only if NOT already on `/register`)
-    if (!userRole && location.pathname !== '/register') {
-    // if (!userRole && location.pathname !== '/register') {
-    // if (roleChecked && !userRole && location.pathname !== '/register') {
-        console.log("Redirecting new user to /register");
+    // Redirect non-authenticated users to login
+    if (!user) {
+        return <Navigate to="/login" replace />;
+    }
+
+    // Redirect authenticated but unregistered users to register page (Only if NOT already on `/register`)
+    if (user && !userRole && location.pathname !== '/register') {
+        console.log("Redirecting authenticated user without role to /register");
         return <Navigate to="/register" replace />;
     }
 
