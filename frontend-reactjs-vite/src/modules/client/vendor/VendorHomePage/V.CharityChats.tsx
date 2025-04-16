@@ -55,9 +55,9 @@ const CharityChats: React.FC<CharityChatsProps> = () => {
         </h2>
         <button
           onClick={() => setShowNewChatModal(true)}
-          className="bg-[var(--highlight)] text-white px-4 py-2 rounded-lg flex items-center gap-2"
+          className="bg-[var(--highlight)] text-white px-3 py-1 rounded-lg flex items-center gap-1.5 text-sm"
         >
-          <FaPlus size={14} /> New Chat
+          <FaPlus size={12} /> New Chat
         </button>
       </div>
 
@@ -103,20 +103,20 @@ const CharityChats: React.FC<CharityChatsProps> = () => {
                 className="border border-[var(--stroke)] rounded-lg p-4 hover:shadow-md cursor-pointer transition-shadow"
               >
                 <div className="flex justify-between items-start">
-                  <div>
+                  <div className="flex-1 mr-2">
                     <h3 className="font-medium text-[var(--headline)]">
                       {org?.name || "Unknown Organization"}
                     </h3>
                     <p className="text-sm text-[var(--paragraph)] line-clamp-1 mt-1">
                       {chat.lastMessage}
                     </p>
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <span className="text-xs text-[var(--paragraph-light)]">
+                    <p className="text-xs text-[var(--paragraph-light)] mt-1">
                       {chat.timestamp}
-                    </span>
+                    </p>
+                  </div>
+                  <div className="flex-shrink-0">
                     {chat.unread > 0 && (
-                      <span className="bg-[var(--highlight)] text-white text-xs rounded-full px-2 py-0.5 mt-1">
+                      <span className="bg-[var(--highlight)] text-white text-xs rounded-full px-2 py-0.5">
                         {chat.unread}
                       </span>
                     )}
