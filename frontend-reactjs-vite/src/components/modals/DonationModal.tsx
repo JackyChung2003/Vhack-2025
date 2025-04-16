@@ -41,7 +41,12 @@ const DonationModal: React.FC<DonationModalProps> = ({
   const [step, setStep] = useState<'amount' | 'payment' | 'confirmation'>('amount');
   const [donationType, setDonationType] = useState<'one-time' | 'monthly'>('one-time');
   const [selectedDonationPolicy, setSelectedDonationPolicy] = useState<'always-donate' | 'campaign-specific'>('always-donate');
-  const [amount, setAmount] = useState<number | ''>('');
+
+  // Define predefined amounts here so we can reference the first one as default
+  const predefinedAmounts = [10, 25, 50, 100, 250];
+
+  // Set first predefined amount as default
+  const [amount, setAmount] = useState<number | ''>(predefinedAmounts[0]);
   const [customAmount, setCustomAmount] = useState<boolean>(false);
 
   // Payment form state (placeholder for Stripe)
@@ -63,8 +68,6 @@ const DonationModal: React.FC<DonationModalProps> = ({
   const [activeTooltip, setActiveTooltip] = useState<'always-donate' | 'campaign-specific' | null>(null);
   const tooltipRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
   const tooltipContentRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
-
-  const predefinedAmounts = [10, 25, 50, 100, 250];
 
   // Derive values from either new or old props
   const derivedTargetName = targetName || campaignName || organizationName || "";
@@ -106,7 +109,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
   const handleClose = () => {
     // Reset state before closing
     setStep('amount');
-    setAmount('');
+    setAmount(predefinedAmounts[1]); // Reset to first predefined amount
     setCustomAmount(false);
     setCardName('');
     onClose();
@@ -138,7 +141,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
 
   const resetForm = () => {
     setStep('amount');
-    setAmount('');
+    setAmount(predefinedAmounts[1]); // Reset to first predefined amount instead of empty
     setCustomAmount(false);
     setCardName('');
     setDonationType('one-time');
@@ -287,6 +290,14 @@ const DonationModal: React.FC<DonationModalProps> = ({
     };
   };
 
+  // Handle click outside to close modal
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Only close if clicking directly on the backdrop, not its children
+    if (e.target === e.currentTarget) {
+      handleClose();
+    }
+  };
+
   // Tooltip component using Portal
   const Tooltip = ({ type, isVisible }: { type: 'always-donate' | 'campaign-specific', isVisible: boolean }) => {
     if (!isVisible) return null;
@@ -329,7 +340,11 @@ const DonationModal: React.FC<DonationModalProps> = ({
   const displayName = campaignName || organizationName || "this cause";
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4" ref={modalRef}>
+    <div
+      className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[1000] p-4"
+      ref={modalRef}
+      onClick={handleBackdropClick}
+    >
       <div className="bg-white rounded-xl shadow-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-white sticky top-0 z-10">
@@ -813,8 +828,8 @@ const DonationModal: React.FC<DonationModalProps> = ({
 
       {/* Auto donation info modal */}
       {showAutodonationInfo && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#006838] rounded-xl shadow-xl max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1001] p-4" onClick={handleBackdropClick}>
+          <div className="bg-[#006838] rounded-xl shadow-xl max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
             <div className="text-center mb-4">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <FaMoneyBillWave className="text-green-600 text-2xl" />
