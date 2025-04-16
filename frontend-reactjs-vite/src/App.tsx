@@ -28,26 +28,8 @@ import OrderHistoryCard from "./modules/client/vendor/OrderManagement/OrderHisto
 import OrderTracker from "./modules/client/vendor/OrderManagement/OrderTracker";
 import OrderTrackerDetails from "./modules/client/vendor/OrderManagement/OrderTrackerDetails";
 import TransactionHistoryDetails from "./modules/client/vendor/FinancialManagement/TransactionHistoryDetails";
-<<<<<<< HEAD
 import OrderManagement from "./modules/client/vendor/OrderManagement/OrderManagement";
-=======
 import SettingsPage from "./modules/client/settings/SettingsPage";
->>>>>>> 6474e98c03fb3cddde7a62f21be628181d0451f2
-
-const CommunityRedirect = () => {
-	const { id } = useParams();
-	return <Navigate to={`/charity/${id}?tab=community`} replace />;
-};
-
-const OrganizationRedirect = () => {
-	const { id } = useParams();
-	return <Navigate to={`/organization/${id}?tab=community`} replace />;
-};
-
-const TypedCommunityRedirect = () => {
-	const { type, id } = useParams();
-	return <Navigate to={type === 'campaign' ? `/charity/${id}?tab=community` : `/organization/${id}?tab=community`} replace />;
-};
 
 export function App() {
 	const { user, loading: authLoading } = useAuth();
@@ -71,13 +53,8 @@ export function App() {
 		}
 	}, [user, clearRole]);
 
-<<<<<<< HEAD
-	if (!roleChecked) {
-		return <div>Loading...</div>;  
-=======
 	if (authLoading || !roleChecked) {
 		return <div>Loading...</div>;
->>>>>>> 6474e98c03fb3cddde7a62f21be628181d0451f2
 	}
 
 	return (
@@ -116,24 +93,13 @@ export function App() {
 						<Route element={<ProtectedRoute allowedRoles={['vendor']} redirectPath="/" />}>
 							<Route path="/Vhack-2025/vendor/dashboard" element={<VendorDashboard />} />
 							<Route path="/Vhack-2025/vendor/profile" element={<VendorProfile />} />
-<<<<<<< HEAD
-              <Route path="/vendor/profile" element={<VendorProfile />} />
-              <Route path="/vendor/order-history/:id" element={<OrderHistoryCard />} />
-              <Route path="/vendor/order-history-details" element={<OrderHistoryDetails />} />
-              <Route path="/vendor/order-tracker" element={<OrderTracker />} />
-              <Route path="/vendor/order-tracker-details" element={<OrderTrackerDetails />} />
-			  <Route path="/vendor/transaction-history-details" element={<TransactionHistoryDetails />} />
-			  <Route path="/vendor/order-management" element={<OrderManagement />} />
-
-
-=======
-              				<Route path="/vendor/profile" element={<VendorProfile />} />
-              				<Route path="/vendor/order-history/:id" element={<OrderHistoryCard />} />
-              				<Route path="/vendor/order-history-details" element={<OrderHistoryDetails />} />
-              				<Route path="/vendor/order-tracker" element={<OrderTracker />} />
-              				<Route path="/vendor/order-tracker-details" element={<OrderTrackerDetails />} />
+							<Route path="/vendor/profile" element={<VendorProfile />} />
+							<Route path="/vendor/order-history/:id" element={<OrderHistoryCard />} />
+							<Route path="/vendor/order-history-details" element={<OrderHistoryDetails />} />
+							<Route path="/vendor/order-tracker" element={<OrderTracker />} />
+							<Route path="/vendor/order-tracker-details" element={<OrderTrackerDetails />} />
 							<Route path="/vendor/transaction-history-details" element={<TransactionHistoryDetails />} />
->>>>>>> 6474e98c03fb3cddde7a62f21be628181d0451f2
+							<Route path="/vendor/order-management" element={<OrderManagement />} />
 						</Route>
 
 						{/* Donor-Specific Routes */}
