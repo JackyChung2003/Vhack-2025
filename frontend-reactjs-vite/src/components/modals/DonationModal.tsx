@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
-import { FaTimes, FaHandHoldingHeart, FaCreditCard, FaRegCreditCard, FaRegCalendarAlt, FaLock, FaInfoCircle, FaArrowRight, FaMoneyBillWave, FaEye, FaEyeSlash } from "react-icons/fa";
+import React, { useState, useEffect, useRef } from "react";
+import { FaTimes, FaHandHoldingHeart, FaCreditCard, FaRegCreditCard, FaRegCalendarAlt, FaLock, FaInfoCircle, FaArrowRight, FaMoneyBillWave, FaEye, FaEyeSlash, FaHeart } from "react-icons/fa";
 import { mockDonorAutoDonations } from "../../utils/mockData";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface DonationModalProps {
   isOpen: boolean;
@@ -46,6 +47,17 @@ const DonationModal: React.FC<DonationModalProps> = ({
   const [cardName, setCardName] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showAutodonationInfo, setShowAutodonationInfo] = useState(false);
+
+  const [showProgressBar, setShowProgressBar] = useState(true);
+  const [showImpactSection, setShowImpactSection] = useState(true);
+  const [heartAnimation, setHeartAnimation] = useState<'hidden' | 'visible' | 'flying'>('hidden');
+  const [progressComplete, setProgressComplete] = useState(false);
+  const [sectionCollapsed, setSectionCollapsed] = useState(false);
+  const [heartPosition, setHeartPosition] = useState({ top: 0, left: 0 });
+  const impactSectionRef = useRef<HTMLDivElement>(null);
+  const heartContainerRef = useRef<HTMLDivElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const monthlyInfoRef = useRef<HTMLDivElement>(null);
 
   const predefinedAmounts = [10, 25, 50, 100, 250];
 
@@ -179,12 +191,55 @@ const DonationModal: React.FC<DonationModalProps> = ({
     setShowAutodonationInfo(true);
   };
 
+  // Reset animation states when switching to monthly
+  useEffect(() => {
+    if (donationType === 'monthly') {
+      setShowImpactSection(true);
+      setHeartAnimation('hidden');
+      setProgressComplete(false);
+      setSectionCollapsed(false);
+    }
+  }, [donationType]);
+
+  // Handle progress bar animation complete
+  const handleProgressComplete = () => {
+    // Mark the progress as complete
+    setProgressComplete(true);
+
+    // Get position for heart animation
+    if (impactSectionRef.current) {
+      const rect = impactSectionRef.current.getBoundingClientRect();
+      setHeartPosition({
+        top: rect.top + rect.height / 2,
+        left: rect.left + rect.width / 2
+      });
+    }
+
+    // Start heart animation sequence
+    setTimeout(() => {
+      setHeartAnimation('visible');
+
+      // After heart appears, make it fly away
+      setTimeout(() => {
+        setHeartAnimation('flying');
+
+        // Start collapsing the section immediately when heart flies
+        setSectionCollapsed(true);
+
+        // Clean up after flying animation completes
+        setTimeout(() => {
+          setHeartAnimation('hidden');
+        }, 1500);
+      }, 1000);
+    }, 400);
+  };
+
   if (!isOpen) return null;
 
   const displayName = campaignName || organizationName || "this cause";
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4" ref={modalRef}>
       <div className="bg-white rounded-xl shadow-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-white sticky top-0 z-10">
@@ -209,42 +264,112 @@ const DonationModal: React.FC<DonationModalProps> = ({
                   <span className="bg-[#F9A826] text-white w-6 h-6 rounded-full inline-flex items-center justify-center mr-2 text-sm">1</span>
                   Select Donation Type
                 </h3>
-                <div className="grid grid-cols-2 gap-3 mt-2">
-                  <button
-                    className={`relative overflow-hidden py-4 px-4 rounded-lg transition-all duration-300 ${donationType === 'one-time'
-                        ? 'bg-[#F9A826] text-white'
-                        : 'border border-gray-300 text-gray-700 hover:border-[#F9A826]'
-                      }`}
-                    onClick={() => setDonationType('one-time')}
-                  >
-                    {donationType === 'one-time' && (
-                      <div className="absolute top-2 right-2 text-xs font-medium">
-                        Selected
+
+                {/* Completely redesigned toggle */}
+                <div className="mt-3 relative">
+                  <div className="bg-gray-100 rounded-full p-1 flex items-stretch overflow-hidden">
+                    {/* The moving highlight - with much smoother animation */}
+                    <div
+                      className="absolute top-1 bottom-1 w-1/2 rounded-full bg-[#F9A826] shadow-md transition-transform duration-300 ease-in-out"
+                      style={{ transform: `translateX(${donationType === 'one-time' ? '0%' : '100%'})` }}
+                    />
+
+                    {/* One-time option */}
+                    <button
+                      onClick={() => setDonationType('one-time')}
+                      className="flex-1 relative z-10 py-3 flex flex-col items-center justify-center rounded-full transition-colors duration-300"
+                    >
+                      <div className="flex items-center justify-center">
+                        <FaMoneyBillWave className={`mr-2 ${donationType === 'one-time' ? 'text-white' : 'text-gray-600'}`} />
+                        <span className={`font-medium ${donationType === 'one-time' ? 'text-white' : 'text-gray-600'}`}>
+                          One-time
+                        </span>
                       </div>
-                    )}
-                    <div className="text-center">
-                      <div className="font-bold mb-1">One-time</div>
-                      <div className="text-xs">Single donation</div>
-                    </div>
-                  </button>
-                  <button
-                    className={`relative overflow-hidden py-4 px-4 rounded-lg transition-all duration-300 ${donationType === 'monthly'
-                        ? 'bg-[#F9A826] text-white'
-                        : 'border border-gray-300 text-gray-700 hover:border-[#F9A826]'
-                      }`}
-                    onClick={() => setDonationType('monthly')}
-                  >
-                    {donationType === 'monthly' && (
-                      <div className="absolute top-2 right-2 text-xs font-medium">
-                        Selected
+                      <span className={`text-xs ${donationType === 'one-time' ? 'text-white text-opacity-90' : 'text-gray-500'}`}>
+                        Single donation
+                      </span>
+                    </button>
+
+                    {/* Monthly option */}
+                    <button
+                      onClick={() => setDonationType('monthly')}
+                      className="flex-1 relative z-10 py-3 flex flex-col items-center justify-center rounded-full transition-colors duration-300"
+                    >
+                      <div className="flex items-center justify-center">
+                        <FaRegCalendarAlt className={`mr-2 ${donationType === 'monthly' ? 'text-white' : 'text-gray-600'}`} />
+                        <span className={`font-medium ${donationType === 'monthly' ? 'text-white' : 'text-gray-600'}`}>
+                          Monthly
+                        </span>
                       </div>
-                    )}
-                    <div className="text-center">
-                      <div className="font-bold mb-1">Monthly</div>
-                      <div className="text-xs">Recurring donation</div>
-                    </div>
-                  </button>
+                      <span className={`text-xs ${donationType === 'monthly' ? 'text-white text-opacity-90' : 'text-gray-500'}`}>
+                        Recurring donation
+                      </span>
+                    </button>
+                  </div>
                 </div>
+
+                {/* Monthly donation impact animation - always keep the container */}
+                <AnimatePresence>
+                  {donationType === 'monthly' && (
+                    <motion.div
+                      ref={monthlyInfoRef}
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="mt-4 overflow-hidden"
+                    >
+                      <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 relative">
+                        <div className="flex items-start">
+                          <div className="text-blue-600 mr-2 mt-1">
+                            <FaInfoCircle />
+                          </div>
+                          <div className="w-full">
+                            <p className="text-blue-900 font-medium mb-1">Greater Impact with Monthly Giving</p>
+                            <p className="text-sm text-blue-700 mb-1">
+                              Your recurring donation provides reliable support and helps create lasting change.
+                            </p>
+
+                            {/* Content area with animated height for smooth collapse */}
+                            <motion.div
+                              initial={{ height: 'auto', marginBottom: 0, opacity: 1 }}
+                              animate={{
+                                height: sectionCollapsed ? 0 : 'auto',
+                                marginBottom: sectionCollapsed ? 0 : 8,
+                                opacity: sectionCollapsed ? 0 : 1
+                              }}
+                              transition={{
+                                duration: 0.4,
+                                ease: "easeInOut"
+                              }}
+                              className="overflow-hidden"
+                            >
+                              {/* Impact section with progress bar */}
+                              <div
+                                ref={impactSectionRef}
+                                className={`transition-opacity duration-500 ${progressComplete && heartAnimation !== 'hidden' ? 'opacity-0' : 'opacity-100'}`}
+                              >
+                                <div className="w-full bg-blue-200 h-1.5 rounded-full mb-2">
+                                  <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: "100%" }}
+                                    transition={{ duration: 1.5 }}
+                                    className="h-full bg-blue-600 rounded-full"
+                                    onAnimationComplete={handleProgressComplete}
+                                  />
+                                </div>
+                                <div className="flex justify-between text-xs text-blue-600">
+                                  <span>One-time: Single impact</span>
+                                  <span>Monthly: Continuous impact</span>
+                                </div>
+                              </div>
+                            </motion.div>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
               {/* Campaign donation policy - only show for campaign donations */}
@@ -255,10 +380,11 @@ const DonationModal: React.FC<DonationModalProps> = ({
                     Donation Policy
                   </h3>
                   <div className="space-y-3 mt-2">
-                    <button
+                    <motion.button
+                      whileTap={{ scale: 0.98 }}
                       className={`w-full p-3 rounded-lg transition-all duration-300 text-left relative ${selectedDonationPolicy === 'always-donate'
-                          ? 'bg-[#F9A826] text-white'
-                          : 'border border-gray-300 text-gray-700 hover:border-[#F9A826]'
+                        ? 'bg-[#F9A826] text-white'
+                        : 'border border-gray-300 text-gray-700 hover:border-[#F9A826]'
                         }`}
                       onClick={() => setSelectedDonationPolicy('always-donate')}
                     >
@@ -269,8 +395,8 @@ const DonationModal: React.FC<DonationModalProps> = ({
                       )}
                       <div className="flex items-start">
                         <div className={`w-5 h-5 rounded-full mr-3 mt-0.5 flex items-center justify-center ${selectedDonationPolicy === 'always-donate'
-                            ? 'border-2 border-white'
-                            : 'border border-gray-400'
+                          ? 'border-2 border-white'
+                          : 'border border-gray-400'
                           }`}>
                           {selectedDonationPolicy === 'always-donate' && (
                             <div className="w-2 h-2 bg-white rounded-full"></div>
@@ -283,12 +409,13 @@ const DonationModal: React.FC<DonationModalProps> = ({
                           </p>
                         </div>
                       </div>
-                    </button>
+                    </motion.button>
 
-                    <button
+                    <motion.button
+                      whileTap={{ scale: 0.98 }}
                       className={`w-full p-3 rounded-lg transition-all duration-300 text-left relative ${selectedDonationPolicy === 'campaign-specific'
-                          ? 'bg-[#F9A826] text-white'
-                          : 'border border-gray-300 text-gray-700 hover:border-[#F9A826]'
+                        ? 'bg-[#F9A826] text-white'
+                        : 'border border-gray-300 text-gray-700 hover:border-[#F9A826]'
                         }`}
                       onClick={() => setSelectedDonationPolicy('campaign-specific')}
                     >
@@ -299,8 +426,8 @@ const DonationModal: React.FC<DonationModalProps> = ({
                       )}
                       <div className="flex items-start">
                         <div className={`w-5 h-5 rounded-full mr-3 mt-0.5 flex items-center justify-center ${selectedDonationPolicy === 'campaign-specific'
-                            ? 'border-2 border-white'
-                            : 'border border-gray-400'
+                          ? 'border-2 border-white'
+                          : 'border border-gray-400'
                           }`}>
                           {selectedDonationPolicy === 'campaign-specific' && (
                             <div className="w-2 h-2 bg-white rounded-full"></div>
@@ -313,7 +440,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
                           </p>
                         </div>
                       </div>
-                    </button>
+                    </motion.button>
                   </div>
                 </div>
               )}
@@ -323,29 +450,31 @@ const DonationModal: React.FC<DonationModalProps> = ({
                 <h3 className="text-md font-semibold text-[#006838] mb-2">Donation Amount</h3>
                 <div className="grid grid-cols-3 gap-2 mb-3">
                   {predefinedAmounts.map((predefinedAmount) => (
-                    <button
+                    <motion.button
                       key={predefinedAmount}
+                      whileTap={{ scale: 0.95 }}
                       onClick={() => handleAmountSelect(predefinedAmount)}
                       className={`py-2 rounded-lg ${amount === predefinedAmount && !customAmount
-                          ? 'bg-[#F9A826] text-white'
-                          : 'border border-gray-300 hover:border-[#F9A826] text-gray-700'
+                        ? 'bg-[#F9A826] text-white'
+                        : 'border border-gray-300 hover:border-[#F9A826] text-gray-700'
                         }`}
                     >
-                      RM{predefinedAmount}
-                    </button>
+                      RM{predefinedAmount}{donationType === 'monthly' && <span className="text-xs">/month</span>}
+                    </motion.button>
                   ))}
-                  <button
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => {
                       setCustomAmount(true);
                       setAmount('');
                     }}
                     className={`py-2 rounded-lg ${customAmount
-                        ? 'bg-[#F9A826] text-white'
-                        : 'border border-gray-300 hover:border-[#F9A826] text-gray-700'
+                      ? 'bg-[#F9A826] text-white'
+                      : 'border border-gray-300 hover:border-[#F9A826] text-gray-700'
                       }`}
                   >
                     Custom
-                  </button>
+                  </motion.button>
                 </div>
 
                 {customAmount && (
@@ -362,6 +491,11 @@ const DonationModal: React.FC<DonationModalProps> = ({
                         placeholder="Enter amount"
                         autoFocus
                       />
+                      {donationType === 'monthly' && (
+                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                          <span className="text-gray-500 text-sm">/month</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -372,15 +506,15 @@ const DonationModal: React.FC<DonationModalProps> = ({
           {step === 'payment' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold text-[var(--headline)] mb-2">Donation Summary</h3>
-                <div className="bg-[var(--background)] p-4 rounded-lg">
+                <h3 className="text-lg font-semibold text-[#006838] mb-2">Donation Summary</h3>
+                <div className="bg-gray-50 p-4 rounded-lg">
                   <div className="flex justify-between mb-2">
                     <span>Donation to:</span>
                     <span className="font-semibold">{displayName}</span>
                   </div>
                   <div className="flex justify-between mb-2">
                     <span>Amount:</span>
-                    <span className="font-semibold">RM{amount}</span>
+                    <span className="font-semibold">RM{amount}{donationType === 'monthly' ? '/month' : ''}</span>
                   </div>
                   <div className="flex justify-between mb-2">
                     <span>Frequency:</span>
@@ -399,13 +533,13 @@ const DonationModal: React.FC<DonationModalProps> = ({
 
               {/* Credit Card Form (Placeholder) */}
               <div>
-                <h3 className="text-lg font-semibold text-[var(--headline)] mb-4">Payment Details</h3>
+                <h3 className="text-lg font-semibold text-[#006838] mb-4">Payment Details</h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-[var(--paragraph)] mb-1">Card Holder Name</label>
+                    <label className="block text-sm font-medium text-[#006838] mb-1">Card Holder Name</label>
                     <input
                       type="text"
-                      className="w-full px-4 py-3 border border-[var(--stroke)] rounded-lg"
+                      className="w-full px-4 py-3 border border-[#006838] rounded-lg"
                       placeholder="Enter name on card"
                       value={cardName}
                       onChange={(e) => setCardName(e.target.value)}
@@ -413,32 +547,32 @@ const DonationModal: React.FC<DonationModalProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-[var(--paragraph)] mb-1">Card Number</label>
-                    <div className="w-full px-4 py-3 border border-[var(--stroke)] rounded-lg bg-white flex items-center">
-                      <FaRegCreditCard className="text-[var(--paragraph)] mr-2" />
-                      <span className="text-[var(--paragraph)]">•••• •••• •••• ••••</span>
+                    <label className="block text-sm font-medium text-[#006838] mb-1">Card Number</label>
+                    <div className="w-full px-4 py-3 border border-[#006838] rounded-lg bg-white flex items-center">
+                      <FaRegCreditCard className="text-[#006838] mr-2" />
+                      <span className="text-[#006838]">•••• •••• •••• ••••</span>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-[var(--paragraph)] mb-1">Expiration Date</label>
-                      <div className="w-full px-4 py-3 border border-[var(--stroke)] rounded-lg bg-white flex items-center">
-                        <FaRegCalendarAlt className="text-[var(--paragraph)] mr-2" />
-                        <span className="text-[var(--paragraph)]">MM / YY</span>
+                      <label className="block text-sm font-medium text-[#006838] mb-1">Expiration Date</label>
+                      <div className="w-full px-4 py-3 border border-[#006838] rounded-lg bg-white flex items-center">
+                        <FaRegCalendarAlt className="text-[#006838] mr-2" />
+                        <span className="text-[#006838]">MM / YY</span>
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-[var(--paragraph)] mb-1">Security Code</label>
-                      <div className="w-full px-4 py-3 border border-[var(--stroke)] rounded-lg bg-white flex items-center">
-                        <FaLock className="text-[var(--paragraph)] mr-2" />
-                        <span className="text-[var(--paragraph)]">•••</span>
+                      <label className="block text-sm font-medium text-[#006838] mb-1">Security Code</label>
+                      <div className="w-full px-4 py-3 border border-[#006838] rounded-lg bg-white flex items-center">
+                        <FaLock className="text-[#006838] mr-2" />
+                        <span className="text-[#006838]">•••</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-4 flex items-center text-sm text-[var(--paragraph)]">
+                <div className="mt-4 flex items-center text-sm text-[#006838]">
                   <FaLock className="mr-2" />
                   <span>Your payment information is secure and encrypted</span>
                 </div>
@@ -451,18 +585,18 @@ const DonationModal: React.FC<DonationModalProps> = ({
               <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <FaHandHoldingHeart className="text-green-600 text-3xl" />
               </div>
-              <h3 className="text-2xl font-bold text-[var(--headline)] mb-2">Thank You for Your Support!</h3>
-              <p className="text-[var(--paragraph)] mb-6">
+              <h3 className="text-2xl font-bold text-[#006838] mb-2">Thank You for Your Support!</h3>
+              <p className="text-gray-700 mb-6">
                 Your donation of RM{amount} {donationType === 'monthly' ? 'per month ' : ''}to {displayName} has been processed successfully.
               </p>
               {campaignId && (
-                <div className="bg-[var(--background)] p-4 rounded-lg mb-6 text-left">
+                <div className="bg-[#006838] p-4 rounded-lg mb-6 text-left">
                   <div className="flex items-start gap-2">
-                    <FaInfoCircle className="text-[var(--highlight)] mt-1 flex-shrink-0" />
+                    <FaInfoCircle className="text-[#F9A826] mt-1 flex-shrink-0" />
                     <div>
                       <p className="text-sm mb-2">
                         <span className="font-medium">Donation Policy: </span>
-                        <span className={selectedDonationPolicy === 'always-donate' ? 'text-blue-600' : 'text-green-600'}>
+                        <span className={selectedDonationPolicy === 'always-donate' ? 'text-white' : 'text-green-600'}>
                           {selectedDonationPolicy === 'always-donate' ? 'Always Donate' : 'Campaign Specific'}
                         </span>
                       </p>
@@ -475,7 +609,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
                   </div>
                 </div>
               )}
-              <p className="text-[var(--paragraph)]">
+              <p className="text-[#006838]">
                 A receipt has been sent to your email address.
               </p>
             </div>
@@ -495,12 +629,13 @@ const DonationModal: React.FC<DonationModalProps> = ({
             <div></div>
           )}
 
-          <button
+          <motion.button
+            whileTap={{ scale: 0.95 }}
             onClick={handleNextStep}
             disabled={step === 'amount' && !amount || isProcessing}
             className={`px-6 py-2 rounded-lg ${step === 'amount' && !amount
-                ? 'bg-gray-300 cursor-not-allowed'
-                : 'bg-[#F9A826] text-white hover:bg-[#e99615]'
+              ? 'bg-gray-300 cursor-not-allowed'
+              : 'bg-[#F9A826] text-white hover:bg-[#e99615]'
               } transition-colors flex items-center justify-center min-w-[120px]`}
           >
             {isProcessing ? (
@@ -514,25 +649,25 @@ const DonationModal: React.FC<DonationModalProps> = ({
             ) : (
               step === 'confirmation' ? 'Close' : 'Continue'
             )}
-          </button>
+          </motion.button>
         </div>
       </div>
 
       {/* Auto donation info modal */}
       {showAutodonationInfo && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-[var(--main)] rounded-xl shadow-xl max-w-md w-full p-6">
+          <div className="bg-[#006838] rounded-xl shadow-xl max-w-md w-full p-6">
             <div className="text-center mb-4">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <FaMoneyBillWave className="text-green-600 text-2xl" />
               </div>
-              <h3 className="text-xl font-bold text-[var(--headline)]">Monthly Donation Set Up!</h3>
-              <p className="text-[var(--paragraph)] mt-2">
+              <h3 className="text-xl font-bold text-white">Monthly Donation Set Up!</h3>
+              <p className="text-white mt-2">
                 Your monthly donation of RM{amount} to {displayName} has been set up successfully.
               </p>
             </div>
 
-            <div className="bg-[var(--background)] p-4 rounded-lg mb-4">
+            <div className="bg-[#006838] p-4 rounded-lg mb-4">
               <p className="text-sm">
                 <strong>Important:</strong> You can manage or cancel this recurring donation at any time from the Auto Donations section.
               </p>
@@ -544,7 +679,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
                   setShowAutodonationInfo(false);
                   window.location.href = '/charity?tab=autoDonate';
                 }}
-                className="px-4 py-2 bg-[var(--highlight)] text-white rounded-lg shadow-md hover:bg-opacity-90 transition-all"
+                className="px-4 py-2 bg-[#F9A826] text-white rounded-lg shadow-md hover:bg-opacity-90 transition-all"
               >
                 Go to Auto Donations
               </button>
@@ -552,6 +687,58 @@ const DonationModal: React.FC<DonationModalProps> = ({
           </div>
         </div>
       )}
+
+      {/* Heart animation overlay - fixed position to fly across the screen */}
+      <AnimatePresence>
+        {heartAnimation !== 'hidden' && (
+          <motion.div
+            className="fixed inset-0 pointer-events-none z-[9999]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="absolute text-5xl text-red-500 filter drop-shadow-lg"
+              style={{
+                left: heartPosition.left,
+                top: heartPosition.top,
+                marginLeft: '-0.75rem',
+                marginTop: '-0.75rem'
+              }}
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={
+                heartAnimation === 'flying'
+                  ? {
+                    y: -300,
+                    x: [0, -30, 30, -15, 15, 0],
+                    opacity: [1, 1, 0.8, 0.5, 0.2, 0],
+                    scale: [1.2, 1.5, 1.2, 0.8, 0.5],
+                    rotate: [0, -15, 15, -7, 7, 0],
+                  }
+                  : {
+                    opacity: 1,
+                    scale: 1.2,
+                    y: 0,
+                    x: 0
+                  }
+              }
+              transition={
+                heartAnimation === 'flying'
+                  ? {
+                    duration: 1.5,
+                    ease: "easeOut",
+                    times: [0, 0.2, 0.4, 0.6, 0.8, 1],
+                  }
+                  : {
+                    duration: 0.3
+                  }
+              }
+            >
+              <FaHeart />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
