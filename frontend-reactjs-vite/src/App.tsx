@@ -31,6 +31,7 @@ import OrderHistoryCard from "./modules/client/vendor/OrderManagement/OrderHisto
 import OrderTracker from "./modules/client/vendor/OrderManagement/OrderTracker";
 import OrderTrackerDetails from "./modules/client/vendor/OrderManagement/OrderTrackerDetails";
 import TransactionHistoryDetails from "./modules/client/vendor/FinancialManagement/TransactionHistoryDetails";
+import OrderManagement from "./modules/client/vendor/OrderManagement/OrderManagement";
 
 const CommunityRedirect = () => {
 	const { id } = useParams();
@@ -76,7 +77,7 @@ export function App() {
 	}, [activeAccount]);
 
 	if (!roleChecked) {
-		return <div>Loading...</div>;  // ✅ Loading shown only during Supabase checks
+		return <div>Loading...</div>;  
 	}
 
 	return (
@@ -150,6 +151,7 @@ export function App() {
               <Route path="/vendor/order-tracker" element={<OrderTracker />} />
               <Route path="/vendor/order-tracker-details" element={<OrderTrackerDetails />} />
 			  <Route path="/vendor/transaction-history-details" element={<TransactionHistoryDetails />} />
+			  <Route path="/vendor/order-management" element={<OrderManagement />} />
 
 
 						</Route>
