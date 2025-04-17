@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { FaCalendarAlt, FaMoneyBillWave, FaArrowLeft, FaHandHoldingHeart, FaUsers, FaChartLine, FaHistory, FaBuilding, FaEdit, FaTrash, FaComments, FaClock, FaThumbsUp, FaPlus, FaMapMarkerAlt, FaShare, FaTrophy, FaExchangeAlt, FaTimes, FaHashtag, FaTags, FaFire, FaUserCircle } from "react-icons/fa";
+import { FaCalendarAlt, FaMoneyBillWave, FaArrowLeft, FaHandHoldingHeart, FaUsers, FaChartLine, FaHistory, FaBuilding, FaEdit, FaTrash, FaComments, FaClock, FaThumbsUp, FaPlus, FaMapMarkerAlt, FaShare, FaTrophy, FaExchangeAlt, FaTimes, FaHashtag, FaTags, FaFire, FaUserCircle, FaCheck, FaFileInvoice, FaFlag } from "react-icons/fa";
 import { useRole } from "../../../../contexts/RoleContext";
 import { mockCampaigns, mockDonorContributions, mockOrganizations, mockDonationTrackers } from "../../../../utils/mockData";
 import DonationModal from "../../../../components/modals/DonationModal";
@@ -12,6 +12,8 @@ import DonationLeaderboard from "../../common/community/components/DonationLeade
 import TransactionTimeline from "../../common/community/components/TransactionTimeline";
 import DonationTracker from "../../../../components/donation/DonationTracker";
 import MyContributionPopup from '../../../../components/modals/MyContributionPopup';
+// Import our new CampaignTimeline component
+import CampaignTimeline from "../../../../components/campaign/CampaignTimeline";
 
 // Floating Modal Component for Full Leaderboard
 const LeaderboardModal: React.FC<{
@@ -98,6 +100,18 @@ const LeaderboardModal: React.FC<{
   );
 };
 
+// Define types for the campaign and related objects
+interface Campaign {
+  id: number;
+  name: string;
+  description: string;
+  goal: number;
+  currentContributions: number;
+  deadline: string;
+  organizationId: number;
+  startDate?: string;
+}
+
 const CampaignDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -117,7 +131,7 @@ const CampaignDetail: React.FC = () => {
   });
 
   // Find the campaign from our centralized mock data
-  const campaign = mockCampaigns.find(c => c.id === campaignId);
+  const campaign = mockCampaigns.find(c => c.id === campaignId) as Campaign;
 
   // If campaign not found, show error or redirect
   if (!campaign) {
@@ -275,7 +289,7 @@ const CampaignDetail: React.FC = () => {
 
         {/* Two-column layout for main content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left column - Main campaign information */}
+          {/* Left column - Main campaign information - now spans 2 columns always */}
           <div className="lg:col-span-2 space-y-6">
             {/* Organization info - now clickable */}
             <div
@@ -350,11 +364,20 @@ const CampaignDetail: React.FC = () => {
                 <div className="p-6">
                   {activeMainTab === 'transactions' && (
                     <>
-                      <h2 className="text-xl font-bold text-[var(--headline)] mb-2">Campaign Transactions</h2>
+                      <h2 className="text-xl font-bold text-[var(--headline)] mb-2">Campaign Timeline</h2>
                       <p className="text-[var(--paragraph)] text-sm mb-4">
-                        Track how funds are being used in this campaign
+                        Track campaign progress, milestones, and activities
                       </p>
-                      <TransactionTimeline communityId={campaignId} communityType="campaign" />
+
+                      {/* Use the redesigned CampaignTimeline component */}
+                      <CampaignTimeline
+                        campaignName=""
+                        currentAmount={campaign.currentContributions}
+                        goalAmount={campaign.goal}
+                        deadline={campaign.deadline}
+                        daysLeft={timeLeft}
+                        startDate={campaign.startDate || `${new Date(Date.now() - 30 * 86400000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`}
+                      />
                     </>
                   )}
 
@@ -424,85 +447,6 @@ const CampaignDetail: React.FC = () => {
 
           {/* Right column - Supplementary information */}
           <div className="space-y-6">
-            {/* Campaign details */}
-            <div className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] overflow-hidden">
-              <div className="p-4 border-b border-[var(--stroke)] bg-gradient-to-r from-[var(--highlight)] to-[var(--secondary)] bg-opacity-10">
-                <h3 className="text-lg font-bold text-[var(--headline)]">Campaign Timeline</h3>
-              </div>
-              <div className="p-6">
-                <div className="relative">
-                  {/* Timeline line - Fix: Make it extend through all content including the last item */}
-                  <div className="absolute h-full w-0.5 bg-[var(--stroke)] left-6 top-0 bottom-0"></div>
-
-                  {/* Start date */}
-                  <div className="flex mb-8 relative">
-                    <div className="z-10 flex items-center justify-center w-12 h-12 rounded-full bg-[var(--secondary)] bg-opacity-10 border-4 border-[var(--main)] shadow">
-                      <FaCalendarAlt className="text-[var(--secondary)]" />
-                    </div>
-                    <div className="flex-grow ml-4">
-                      <div className="font-bold text-[var(--headline)] flex items-center gap-2">
-                        Campaign Started
-                        <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-[var(--secondary)] bg-opacity-10 text-black">
-                          Active
-                        </span>
-                      </div>
-                      <div className="text-[var(--paragraph)] mt-1">January 15, 2023</div>
-                      <div className="text-xs text-[var(--paragraph)] mt-1 italic">
-                        {timeLeft + 30} days ago
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Current progress */}
-                  <div className="flex mb-8 relative">
-                    <div className="z-10 flex items-center justify-center w-12 h-12 rounded-full bg-[var(--highlight)] bg-opacity-10 border-4 border-[var(--main)] shadow">
-                      <FaMoneyBillWave className="text-[var(--highlight)]" />
-                    </div>
-                    <div className="flex-grow ml-4">
-                      <div className="font-bold text-[var(--headline)]">Current Progress</div>
-                      <div className="text-[var(--paragraph)] mt-1">RM{campaign.currentContributions} raised of RM{campaign.goal} goal</div>
-                      <div className="w-full bg-[var(--stroke)] rounded-full h-2 mt-2">
-                        <div
-                          className="h-full rounded-full bg-[var(--highlight)]"
-                          style={{ width: `${progress}%` }}
-                        ></div>
-                      </div>
-                      <div className="text-xs text-[var(--paragraph)] mt-1">
-                        {progress.toFixed(1)}% Complete
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* End date */}
-                  <div className="flex relative mb-8">
-                    <div className="z-10 flex items-center justify-center w-12 h-12 rounded-full bg-[var(--tertiary)] bg-opacity-10 border-4 border-[var(--main)] shadow">
-                      <FaClock className="text-[var(--tertiary)]" />
-                    </div>
-                    <div className="flex-grow ml-4">
-                      <div className="font-bold text-[var(--headline)]">Campaign Deadline</div>
-                      <div className="text-[var(--paragraph)] mt-1">{campaign.deadline}</div>
-                      <div className="text-xs mt-2 flex items-center gap-1">
-                        <span className={`px-2 py-0.5 rounded-full font-medium ${timeLeft > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                          {timeLeft > 0 ? `${timeLeft} days left` : 'Campaign ended'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Location */}
-                  <div className="flex relative">
-                    <div className="z-10 flex items-center justify-center w-12 h-12 rounded-full bg-[var(--highlight)] bg-opacity-10 border-4 border-[var(--main)] shadow">
-                      <FaMapMarkerAlt className="text-[var(--highlight)]" />
-                    </div>
-                    <div className="flex-grow ml-4">
-                      <div className="font-bold text-[var(--headline)]">Campaign Location</div>
-                      <div className="text-[var(--paragraph)] mt-1">Worldwide</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             {/* Donor Leaderboard - only show for charity users or donors who have contributed */}
             {(userRole === 'charity' || (userRole === 'donor' && donorContribution)) ? (
               <div className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] overflow-hidden">
