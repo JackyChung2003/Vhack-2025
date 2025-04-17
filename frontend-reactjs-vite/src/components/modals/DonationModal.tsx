@@ -310,7 +310,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -10 }}
         transition={{ duration: 0.2 }}
-        className="fixed z-[999] w-64 bg-[#1E293B] text-white p-3 rounded-lg shadow-lg text-sm"
+        className="fixed z-[9999] w-64 bg-[#1E293B] text-white p-3 rounded-lg shadow-lg text-sm"
         style={{ top: `${position.top}px`, left: `${position.left}px` }}
         ref={(el) => (tooltipContentRefs.current[type] = el)}
       >
@@ -496,7 +496,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
 
                       <button
                         type="button"
-                        className={`absolute top-2 right-2 z-10 ${activeTooltip === 'always-donate' ? 'text-[#E68A00]' : 'text-[#F9A826]'
+                        className={`absolute top-2 right-2 z-[1000] ${activeTooltip === 'always-donate' ? 'text-[#E68A00]' : 'text-[#F9A826]'
                           } hover:text-[#E68A00] focus:outline-none`}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -561,7 +561,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
                     >
                       <button
                         type="button"
-                        className={`absolute top-2 right-2 z-10 ${activeTooltip === 'campaign-specific' ? 'text-[#E68A00]' : 'text-[#F9A826]'
+                        className={`absolute top-2 right-2 z-[1000] ${activeTooltip === 'campaign-specific' ? 'text-[#E68A00]' : 'text-[#F9A826]'
                           } hover:text-[#E68A00] focus:outline-none`}
                         onClick={(e) => {
                           e.stopPropagation();
