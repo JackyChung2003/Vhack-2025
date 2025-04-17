@@ -469,8 +469,9 @@ const OrganizationDetail: React.FC = () => {
         <DonationModal
           isOpen={isDonationModalOpen}
           onClose={() => setIsDonationModalOpen(false)}
-          organizationId={organizationId}
+          organizationId={organizationId.toString()}
           organizationName={organization.name}
+          campaignId=""
           onDonationComplete={(amount) => {
             toast.success(`Thank you for your donation of RM${amount} to ${organization.name}!`);
             setIsDonationModalOpen(false);

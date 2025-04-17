@@ -16,9 +16,9 @@ interface DonationModalProps {
   targetCategory?: string;
 
   // Or the old props
-  campaignId?: number;
+  campaignId: string;
   campaignName?: string;
-  organizationId?: number;
+  organizationId: string;
   organizationName?: string;
 
   donationPolicy?: string;

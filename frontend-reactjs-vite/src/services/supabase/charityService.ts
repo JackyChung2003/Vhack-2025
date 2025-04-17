@@ -13,6 +13,18 @@ export interface Campaign {
   created_at: string;
   deadline?: string; // This might be missing from your schema
   image_url?: string; // This might be missing from your schema
+  charity?: {
+    id: string;
+    name: string;
+    description?: string;
+    logo?: string;
+    founded?: string;
+    location?: string;
+    website?: string;
+    email?: string;
+    phone?: string;
+    verified?: boolean;
+  };
 }
 
 export interface CharityProfile {
@@ -208,6 +220,63 @@ export const charityService = {
       return await charityService.getCharityProfile();
     } catch (error) {
       console.error('Error updating charity profile:', error);
+      throw error;
+    }
+  },
+  
+  // Get campaign by ID
+  getCampaignById: async (id: string): Promise<Campaign> => {
+    try {
+      // First get the campaign with basic user info
+      const { data, error } = await supabase
+        .from('campaigns')
+        .select(`
+          *,
+          users!fk_campaigns_charity (
+            id,
+            name,
+            verified,
+            wallet_address,
+            role
+          )
+        `)
+        .eq('id', id)
+        .single();
+      
+      if (error) throw error;
+      if (!data) throw new Error('Campaign not found');
+      
+      // Then get the charity profile data
+      const { data: profileData, error: profileError } = await supabase
+        .from('charity_profiles')
+        .select(`
+          description,
+          logo,
+          founded,
+          location,
+          website,
+          email,
+          phone
+        `)
+        .eq('user_id', data.users.id)
+        .maybeSingle();
+      
+      // Combine data from both tables
+      const charity = {
+        ...data.users,
+        ...(profileData || {})
+      };
+      
+      // Create the final campaign object
+      const campaign = {
+        ...data,
+        charity
+      };
+      delete campaign.users;
+      
+      return campaign;
+    } catch (error) {
+      console.error('Error fetching campaign:', error);
       throw error;
     }
   },
