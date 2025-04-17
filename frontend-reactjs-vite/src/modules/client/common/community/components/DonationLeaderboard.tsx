@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { FaTrophy, FaMedal, FaAward, FaSearch, FaSortAmountDown, FaSortAmountUp, FaChevronRight } from "react-icons/fa";
 
 interface DonationLeaderboardProps {
-  communityId: number;
+  communityId: string | number;
   communityType: string;
   simplified?: boolean;
   onViewFullLeaderboard?: () => void;

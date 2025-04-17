@@ -17,7 +17,7 @@ import MyContributionPopup from '../../../../components/modals/MyContributionPop
 const LeaderboardModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
-  campaignId: any; // Using any temporarily to avoid type issues
+  campaignId: string;
   campaignName: string;
 }> = ({ isOpen, onClose, campaignId, campaignName }) => {
   if (!isOpen) return null;
@@ -104,6 +104,7 @@ interface DonorContribution {
   contributions: Array<{
     date: string;
     amount: number;
+    id: string;  // Add id field to match MyContributionPopup requirements
   }>;
   percentageOfTotal: string;
 }
@@ -135,7 +136,11 @@ const CampaignDetail: React.FC = () => {
   // Fetch campaign data
   useEffect(() => {
     const fetchCampaign = async () => {
-      if (!id) return;
+      if (!id) {
+        setError("Campaign ID is missing");
+        setLoading(false);
+        return;
+      }
       
       try {
         setLoading(true);
@@ -186,12 +191,12 @@ const CampaignDetail: React.FC = () => {
   // Use charity data from campaign
   const charity = campaign.charity || null;
   
-  // Instead of null, create mock data
+  // Create mock donor contribution data for all donors
   const donorContribution: DonorContribution = {
     totalAmount: 250,
     contributions: [
-      { date: '2023-11-15', amount: 150 },
-      { date: '2023-12-20', amount: 100 }
+      { id: '1', date: '2023-11-15T10:30:00', amount: 150 },
+      { id: '2', date: '2023-12-20T15:45:00', amount: 100 }
     ],
     percentageOfTotal: '8.5'
   };
@@ -292,8 +297,8 @@ const CampaignDetail: React.FC = () => {
             </div>
           </div>
 
-          {/* User's donation - only show if donor has contributed */}
-          {userRole === 'donor' && donorContribution && (
+          {/* User's donation - show for all donors */}
+          {userRole === 'donor' && (
             <div className="mt-4 bg-white bg-opacity-20 p-4 rounded-lg flex justify-between items-center">
               <div className="flex items-center">
                 {/* User avatar/icon */}
@@ -374,8 +379,8 @@ const CampaignDetail: React.FC = () => {
               </div>
             )}
 
-            {/* Tabbed section for Transactions and Community - only show for charity users or donors who have contributed */}
-            {(userRole === 'charity' || (userRole === 'donor' && donorContribution)) ? (
+            {/* Tabbed section for Transactions and Community - show for all donors now */}
+            {(userRole === 'charity' || userRole === 'donor') ? (
               <div className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] overflow-hidden">
                 <div className="border-b border-[var(--stroke)]">
                   <div className="flex">
@@ -409,7 +414,7 @@ const CampaignDetail: React.FC = () => {
                       <p className="text-[var(--paragraph)] text-sm mb-4">
                         Track how funds are being used in this campaign
                       </p>
-                      <TransactionTimeline communityId={0} communityType="campaign" />
+                      <TransactionTimeline communityId={campaign.id} communityType="campaign" />
                     </>
                   )}
 
@@ -445,7 +450,7 @@ const CampaignDetail: React.FC = () => {
                       </div>
 
                       {/* Community Content Based on Selected View */}
-                      {activeSection === 'feed' && <PostFeed communityId={0} communityType="campaign" />}
+                      {activeSection === 'feed' && <PostFeed communityId={campaign.id} communityType="campaign" />}
                     </>
                   )}
                 </div>
@@ -564,8 +569,8 @@ const CampaignDetail: React.FC = () => {
               </div>
             </div>
 
-            {/* Donor Leaderboard - only show for charity users or donors who have contributed */}
-            {(userRole === 'charity' || (userRole === 'donor' && donorContribution)) ? (
+            {/* Donor Leaderboard - show for all donors */}
+            {(userRole === 'charity' || userRole === 'donor') ? (
               <div className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] overflow-hidden">
                 <div className="p-4">
                   <h2 className="text-xl font-bold text-[var(--headline)] flex items-center gap-2">
@@ -579,7 +584,7 @@ const CampaignDetail: React.FC = () => {
 
                 <div className="p-0">
                   <DonationLeaderboard
-                    communityId={Number(campaign.id)}
+                    communityId={campaign.id}
                     communityType="campaign"
                     simplified={true}
                     onViewFullLeaderboard={handleViewFullLeaderboard}
@@ -633,25 +638,6 @@ const CampaignDetail: React.FC = () => {
         </div>
       </div>
 
-      {/* Donation Modal */}
-      <DonationModal
-        isOpen={isDonationModalOpen}
-        onClose={() => setIsDonationModalOpen(false)}
-        campaignId={campaign.id}
-        campaignName={campaign.title}
-        organizationId={campaign.charity_id}
-        organizationName={charity?.name}
-        onDonationComplete={handleDonationComplete}
-      />
-
-      {/* Leaderboard Modal */}
-      <LeaderboardModal
-        isOpen={showFullLeaderboard}
-        onClose={() => setShowFullLeaderboard(false)}
-        campaignId={0} // Temporary placeholder
-        campaignName={campaign.title}
-      />
-
       {/* Floating Donate Now button - only show for active campaigns */}
       {userRole === 'donor' && isCampaignActive && (
         <motion.div
@@ -684,6 +670,35 @@ const CampaignDetail: React.FC = () => {
           </button>
         </motion.div>
       )}
+
+      {/* Donation Modal */}
+      <DonationModal
+        isOpen={isDonationModalOpen}
+        onClose={() => setIsDonationModalOpen(false)}
+        campaignId={campaign.id}
+        campaignName={campaign.title}
+        organizationId={campaign.charity_id}
+        organizationName={charity?.name}
+        onDonationComplete={handleDonationComplete}
+      />
+
+      {/* Leaderboard Modal */}
+      <LeaderboardModal
+        isOpen={showFullLeaderboard}
+        onClose={() => setShowFullLeaderboard(false)}
+        campaignId={campaign.id}
+        campaignName={campaign.title}
+      />
+
+      {/* MyContributionPopup modal */}
+      <MyContributionPopup
+        isOpen={isContributionPopupOpen}
+        onClose={() => setIsContributionPopupOpen(false)}
+        contributions={donorContribution.contributions}
+        totalContributed={donorContribution.totalAmount}
+        donationsCount={donorContribution.contributions.length}
+        percentageOfTotal={parseFloat(donorContribution.percentageOfTotal)}
+      />
     </div>
   );
 };
