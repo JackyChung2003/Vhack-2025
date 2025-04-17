@@ -86,7 +86,6 @@ const OrganizationDetail: React.FC = () => {
           campaign => campaign.organizationId === organizationId && campaign.id === contribution.id
         )
       );
-      setIsDonationModalOpen(hasContributed);
     }
   }, [organizationId, userRole]);
 
