@@ -39,13 +39,13 @@ const RegisterPage: React.FC = () => {
             console.log(`✅ Found existing role: ${userRole} - Redirecting...`);
             switch (userRole) {
                 case 'charity':
-                    navigate('/charity');
+                    navigate('/charity/home');
                     break;
                 case 'vendor':
-                    navigate('/Vhack-2025/vendor/dashboard');
+                    navigate('/vendor/dashboard');
                     break;
                 case 'donor':
-                    navigate('/donor');
+                    navigate('/donor-homepage');
                     break;
                 default:
                     console.warn('❗ Unknown role found:', userRole);
@@ -198,11 +198,11 @@ const RegisterPage: React.FC = () => {
         
             alert("✅ Registration successful!");
             if (role === 'charity') {
-                navigate('/Vhack-2025/charity/home');
+                navigate('/charity/home');
             } else if (role === 'vendor') {
-                navigate('/Vhack-2025/vendor/home');
+                navigate('/vendor/dashboard');
             } else {
-                navigate(`/${role}`);
+                navigate('/donor-homepage');
             }
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Something went wrong';
@@ -486,8 +486,12 @@ const RegisterPage: React.FC = () => {
                         {isRegistering ? 'Registering...' : 'Register'}
                     </button>
 
+                    {/* Already have an account? Login */}
                     <p className="login-link">
-                        Already have an account? <span onClick={() => navigate('/login')}>Login</span>
+                        Already have an account? 
+                        <span onClick={() => navigate('/login')} className="link-text">
+                            Login here
+                        </span>
                     </p>
                 </form>
             </div>

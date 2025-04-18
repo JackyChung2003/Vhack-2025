@@ -37,18 +37,19 @@ const LoginPage = () => {
         // If user is authenticated and has a role, redirect to appropriate dashboard
         if (user && userRole) {
             console.log("🎯 Role Found:", userRole);
+            // Redirect to root-relative paths, Vite/deployment handles the base
             switch (userRole) {
                 case 'charity':
-                    navigate('/charity/home');
+                    navigate(`/charity/home`); 
                     break;
                 case 'vendor':
-                    navigate('/Vhack-2025/vendor/dashboard');
+                    navigate(`/vendor/dashboard`);
                     break;
                 case 'donor':
-                    navigate('/donor');
+                    navigate(`/donor-homepage`); 
                     break;
                 default:
-                    navigate('/');  // Unknown role - Go to home
+                    navigate(`/`); // Redirect unknown roles to the public landing page
             }
         }
     }, [user, roleChecked, userRole, isLoading, roleFetched, navigate]);
