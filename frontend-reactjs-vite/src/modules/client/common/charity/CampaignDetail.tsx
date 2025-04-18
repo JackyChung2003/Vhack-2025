@@ -364,11 +364,6 @@ const CampaignDetail: React.FC = () => {
                 <div className="p-6">
                   {activeMainTab === 'transactions' && (
                     <>
-                      <h2 className="text-xl font-bold text-[var(--headline)] mb-2">Campaign Timeline</h2>
-                      <p className="text-[var(--paragraph)] text-sm mb-4">
-                        Track campaign progress, milestones, and activities
-                      </p>
-
                       {/* Use the redesigned CampaignTimeline component */}
                       <CampaignTimeline
                         campaignName=""

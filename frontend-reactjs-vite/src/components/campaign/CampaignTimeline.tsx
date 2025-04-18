@@ -46,6 +46,31 @@ const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
     daysLeft,
     startDate
 }) => {
+    // Add custom animation style for subtle pulse and smaller ping
+    const customAnimations = `
+        @keyframes subtlePulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.85;
+            }
+        }
+        .subtle-pulse {
+            animation: subtlePulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes smallerPing {
+            75%, 100% {
+                transform: scale(1.55);
+                opacity: 0;
+            }
+        }
+        .smaller-ping {
+            animation: smallerPing 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+    `;
+
     // Calculate progress percentage
     const progressPercentage = currentAmount && goalAmount
         ? Math.min(Math.round((currentAmount / goalAmount) * 100), 100)
@@ -381,6 +406,9 @@ const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
 
     return (
         <div className={`bg-[var(--background)] rounded-lg p-4 ${className}`}>
+            {/* Add the custom animation styles */}
+            <style dangerouslySetInnerHTML={{ __html: customAnimations }} />
+
             <h2 className="text-xl font-bold text-[var(--headline)] mb-2">Campaign Timeline</h2>
             <div className="flex items-center gap-2 mb-4">
                 <p className="text-[var(--paragraph)] text-sm">
@@ -479,11 +507,11 @@ const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
                                 <div className="relative w-8 flex-shrink-0 flex justify-center">
                                     {/* Circle on timeline */}
                                     <div className={`relative w-8 h-8 mt-2 z-10 ${isFirst ? 'first-milestone' : ''} ${isLast ? 'last-milestone' : ''}`}>
-                                        <div className={`${bgColor} w-8 h-8 rounded-full flex items-center justify-center text-white shadow-md border-2 ${isCurrent ? 'border-blue-400 animate-pulse shadow-lg' : 'border-white'}`}>
+                                        <div className={`${bgColor} w-8 h-8 rounded-full flex items-center justify-center text-white shadow-md border-2 ${isCurrent ? 'border-blue-400 subtle-pulse shadow-lg' : 'border-white'}`}>
                                             <span className="text-sm">{milestone.icon}</span>
                                         </div>
                                         {isCurrent && (
-                                            <div className="absolute -inset-0.5 rounded-full border-2 border-blue-400 animate-ping opacity-85"></div>
+                                            <div className="absolute -inset-0.5 rounded-full border-2 border-blue-400 smaller-ping opacity-80"></div>
                                         )}
                                     </div>
                                 </div>
