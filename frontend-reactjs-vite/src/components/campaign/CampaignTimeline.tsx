@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { FaCalendarAlt, FaChartLine, FaFlag, FaMoneyBillWave, FaClock, FaFileInvoice, FaCheckCircle, FaReceipt, FaCamera, FaTruck, FaHandHoldingUsd, FaChevronDown, FaChevronUp, FaInfoCircle, FaTag, FaBox, FaTools, FaUsers, FaTags, FaLongArrowAltRight } from 'react-icons/fa';
+import { FaCalendarAlt, FaChartLine, FaFlag, FaMoneyBillWave, FaClock, FaFileInvoice, FaCheckCircle, FaReceipt, FaCamera, FaTruck, FaHandHoldingUsd, FaChevronDown, FaChevronUp, FaInfoCircle, FaTag, FaBox, FaTools, FaUsers, FaTags, FaLongArrowAltRight, FaCheck } from 'react-icons/fa';
 
 // Timeline entry represents any event in the timeline
 interface TimelineEntry {
@@ -142,8 +142,8 @@ const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
                 amount: 'RM5,000',
                 visualProof: {
                     type: 'document',
-                    url: '/documents/quotation-water.pdf',
-                    thumbnailUrl: '/thumbnails/quotation-water.jpg'
+                    url: '/Vhack-2025/documents/quotation-water.pdf',
+                    thumbnailUrl: '/Vhack-2025/thumbnails/quotation-water.jpg'
                 }
             },
             {
@@ -158,8 +158,8 @@ const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
                 relatedTo: '25-percent-milestone',
                 visualProof: {
                     type: 'image',
-                    url: '/images/site-photos.jpg',
-                    thumbnailUrl: '/thumbnails/site-photos.jpg'
+                    url: '/Vhack-2025/images/site-photos.jpg',
+                    thumbnailUrl: '/Vhack-2025/thumbnails/site-photos.jpg'
                 }
             },
             {
@@ -188,7 +188,7 @@ const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
                 amount: 'RM1,500',
                 visualProof: {
                     type: 'document',
-                    url: '/documents/quotation-transport.pdf'
+                    url: '/Vhack-2025/documents/quotation-transport.pdf'
                 }
             },
             {
@@ -215,7 +215,7 @@ const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
                 relatedTo: '50-percent-milestone',
                 visualProof: {
                     type: 'document',
-                    url: '/documents/receipt-transport.pdf'
+                    url: '/Vhack-2025/documents/receipt-transport.pdf'
                 }
             },
             {
@@ -231,7 +231,7 @@ const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
                 amount: 'RM3,500',
                 visualProof: {
                     type: 'document',
-                    url: '/documents/quotation-medical.pdf'
+                    url: '/Vhack-2025/documents/quotation-medical.pdf'
                 }
             },
             {
@@ -261,7 +261,7 @@ const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
                 relatedTo: '50-percent-milestone',
                 visualProof: {
                     type: 'document',
-                    url: '/documents/receipt-medical.pdf'
+                    url: '/Vhack-2025/documents/receipt-medical.pdf'
                 }
             }
         ];
@@ -315,6 +315,11 @@ const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
     // Organize entries by milestones and categories
     const milestones = timelineEntries.filter(entry => entry.type === 'milestone' || (entry.type === 'status' && entry.id !== 'campaign-start'));
     const campaignStart = timelineEntries.find(entry => entry.id === 'campaign-start');
+
+    // Add this function to determine if the milestone is the current progress indicator
+    const isCurrentProgressMilestone = (milestoneId: string) => {
+        return milestoneId === 'current-progress';
+    };
 
     // Group related activities by their milestone
     const groupedActivities: { [key: string]: TimelineEntry[] } = {};
@@ -421,10 +426,10 @@ const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
                         const isExpanded = expandedMilestones[milestone.id] !== false; // Default to expanded
                         const isFirst = index === 0;
                         const isLast = index === milestones.length - 1 && !campaignStart;
+                        const isCurrent = isCurrentProgressMilestone(milestone.id);
 
                         // Special styling for different milestone types
                         const isDeadline = milestone.id === 'deadline';
-                        const isCurrent = milestone.id === 'current-progress';
 
                         // Use different color style for different milestones based on the mockup
                         let bgColor = 'bg-orange-500';
@@ -453,73 +458,83 @@ const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
                             <div key={milestone.id} className="flex items-start group">
                                 {/* Date column */}
                                 <div className="w-[75px] text-right pr-4 mt-2 flex-shrink-0">
-                                    <div className="text-blue-500 text-sm font-medium">{milestone.date.split(' ')[0]}</div>
-                                    <div className="text-gray-500 text-xs">{milestone.date.split(' ').slice(1).join(' ')}</div>
+                                    <div className="flex flex-col items-end">
+                                        <div className="text-blue-500 text-sm font-medium">
+                                            {milestone.date.split(' ')[0]}
+                                        </div>
+                                        <div className="flex flex-col items-end">
+                                            <div className="text-gray-500 text-xs">
+                                                {milestone.date.split(' ').slice(1).join(' ')}
+                                            </div>
+                                            {new Date(milestone.date).toDateString() === new Date().toDateString() && (
+                                                <span className="mt-1 bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full font-medium shadow-sm">
+                                                    Today
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
 
                                 {/* Circle column - positioned for line to go through center */}
                                 <div className="relative w-8 flex-shrink-0 flex justify-center">
                                     {/* Circle on timeline */}
                                     <div className={`relative w-8 h-8 mt-2 z-10 ${isFirst ? 'first-milestone' : ''} ${isLast ? 'last-milestone' : ''}`}>
-                                        <div className={`${bgColor} w-8 h-8 rounded-full flex items-center justify-center text-white shadow-md border-2 border-white`}>
+                                        <div className={`${bgColor} w-8 h-8 rounded-full flex items-center justify-center text-white shadow-md border-2 ${isCurrent ? 'border-blue-400 animate-pulse shadow-lg' : 'border-white'}`}>
                                             <span className="text-sm">{milestone.icon}</span>
                                         </div>
+                                        {isCurrent && (
+                                            <div className="absolute -inset-0.5 rounded-full border-2 border-blue-400 animate-ping opacity-85"></div>
+                                        )}
                                     </div>
                                 </div>
 
                                 {/* Content */}
                                 <div className="ml-4 flex-1">
-                                    <div className={`rounded-lg border overflow-hidden ${bgClass} border-${borderClass}`}>
-                                        <div className={`p-4 ${bgClass}`}>
-                                            <div className="flex justify-between items-start gap-2">
-                                                <div>
+                                    <div className={`rounded-lg border overflow-hidden ${bgClass} ${isCurrent ? 'border-blue-300 shadow-md' : `border-${borderClass}`}`}>
+                                        <div className={`p-3 ${bgClass}`}>
+                                            <div className="flex justify-between items-start">
+                                                <div className="pr-2">
                                                     <div className="flex items-center gap-2 flex-wrap">
-                                                        <h3 className="font-semibold text-gray-800">{milestone.title}</h3>
+                                                        <h3 className="font-semibold text-gray-800 text-sm">{milestone.title}</h3>
                                                         {milestone.statusTag && (
                                                             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${milestone.statusTag.color}`}>
                                                                 {milestone.statusTag.text}
                                                             </span>
                                                         )}
+                                                        {isCurrent && (
+                                                            <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-blue-100 text-blue-800">
+                                                                Current
+                                                            </span>
+                                                        )}
                                                     </div>
-                                                    {milestone.description && (
-                                                        <p className="text-sm text-gray-600 mt-1">
-                                                            {milestone.description}
-                                                        </p>
-                                                    )}
+                                                    <p className="text-xs text-gray-500 mt-1">
+                                                        {milestone.id.includes('percent') ?
+                                                            `Achieved on ${milestone.date}` :
+                                                            milestone.description
+                                                        }
+                                                    </p>
                                                 </div>
 
-                                                <div className="flex items-center gap-3 ml-auto">
-                                                    {/* Progress bar for milestone entries */}
-                                                    {milestone.id.includes('percent') && (
-                                                        <div className="w-24 hidden md:block">
-                                                            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                                                                <div
-                                                                    className={`h-full ${bgColor}`}
-                                                                    style={{ width: milestone.id.split('-')[0] + '%' }}
-                                                                ></div>
-                                                            </div>
+                                                {/* Only keep the toggle button for expandable content */}
+                                                {hasRelatedActivities && (
+                                                    <button
+                                                        onClick={() => toggleMilestone(milestone.id)}
+                                                        className={`${bgColor} text-white rounded-full p-1 h-6 w-6 flex items-center justify-center flex-shrink-0 shadow-sm hover:opacity-90 transition-all duration-200 ml-auto`}
+                                                    >
+                                                        <div className={`transform transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
+                                                            <FaChevronDown size={10} />
                                                         </div>
-                                                    )}
-
-                                                    {/* Toggle button for expandable content */}
-                                                    {hasRelatedActivities && (
-                                                        <button
-                                                            onClick={() => toggleMilestone(milestone.id)}
-                                                            className={`${bgColor} text-white rounded-full p-1 h-6 w-6 flex items-center justify-center flex-shrink-0 shadow-sm`}
-                                                        >
-                                                            {isExpanded ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
-                                                        </button>
-                                                    )}
-                                                </div>
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
 
                                         {/* Related activities */}
                                         {hasRelatedActivities && isExpanded && (
                                             <div className={`border-t ${borderClass}`}>
-                                                <div className="pl-6 relative">
+                                                <div className="pl-6 relative py-3">
                                                     {/* Subtimeline vertical line */}
-                                                    <div className="absolute left-3 top-0 bottom-0 w-px bg-gray-200"></div>
+                                                    <div className="absolute left-3 top-0 bottom-0 w-px bg-gray-400"></div>
 
                                                     {groupedActivities[milestone.id].map((activity, activityIndex) => {
                                                         const { icon, color } = getCategoryStyles(activity);
@@ -527,108 +542,120 @@ const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
                                                         // Get colors for activity badges
                                                         let badgeClass = 'bg-gray-50';
                                                         let badgeTextClass = 'text-gray-700';
+                                                        let badgeBorderClass = 'border-gray-200';
 
                                                         if (activity.category) {
                                                             switch (activity.category) {
                                                                 case 'receipt':
                                                                     badgeClass = 'bg-teal-50';
                                                                     badgeTextClass = 'text-teal-700';
+                                                                    badgeBorderClass = 'border-teal-200';
                                                                     break;
                                                                 case 'delivery':
                                                                     badgeClass = 'bg-indigo-50';
                                                                     badgeTextClass = 'text-indigo-700';
+                                                                    badgeBorderClass = 'border-indigo-200';
                                                                     break;
                                                                 case 'quotation':
                                                                     badgeClass = 'bg-blue-50';
                                                                     badgeTextClass = 'text-blue-700';
+                                                                    badgeBorderClass = 'border-blue-200';
                                                                     break;
                                                                 case 'payment':
                                                                     badgeClass = 'bg-green-50';
                                                                     badgeTextClass = 'text-green-700';
+                                                                    badgeBorderClass = 'border-green-200';
                                                                     break;
                                                                 case 'photo':
                                                                     badgeClass = 'bg-purple-50';
                                                                     badgeTextClass = 'text-purple-700';
+                                                                    badgeBorderClass = 'border-purple-200';
                                                                     break;
                                                             }
                                                         }
 
                                                         return (
-                                                            <div key={activity.id} className="border-b border-gray-100 last:border-b-0">
-                                                                <div className="relative pl-8 py-3">
+                                                            <div key={activity.id} className="mb-3 last:mb-1">
+                                                                <div className="relative">
                                                                     {/* Horizontal connector line */}
-                                                                    <div className="absolute left-3 top-4 w-5 h-px bg-gray-200"></div>
+                                                                    <div className="absolute left-3 top-4 w-4 h-px bg-gray-400"></div>
 
                                                                     {/* Activity circle */}
                                                                     <div className="absolute left-3 top-4 -mt-1.5 -ml-1.5 z-10">
-                                                                        <div className={`${color} w-3 h-3 rounded-full border border-white`}></div>
+                                                                        <div className={`${color} w-3 h-3 rounded-full border border-white shadow-sm`}></div>
                                                                     </div>
 
-                                                                    <div className="flex items-start">
-                                                                        {/* Activity icon */}
-                                                                        <div className={`${color} mr-3 w-6 h-6 rounded-full flex items-center justify-center text-white`}>
-                                                                            <span className="text-xs">{icon}</span>
-                                                                        </div>
+                                                                    {/* Activity card */}
+                                                                    <div className="ml-8 bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                                                                        <div className="p-3">
+                                                                            <div className="flex items-start gap-3">
+                                                                                {/* Activity icon */}
+                                                                                <div className={`${color} mr-2 w-7 h-7 rounded-full flex items-center justify-center text-white shadow-sm flex-shrink-0`}>
+                                                                                    <span className="text-xs">{icon}</span>
+                                                                                </div>
 
-                                                                        {/* Activity content */}
-                                                                        <div className="flex-1">
-                                                                            <div className="flex flex-wrap items-center gap-2 mb-1">
-                                                                                <h4 className="text-sm font-semibold text-gray-800">
-                                                                                    {activity.title}
-                                                                                </h4>
+                                                                                <div className="flex-1 min-w-0">
+                                                                                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                                                                                        <h4 className="text-sm font-semibold text-gray-800">
+                                                                                            {activity.title}
+                                                                                        </h4>
 
-                                                                                {activity.category && (
-                                                                                    <span className={`text-xs px-2 py-0.5 rounded-full ${badgeClass} ${badgeTextClass}`}>
-                                                                                        {activity.category.charAt(0).toUpperCase() + activity.category.slice(1)}
-                                                                                    </span>
-                                                                                )}
+                                                                                        {activity.category && (
+                                                                                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${badgeClass} ${badgeTextClass} ${badgeBorderClass}`}>
+                                                                                                {activity.category.charAt(0).toUpperCase() + activity.category.slice(1)}
+                                                                                            </span>
+                                                                                        )}
 
-                                                                                {activity.amount && (
-                                                                                    <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
-                                                                                        {typeof activity.amount === 'string' ? activity.amount : `RM${activity.amount.toLocaleString()}`}
-                                                                                    </span>
-                                                                                )}
+                                                                                        {activity.amount && (
+                                                                                            <span className="text-xs font-semibold text-green-600 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
+                                                                                                {typeof activity.amount === 'string' ? activity.amount : `RM${activity.amount.toLocaleString()}`}
+                                                                                            </span>
+                                                                                        )}
 
-                                                                                {activity.statusTag && (
-                                                                                    <span className={`text-xs px-2 py-0.5 rounded-full ${activity.statusTag.color}`}>
-                                                                                        {activity.statusTag.text}
-                                                                                    </span>
-                                                                                )}
+                                                                                        {activity.statusTag && (
+                                                                                            <span className={`text-xs px-2 py-0.5 rounded-full ${activity.statusTag.color}`}>
+                                                                                                {activity.statusTag.text}
+                                                                                            </span>
+                                                                                        )}
+                                                                                    </div>
+
+                                                                                    <div className="text-xs text-gray-500 mb-2 flex items-center">
+                                                                                        <span>{activity.date}</span>
+                                                                                        {new Date(activity.date).toDateString() === new Date().toDateString() && (
+                                                                                            <span className="ml-1 bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full font-medium shadow-sm">
+                                                                                                Today
+                                                                                            </span>
+                                                                                        )}
+                                                                                    </div>
+
+                                                                                    {activity.description && (
+                                                                                        <p className="text-xs text-gray-600 mb-2">
+                                                                                            {activity.description}
+                                                                                        </p>
+                                                                                    )}
+                                                                                </div>
                                                                             </div>
-
-                                                                            <div className="text-xs text-gray-500 mb-1">
-                                                                                {activity.date}
-                                                                            </div>
-
-                                                                            {activity.description && (
-                                                                                <p className="text-xs text-gray-600 mb-2">
-                                                                                    {activity.description}
-                                                                                </p>
-                                                                            )}
 
                                                                             {/* Visual proof */}
                                                                             {activity.visualProof && (
-                                                                                <div className="border border-gray-200 rounded overflow-hidden bg-white max-w-xs">
+                                                                                <div className="mt-3 pt-3 border-t border-gray-100">
                                                                                     {activity.visualProof.thumbnailUrl && (
-                                                                                        <img
-                                                                                            src={activity.visualProof.thumbnailUrl}
-                                                                                            alt="Document thumbnail"
-                                                                                            className="w-full object-cover h-12"
-                                                                                        />
+                                                                                        <div className="mb-2 border rounded-md overflow-hidden bg-gray-50 shadow-sm">
+                                                                                            <img
+                                                                                                src={activity.visualProof.thumbnailUrl}
+                                                                                                alt="Document thumbnail"
+                                                                                                className="w-full object-cover h-20"
+                                                                                            />
+                                                                                        </div>
                                                                                     )}
-                                                                                    <div className="px-3 py-2 flex justify-between items-center border-t border-gray-100">
-                                                                                        <span className="text-xs text-gray-500">
-                                                                                            {activity.visualProof.type === 'image' ? 'Photo' : 'Document'}
-                                                                                        </span>
-                                                                                        <a
-                                                                                            href={activity.visualProof.url}
-                                                                                            target="_blank"
-                                                                                            rel="noopener noreferrer"
-                                                                                            className="text-blue-500 text-xs flex items-center"
-                                                                                        >
-                                                                                            View <FaLongArrowAltRight className="ml-1" />
-                                                                                        </a>
-                                                                                    </div>
+                                                                                    <a
+                                                                                        href={activity.visualProof.url}
+                                                                                        target="_blank"
+                                                                                        rel="noopener noreferrer"
+                                                                                        className="inline-flex items-center px-3 py-1.5 text-xs text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-full transition-colors"
+                                                                                    >
+                                                                                        📎 View {activity.visualProof.type === 'image' ? 'Photo' : 'Document'} <FaLongArrowAltRight className="ml-1" size={10} />
+                                                                                    </a>
                                                                                 </div>
                                                                             )}
                                                                         </div>
@@ -651,8 +678,21 @@ const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
                         <div className="flex items-start">
                             {/* Date column */}
                             <div className="w-[75px] text-right pr-4 mt-2 flex-shrink-0">
-                                <div className="text-blue-500 text-sm font-medium">{campaignStart.date.split(' ')[0]}</div>
-                                <div className="text-gray-500 text-xs">{campaignStart.date.split(' ').slice(1).join(' ')}</div>
+                                <div className="flex flex-col items-end">
+                                    <div className="text-blue-500 text-sm font-medium">
+                                        {campaignStart.date.split(' ')[0]}
+                                    </div>
+                                    <div className="flex flex-col items-end">
+                                        <div className="text-gray-500 text-xs">
+                                            {campaignStart.date.split(' ').slice(1).join(' ')}
+                                        </div>
+                                        {new Date(campaignStart.date).toDateString() === new Date().toDateString() && (
+                                            <span className="mt-1 bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full font-medium shadow-sm">
+                                                Today
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Circle column - positioned for line to go through center */}
