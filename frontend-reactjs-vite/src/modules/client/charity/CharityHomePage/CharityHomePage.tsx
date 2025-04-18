@@ -88,42 +88,8 @@ const CharityHomePage: React.FC = () => {
     }
   };
 
-  // Animation variants for staggered child animations
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { 
-      opacity: 1,
-      transition: { 
-        staggerChildren: 0.1,
-        delayChildren: 0.2 
-      }
-    }
-  };
-  
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: { 
-      y: 0, 
-      opacity: 1,
-      transition: { type: "spring", stiffness: 300, damping: 24 }
-    }
-  };
-
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      className="p-6 bg-[var(--background)] text-[var(--paragraph)] min-h-screen"
-    >
-      {/* AddCampaignModal */}
-      {showAddCampaignModal && (
-        <AddCampaignModal 
-          onClose={() => setShowAddCampaignModal(false)}
-          onSave={handleSaveCampaign}
-        />
-      )}
-      
+    <div className="p-6 bg-[var(--background)] text-[var(--paragraph)] max-w-7xl mx-auto min-h-screen">
       {/* Welcome Header */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
@@ -143,14 +109,14 @@ const CharityHomePage: React.FC = () => {
             </h1>
           </div>
           <p className="mt-3 opacity-90 max-w-2xl">
-            Your centralized dashboard for managing campaigns, funds, and vendor relationships. Track progress, connect with vendors, and make a difference.
+            Your centralized dashboard for managing campaigns, funds, and vendor relationships.
           </p>
           <div className="flex mt-6 gap-4">
             <button 
-              onClick={() => handleNavigate("/create-campaign")}
+              onClick={() => handleNavigate("/charity-management")}
               className="flex items-center gap-2 bg-white text-[var(--highlight)] px-4 py-2 rounded-lg font-medium hover:bg-opacity-90 transition-all shadow-md"
             >
-              <FaPlus size={14} /> New Campaign
+              <FaChartLine size={14} /> Management Portal
             </button>
             <button 
               onClick={() => handleNavigate("/Vhack-2025/charity/vendor-page")}
@@ -207,7 +173,7 @@ const CharityHomePage: React.FC = () => {
         />
       </motion.div>
 
-      {/* Main Dashboard Grid - Reorganized into 2 columns */}
+      {/* Main Dashboard Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column - Financial Information */}
         <motion.div 
@@ -292,81 +258,13 @@ const CharityHomePage: React.FC = () => {
                     <p className="text-xs text-[var(--paragraph)]">
                       Designated for specific campaigns
                     </p>
-                    <button className="text-xs text-green-600 hover:underline">View Breakdown</button>
+                    <button className="text-xs text-green-600 hover:underline">View Campaigns</button>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-          
-          {/* Vendor Search */}
-          <div className="bg-[var(--main)] rounded-xl shadow-md border border-[var(--stroke)] overflow-hidden hover:shadow-lg transition-all">
-            <div className="p-4 border-b border-[var(--stroke)] flex justify-between items-center bg-gradient-to-r from-[var(--background)] to-[var(--main)]">
-              <div className="flex items-center">
-                <div className="p-2 rounded-lg bg-[var(--highlight)] bg-opacity-10 mr-3">
-                  <FaSearch className="text-[var(--highlight)] text-xl" />
-                </div>
-                <h2 className="text-lg font-bold text-[var(--headline)]">Find Vendors</h2>
-              </div>
-              <button 
-                onClick={() => handleNavigate("/Vhack-2025/charity/vendor-page?tab=search")}
-                className="flex items-center gap-1 text-sm text-[var(--highlight)] hover:underline"
-              >
-                Advanced Search <FaArrowRight size={12} />
-              </button>
-            </div>
-            <div className="p-5">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search vendors by name, location, or service..."
-                  className="w-full p-3 pr-10 border border-[var(--stroke)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--highlight)] bg-[var(--background)]"
-                />
-                <button className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[var(--paragraph)] p-1 hover:bg-[var(--highlight)] hover:bg-opacity-10 rounded-full transition-colors">
-                  <FaSearch />
-                </button>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <button className="flex items-center gap-1 px-3 py-2 bg-[var(--background)] rounded-full text-sm border border-[var(--stroke)] hover:border-[var(--highlight)] hover:text-[var(--highlight)] transition-colors">
-                  <FaShoppingCart className="text-xs" /> Food Suppliers
-                </button>
-                <button className="flex items-center gap-1 px-3 py-2 bg-[var(--background)] rounded-full text-sm border border-[var(--stroke)] hover:border-[var(--highlight)] hover:text-[var(--highlight)] transition-colors">
-                  <FaUserFriends className="text-xs" /> Medical Supplies
-                </button>
-                <button className="flex items-center gap-1 px-3 py-2 bg-[var(--background)] rounded-full text-sm border border-[var(--stroke)] hover:border-[var(--highlight)] hover:text-[var(--highlight)] transition-colors">
-                  <FaExchangeAlt className="text-xs" /> Logistics
-                </button>
-              </div>
-              <div className="mt-4">
-                <h3 className="text-sm font-medium text-[var(--headline)] mb-2">Recommended Vendors</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="p-2 bg-[var(--background)] rounded-lg border border-[var(--stroke)] hover:border-[var(--highlight)] transition-all cursor-pointer">
-                    <div className="flex items-center">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-2 text-xs font-medium">
-                        RW
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-[var(--headline)]">Relief Waters</p>
-                        <p className="text-xs text-[var(--paragraph)]">Clean Water</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="p-2 bg-[var(--background)] rounded-lg border border-[var(--stroke)] hover:border-[var(--highlight)] transition-all cursor-pointer">
-                    <div className="flex items-center">
-                      <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 mr-2 text-xs font-medium">
-                        GT
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-[var(--headline)]">Global Transit</p>
-                        <p className="text-xs text-[var(--paragraph)]">Transport</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
+
           {/* Recent Transactions */}
           <div className="bg-[var(--main)] rounded-xl shadow-md border border-[var(--stroke)] overflow-hidden hover:shadow-lg transition-all">
             <div className="p-4 border-b border-[var(--stroke)] flex justify-between items-center bg-gradient-to-r from-[var(--background)] to-[var(--main)]">
@@ -377,91 +275,51 @@ const CharityHomePage: React.FC = () => {
                 <h2 className="text-lg font-bold text-[var(--headline)]">Recent Transactions</h2>
               </div>
               <button 
-                onClick={() => handleNavigate("/Vhack-2025/charity/vendor-page?tab=transactions")}
+                onClick={() => handleNavigate("/charity-management")}
                 className="flex items-center gap-1 text-sm text-[var(--highlight)] hover:underline"
               >
                 View All <FaArrowRight size={12} />
               </button>
             </div>
-            <div className="p-5">
-              {recentTransactions > 0 ? (
-                <div className="space-y-3">
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="p-4 bg-[var(--background)] rounded-lg border border-[var(--stroke)] hover:border-[var(--highlight)] hover:shadow-md transition-all"
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-3">
-                          <FaShoppingCart />
-                        </div>
-                        <div>
-                          <p className="font-medium text-[var(--headline)]">Medical Supplies Co.</p>
-                          <div className="flex items-center mt-1 text-xs text-[var(--paragraph)]">
-                            <FaCalendarAlt className="mr-1" />
-                            <span>Yesterday at 2:30 PM</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <span className="font-bold text-red-500 block">-RM1,250.00</span>
-                        <span className="text-xs text-[var(--paragraph)] bg-gray-100 px-2 py-1 rounded-full inline-block mt-1">Purchase</span>
-                      </div>
+            <div className="p-4">
+              <div className="space-y-4">
+                {/* Mock recent transactions */}
+                <div className="flex items-center justify-between p-3 bg-[var(--background)] rounded-lg">
+                  <div className="flex items-center">
+                    <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                      <FaMoneyBillWave className="text-green-600" />
                     </div>
-                    <div className="mt-2 pt-2 border-t border-dashed border-[var(--stroke)]">
-                      <div className="flex justify-between items-center text-xs text-[var(--paragraph)]">
-                        <span>Order #: MS-12345</span>
-                        <button className="text-[var(--highlight)] hover:underline">View Details</button>
-                      </div>
+                    <div>
+                      <p className="font-medium text-[var(--headline)]">Donation Received</p>
+                      <p className="text-xs text-[var(--paragraph)]">From John Doe</p>
                     </div>
-                  </motion.div>
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: 0.1 }}
-                    className="p-4 bg-[var(--background)] rounded-lg border border-[var(--stroke)] hover:border-[var(--highlight)] hover:shadow-md transition-all"
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600 mr-3">
-                          <FaShoppingCart />
-                        </div>
-                        <div>
-                          <p className="font-medium text-[var(--headline)]">Food Distribution Inc.</p>
-                          <div className="flex items-center mt-1 text-xs text-[var(--paragraph)]">
-                            <FaCalendarAlt className="mr-1" />
-                            <span>Oct 15, 2023 at 10:15 AM</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <span className="font-bold text-red-500 block">-RM3,750.00</span>
-                        <span className="text-xs text-[var(--paragraph)] bg-gray-100 px-2 py-1 rounded-full inline-block mt-1">Purchase</span>
-                      </div>
-                    </div>
-                    <div className="mt-2 pt-2 border-t border-dashed border-[var(--stroke)]">
-                      <div className="flex justify-between items-center text-xs text-[var(--paragraph)]">
-                        <span>Order #: FD-98765</span>
-                        <button className="text-[var(--highlight)] hover:underline">View Details</button>
-                      </div>
-                    </div>
-                  </motion.div>
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
-                    <FaExchangeAlt className="text-gray-400 text-2xl" />
                   </div>
-                  <p className="text-[var(--paragraph)]">No recent transactions</p>
+                  <div className="text-right">
+                    <p className="font-bold text-green-600">+RM5,000</p>
+                    <p className="text-xs text-[var(--paragraph)]">2025-03-20</p>
+                  </div>
                 </div>
-              )}
+                <div className="flex items-center justify-between p-3 bg-[var(--background)] rounded-lg">
+                  <div className="flex items-center">
+                    <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
+                      <FaShoppingCart className="text-red-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-[var(--headline)]">Campaign Expense</p>
+                      <p className="text-xs text-[var(--paragraph)]">Clean Water Initiative</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-red-600">-RM2,500</p>
+                    <p className="text-xs text-[var(--paragraph)]">2025-03-18</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </motion.div>
 
-        {/* Right Column - Campaigns and Activity */}
+        {/* Right Column - Campaigns and Activities */}
         <motion.div 
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -492,205 +350,113 @@ const CharityHomePage: React.FC = () => {
                 </button>
               </div>
             </div>
-            <div className="p-5">
-              {organizationCampaigns.length > 0 ? (
-                <div className="space-y-4">
-                  {organizationCampaigns.slice(0, 3).map((campaign, index) => {
-                    const progress = Math.min(100, (campaign.currentContributions / campaign.goal) * 100);
-                    // Create a mock location property for demonstration purposes
-                    const campaignLocation = campaign.id % 2 === 0 ? "Global" : "Local";
-                    return (
-                      <motion.div 
-                        key={campaign.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: 0.1 * index }}
-                        className="p-4 bg-[var(--background)] rounded-lg border border-[var(--stroke)] hover:shadow-md hover:border-[var(--highlight)] transition-all cursor-pointer"
-                        onClick={() => handleNavigate(`/charity/${campaign.id}`)}
-                      >
-                        <div className="flex justify-between items-start mb-3">
-                          <div className="flex items-center">
-                            {progress >= 75 ? (
-                              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
-                                <FaTrophy className="text-green-600" />
-                              </div>
-                            ) : progress >= 50 ? (
-                              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                                <FaChartLine className="text-blue-600" />
-                              </div>
-                            ) : (
-                              <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center mr-3">
-                                <FaHandHoldingHeart className="text-yellow-600" />
-                              </div>
-                            )}
-                            <div>
-                              <h3 className="font-medium text-[var(--headline)]">{campaign.name}</h3>
-                              <div className="flex items-center text-xs text-[var(--paragraph)] mt-1">
-                                <FaCalendarAlt className="mr-1" />
-                                <span>Ends: {new Date(campaign.deadline).toLocaleDateString()}</span>
-                              </div>
+            <div className="p-4">
+              <div className="space-y-4">
+                {organizationCampaigns.slice(0, 3).map((campaign, index) => {
+                  const progress = Math.min(100, (campaign.currentContributions / campaign.goal) * 100);
+                  return (
+                    <div 
+                      key={campaign.id}
+                      className="bg-[var(--background)] p-4 rounded-lg border border-[var(--stroke)] hover:border-[var(--highlight)] transition-all cursor-pointer"
+                      onClick={() => handleNavigate(`/campaign/${campaign.id}`)}
+                    >
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex items-center">
+                          {progress >= 75 ? (
+                            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                              <FaTrophy className="text-green-600" />
+                            </div>
+                          ) : progress >= 50 ? (
+                            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                              <FaChartLine className="text-blue-600" />
+                            </div>
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center mr-3">
+                              <FaHandHoldingHeart className="text-yellow-600" />
+                            </div>
+                          )}
+                          <div>
+                            <h3 className="font-medium text-[var(--headline)]">{campaign.name}</h3>
+                            <div className="flex items-center text-xs text-[var(--paragraph)] mt-1">
+                              <FaCalendarAlt className="mr-1" />
+                              <span>Ends: {new Date(campaign.deadline).toLocaleDateString()}</span>
                             </div>
                           </div>
-                          <div className="flex items-center">
-                            <div className="flex items-center text-xs text-[var(--paragraph)] bg-gray-100 rounded-full px-2 py-1 mr-2">
-                              <FaMapMarkerAlt className="mr-1" />
-                              <span>{campaignLocation}</span>
-                            </div>
-                            <span className={`text-xs px-2 py-1 rounded-full ${
-                              progress >= 75 ? "bg-green-100 text-green-800" : 
-                              progress >= 50 ? "bg-blue-100 text-blue-800" : 
-                              "bg-yellow-100 text-yellow-800"
-                            }`}>
-                              {progress >= 75 ? "Almost There" : progress >= 50 ? "On Track" : "Needs Support"}
-                            </span>
-                          </div>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
-                          <div 
-                            className={`h-2.5 rounded-full ${
-                              progress >= 75 ? "bg-green-500" : 
-                              progress >= 50 ? "bg-blue-500" : 
-                              "bg-yellow-500"
-                            }`}
-                            style={{ width: `${progress}%` }}
-                          ></div>
+                        <div className="text-right">
+                          <p className="font-bold text-[var(--headline)]">
+                            RM{campaign.currentContributions.toLocaleString()}
+                          </p>
+                          <p className="text-xs text-[var(--paragraph)]">
+                            of RM{campaign.goal.toLocaleString()}
+                          </p>
                         </div>
-                        <div className="flex justify-between text-xs text-[var(--paragraph)]">
-                          <div className="flex items-center">
-                            <FaMoneyBillWave className="mr-1" />
-                            <span>RM{campaign.currentContributions.toLocaleString()} raised</span>
-                          </div>
-                          <div className="flex items-center font-medium">
-                            <span>{Math.round(progress)}% of RM{campaign.goal.toLocaleString()}</span>
-                          </div>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
-                    <FaHandHoldingHeart className="text-gray-400 text-2xl" />
-                  </div>
-                  <p className="text-[var(--paragraph)] mb-3">No active campaigns</p>
-                  <button
-                    onClick={() => handleNavigate("/create-campaign")}
-                    className="px-4 py-2 bg-[var(--highlight)] text-white rounded-lg hover:bg-opacity-90 transition-all"
-                  >
-                    Create Campaign
-                  </button>
-                </div>
-              )}
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full ${
+                            progress >= 75 ? 'bg-green-500' : 
+                            progress >= 50 ? 'bg-blue-500' : 
+                            'bg-yellow-500'
+                          }`}
+                          style={{ width: `${progress}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
-          
-          {/* Vendor Communications */}
+
+          {/* Monthly Donation Trends */}
           <div className="bg-[var(--main)] rounded-xl shadow-md border border-[var(--stroke)] overflow-hidden hover:shadow-lg transition-all">
             <div className="p-4 border-b border-[var(--stroke)] flex justify-between items-center bg-gradient-to-r from-[var(--background)] to-[var(--main)]">
               <div className="flex items-center">
                 <div className="p-2 rounded-lg bg-[var(--highlight)] bg-opacity-10 mr-3">
-                  <FaComments className="text-[var(--highlight)] text-xl" />
+                  <FaChartLine className="text-[var(--highlight)] text-xl" />
                 </div>
-                <h2 className="text-lg font-bold text-[var(--headline)]">Vendor Communications</h2>
+                <h2 className="text-lg font-bold text-[var(--headline)]">Monthly Donation Trends</h2>
               </div>
-              <button 
-                onClick={() => handleNavigate("/Vhack-2025/charity/vendor-page?tab=chats")}
-                className="flex items-center gap-1 text-sm text-[var(--highlight)] hover:underline"
-              >
-                View All <FaArrowRight size={12} />
-              </button>
             </div>
-            <div className="p-5">
-              {pendingVendorChats > 0 ? (
-                <div className="space-y-3">
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="flex justify-between items-center p-4 bg-[var(--background)] rounded-lg border border-[var(--stroke)] hover:border-[var(--highlight)] hover:shadow-md transition-all cursor-pointer"
-                    onClick={() => handleNavigate("/Vhack-2025/charity/vendor-page?tab=chats&id=1")}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium">
-                        MS
-                      </div>
-                      <div>
-                        <p className="font-medium text-[var(--headline)]">Medical Supplies Co.</p>
-                        <p className="text-xs text-[var(--paragraph)] mt-1">Regarding your recent order #12345</p>
-                        <div className="flex items-center mt-1 text-xs text-gray-500">
-                          <FaCalendarAlt className="mr-1" />
-                          <span>Today at 2:30 PM</span>
-                        </div>
-                      </div>
-                    </div>
-                    <span className="bg-red-500 text-white text-xs px-3 py-1 rounded-full font-medium">New</span>
-                  </motion.div>
-                  
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: 0.1 }}
-                    className="flex justify-between items-center p-4 bg-[var(--background)] rounded-lg border border-[var(--stroke)] hover:border-[var(--highlight)] hover:shadow-md transition-all cursor-pointer"
-                    onClick={() => handleNavigate("/Vhack-2025/charity/vendor-page?tab=chats&id=2")}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-600 font-medium">
-                        FD
-                      </div>
-                      <div>
-                        <p className="font-medium text-[var(--headline)]">Food Distribution Inc.</p>
-                        <p className="text-xs text-[var(--paragraph)] mt-1">Quote for emergency food supplies</p>
-                        <div className="flex items-center mt-1 text-xs text-gray-500">
-                          <FaCalendarAlt className="mr-1" />
-                          <span>Yesterday at 10:15 AM</span>
-                        </div>
-                      </div>
-                    </div>
-                    <span className="bg-red-500 text-white text-xs px-3 py-1 rounded-full font-medium">New</span>
-                  </motion.div>
-                  
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: 0.2 }}
-                    className="flex justify-between items-center p-4 bg-[var(--background)] rounded-lg border border-[var(--stroke)] hover:border-[var(--highlight)] hover:shadow-md transition-all cursor-pointer"
-                    onClick={() => handleNavigate("/Vhack-2025/charity/vendor-page?tab=chats&id=3")}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-medium">
-                        TL
-                      </div>
-                      <div>
-                        <p className="font-medium text-[var(--headline)]">Transport Logistics</p>
-                        <p className="text-xs text-[var(--paragraph)] mt-1">Delivery schedule update</p>
-                        <div className="flex items-center mt-1 text-xs text-gray-500">
-                          <FaCalendarAlt className="mr-1" />
-                          <span>Oct 18, 2023 at 3:45 PM</span>
-                        </div>
-                      </div>
-                    </div>
-                    <span className="bg-gray-200 text-gray-600 text-xs px-3 py-1 rounded-full font-medium">Seen</span>
-                  </motion.div>
+            <div className="p-4">
+              <div className="flex justify-between items-end h-40">
+                <div className="flex flex-col items-center">
+                  <div className="w-8 h-24 bg-blue-500 rounded-t-lg"></div>
+                  <p className="text-xs mt-2">2025-01</p>
+                  <p className="text-xs font-medium">RM48,000</p>
                 </div>
-              ) : (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
-                    <FaComments className="text-gray-400 text-2xl" />
-                  </div>
-                  <p className="text-[var(--paragraph)]">No pending messages</p>
+                <div className="flex flex-col items-center">
+                  <div className="w-8 h-32 bg-blue-500 rounded-t-lg"></div>
+                  <p className="text-xs mt-2">2025-02</p>
+                  <p className="text-xs font-medium">RM52,000</p>
                 </div>
-              )}
+                <div className="flex flex-col items-center">
+                  <div className="w-8 h-28 bg-blue-500 rounded-t-lg"></div>
+                  <p className="text-xs mt-2">2025-03</p>
+                  <p className="text-xs font-medium">RM45,000</p>
+                </div>
+              </div>
             </div>
           </div>
         </motion.div>
       </div>
-    </motion.div>
+
+      {/* Add Campaign Modal */}
+      <AnimatePresence>
+        {showAddCampaignModal && (
+          <AddCampaignModal
+            onClose={() => setShowAddCampaignModal(false)}
+            onSave={handleSaveCampaign}
+          />
+        )}
+      </AnimatePresence>
+    </div>
   );
 };
 
 // StatCard component
-interface StatCardProps {
+const StatCard: React.FC<{
   icon: React.ReactNode;
   title: string;
   value: string;
@@ -698,30 +464,25 @@ interface StatCardProps {
   colorClass: string;
   iconBg: string;
   badge: string;
-}
-
-const StatCard: React.FC<StatCardProps> = ({ icon, title, value, onClick, colorClass, iconBg, badge }) => {
-  return (
-    <motion.div 
-      whileHover={{ 
-        scale: 1.02,
-        boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
-        borderColor: "var(--highlight)" 
-      }}
-      transition={{ duration: 0.2 }}
-      className={`bg-gradient-to-br from-[var(--main)] to-[var(--background)] p-4 rounded-lg border border-[var(--stroke)] flex items-center gap-4 cursor-pointer transition-all ${colorClass}`}
-      onClick={onClick}
-    >
-      <div className={`w-12 h-12 rounded-full ${iconBg} flex items-center justify-center shadow-sm`}>
+}> = ({ icon, title, value, onClick, colorClass, iconBg, badge }) => (
+  <motion.div
+    whileHover={{ y: -5 }}
+    className={`bg-gradient-to-br ${colorClass} rounded-xl p-4 shadow-sm hover:shadow-md transition-all cursor-pointer`}
+    onClick={onClick}
+  >
+    <div className="flex justify-between items-start">
+      <div className={`${iconBg} p-2 rounded-lg`}>
         {icon}
       </div>
-      <div>
-        <h3 className="text-sm font-medium text-[var(--paragraph)]">{title}</h3>
-        <p className="text-xl font-bold text-[var(--headline)]">{value}</p>
-        <span className="text-xs text-[var(--paragraph)]">{badge}</span>
-      </div>
-    </motion.div>
-  );
-};
+      <span className="text-xs px-2 py-1 bg-white bg-opacity-20 rounded-full">
+        {badge}
+      </span>
+    </div>
+    <div className="mt-4">
+      <p className="text-sm text-gray-600">{title}</p>
+      <p className="text-2xl font-bold text-gray-800">{value}</p>
+    </div>
+  </motion.div>
+);
 
 export default CharityHomePage;
