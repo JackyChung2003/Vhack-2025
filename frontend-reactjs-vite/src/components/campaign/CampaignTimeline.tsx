@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { FaCalendarAlt, FaChartLine, FaFlag, FaMoneyBillWave, FaClock, FaFileInvoice, FaCheckCircle, FaReceipt, FaCamera, FaTruck, FaHandHoldingUsd, FaChevronDown, FaChevronUp, FaInfoCircle, FaTag, FaBox, FaTools, FaUsers, FaTags, FaLongArrowAltRight } from 'react-icons/fa';
 
 // Timeline entry represents any event in the timeline
@@ -108,11 +108,11 @@ const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
                 date: defaultStartDate,
                 title: 'Campaign Started',
                 description: 'Campaign was published and started accepting donations',
-                icon: <FaFlag />,
+                icon: <FaCheckCircle />,
                 color: 'bg-blue-500',
                 type: 'status',
                 statusTag: {
-                    text: 'Active',
+                    text: 'First Event',
                     color: 'bg-green-100 text-green-800'
                 }
             },
@@ -335,6 +335,45 @@ const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
         );
     });
 
+    // Reference for the timeline container
+    const timelineContainerRef = useRef<HTMLDivElement>(null);
+    const timelineLineRef = useRef<HTMLDivElement>(null);
+    const [lineHeight, setLineHeight] = useState<number | null>(null);
+
+    // Effect to ensure the line is positioned after the component is rendered
+    useEffect(() => {
+        const updateLineHeight = () => {
+            if (timelineContainerRef.current) {
+                const container = timelineContainerRef.current;
+                const firstCircle = container.querySelector('.first-milestone');
+                const lastCircle = container.querySelector('.last-milestone');
+
+                if (firstCircle && lastCircle) {
+                    const firstCircleRect = firstCircle.getBoundingClientRect();
+                    const lastCircleRect = lastCircle.getBoundingClientRect();
+                    const containerRect = container.getBoundingClientRect();
+
+                    // Calculate the center points of both circles relative to the container
+                    const firstCircleCenter = firstCircleRect.top + (firstCircleRect.height / 2) - containerRect.top;
+                    const lastCircleCenter = lastCircleRect.top + (lastCircleRect.height / 2) - containerRect.top;
+
+                    // Set the exact height
+                    setLineHeight(lastCircleCenter - firstCircleCenter);
+                }
+            }
+        };
+
+        // Update once on mount and whenever expanded milestones change
+        updateLineHeight();
+
+        // Add window resize listener to handle layout changes
+        window.addEventListener('resize', updateLineHeight);
+
+        return () => {
+            window.removeEventListener('resize', updateLineHeight);
+        };
+    }, [expandedMilestones]);
+
     return (
         <div className={`bg-[var(--background)] rounded-lg p-4 ${className}`}>
             <h2 className="text-xl font-bold text-[var(--headline)] mb-2">Campaign Timeline</h2>
@@ -359,49 +398,82 @@ const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
                 </div>
             </div>
 
-            {/* Timeline entries */}
-            <div className="relative pl-4">
-                {/* Vertical timeline line */}
-                <div className="absolute left-20 top-0 bottom-0 w-0.5 bg-gray-200 z-0"></div>
+            {/* Timeline container with positioned line */}
+            <div className="relative" ref={timelineContainerRef}>
+                {/* Timeline entries with vertical line */}
+                <div className="space-y-4 relative">
+                    {/* Main continuous vertical line - positioned to connect all events */}
+                    {milestones.length > 0 && (
+                        <div
+                            ref={timelineLineRef}
+                            className="absolute w-0.5 bg-gray-300 z-0"
+                            style={{
+                                left: '88px',
+                                top: '26px',
+                                height: lineHeight ? `${lineHeight}px` : '0'
+                            }}
+                        ></div>
+                    )}
 
-                <div className="space-y-8">
                     {/* Main entries */}
                     {milestones.map((milestone, index) => {
                         const hasRelatedActivities = !!groupedActivities[milestone.id]?.length;
                         const isExpanded = expandedMilestones[milestone.id] !== false; // Default to expanded
+                        const isFirst = index === 0;
+                        const isLast = index === milestones.length - 1 && !campaignStart;
 
-                        // Special handling for deadline
+                        // Special styling for different milestone types
                         const isDeadline = milestone.id === 'deadline';
+                        const isCurrent = milestone.id === 'current-progress';
 
                         // Use different color style for different milestones based on the mockup
-                        let bgColor = milestone.id.includes('current-progress') ? 'bg-orange-500' :
-                            milestone.id.includes('deadline') ? 'bg-red-500' :
-                                milestone.id.includes('50-percent') ? 'bg-green-500' :
-                                    milestone.id.includes('25-percent') ? 'bg-amber-500' :
-                                        'bg-blue-500';
+                        let bgColor = 'bg-orange-500';
+                        let bgClass = 'bg-orange-50';
+                        let borderClass = 'border-orange-100';
+
+                        if (isDeadline) {
+                            bgColor = 'bg-red-500';
+                            bgClass = 'bg-red-50';
+                            borderClass = 'border-red-100';
+                        } else if (milestone.id.includes('current-progress')) {
+                            bgColor = 'bg-orange-500';
+                            bgClass = 'bg-orange-50';
+                            borderClass = 'border-orange-100';
+                        } else if (milestone.id.includes('50-percent')) {
+                            bgColor = 'bg-green-500';
+                            bgClass = 'bg-green-50';
+                            borderClass = 'border-green-100';
+                        } else if (milestone.id.includes('25-percent')) {
+                            bgColor = 'bg-amber-500';
+                            bgClass = 'bg-amber-50';
+                            borderClass = 'border-amber-100';
+                        }
 
                         return (
-                            <div key={milestone.id} className={`flex items-start ${isDeadline ? 'opacity-90' : ''}`}>
+                            <div key={milestone.id} className="flex items-start group">
                                 {/* Date column */}
-                                <div className="w-16 text-right pr-4 mt-4">
+                                <div className="w-[75px] text-right pr-4 mt-2 flex-shrink-0">
                                     <div className="text-blue-500 text-sm font-medium">{milestone.date.split(' ')[0]}</div>
                                     <div className="text-gray-500 text-xs">{milestone.date.split(' ').slice(1).join(' ')}</div>
                                 </div>
 
-                                {/* Circle on timeline */}
-                                <div className="relative">
-                                    <div className={`${bgColor} w-8 h-8 rounded-full flex items-center justify-center text-white shadow-sm z-10`}>
-                                        <span className="text-sm">{milestone.icon}</span>
+                                {/* Circle column - positioned for line to go through center */}
+                                <div className="relative w-8 flex-shrink-0 flex justify-center">
+                                    {/* Circle on timeline */}
+                                    <div className={`relative w-8 h-8 mt-2 z-10 ${isFirst ? 'first-milestone' : ''} ${isLast ? 'last-milestone' : ''}`}>
+                                        <div className={`${bgColor} w-8 h-8 rounded-full flex items-center justify-center text-white shadow-md border-2 border-white`}>
+                                            <span className="text-sm">{milestone.icon}</span>
+                                        </div>
                                     </div>
                                 </div>
 
                                 {/* Content */}
                                 <div className="ml-4 flex-1">
-                                    <div className={`rounded-lg overflow-hidden shadow-sm ${isDeadline ? 'bg-red-100' : (milestone.id === 'current-progress' ? 'bg-orange-100' : 'bg-white')}`}>
-                                        <div className={`p-3 ${isDeadline ? 'bg-red-100' : (milestone.id === 'current-progress' ? 'bg-orange-100' : 'bg-white')}`}>
-                                            <div className="flex justify-between items-start">
+                                    <div className={`rounded-lg border overflow-hidden ${bgClass} border-${borderClass}`}>
+                                        <div className={`p-4 ${bgClass}`}>
+                                            <div className="flex justify-between items-start gap-2">
                                                 <div>
-                                                    <div className="flex items-center gap-2">
+                                                    <div className="flex items-center gap-2 flex-wrap">
                                                         <h3 className="font-semibold text-gray-800">{milestone.title}</h3>
                                                         {milestone.statusTag && (
                                                             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${milestone.statusTag.color}`}>
@@ -416,102 +488,150 @@ const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
                                                     )}
                                                 </div>
 
-                                                {/* Toggle button for expandable content */}
-                                                {hasRelatedActivities && (
-                                                    <button
-                                                        onClick={() => toggleMilestone(milestone.id)}
-                                                        className={`${bgColor} text-white rounded-full p-1 ml-2 h-6 w-6 flex items-center justify-center flex-shrink-0`}
-                                                    >
-                                                        {isExpanded ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
-                                                    </button>
-                                                )}
-
-                                                {/* Progress bar for milestone entries */}
-                                                {milestone.id.includes('percent') && (
-                                                    <div className="ml-4 w-24 hidden md:block">
-                                                        <div className="h-2.5 bg-gray-200 rounded-full overflow-hidden">
-                                                            <div
-                                                                className={`h-full ${bgColor}`}
-                                                                style={{ width: milestone.id.split('-')[0] + '%' }}
-                                                            ></div>
+                                                <div className="flex items-center gap-3 ml-auto">
+                                                    {/* Progress bar for milestone entries */}
+                                                    {milestone.id.includes('percent') && (
+                                                        <div className="w-24 hidden md:block">
+                                                            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                                                <div
+                                                                    className={`h-full ${bgColor}`}
+                                                                    style={{ width: milestone.id.split('-')[0] + '%' }}
+                                                                ></div>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                )}
+                                                    )}
+
+                                                    {/* Toggle button for expandable content */}
+                                                    {hasRelatedActivities && (
+                                                        <button
+                                                            onClick={() => toggleMilestone(milestone.id)}
+                                                            className={`${bgColor} text-white rounded-full p-1 h-6 w-6 flex items-center justify-center flex-shrink-0 shadow-sm`}
+                                                        >
+                                                            {isExpanded ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
 
                                         {/* Related activities */}
                                         {hasRelatedActivities && isExpanded && (
-                                            <div className="border-t border-gray-100">
-                                                <div className="p-3 space-y-3">
-                                                    {groupedActivities[milestone.id].map((activity) => {
+                                            <div className={`border-t ${borderClass}`}>
+                                                <div className="pl-6 relative">
+                                                    {/* Subtimeline vertical line */}
+                                                    <div className="absolute left-3 top-0 bottom-0 w-px bg-gray-200"></div>
+
+                                                    {groupedActivities[milestone.id].map((activity, activityIndex) => {
                                                         const { icon, color } = getCategoryStyles(activity);
 
+                                                        // Get colors for activity badges
+                                                        let badgeClass = 'bg-gray-50';
+                                                        let badgeTextClass = 'text-gray-700';
+
+                                                        if (activity.category) {
+                                                            switch (activity.category) {
+                                                                case 'receipt':
+                                                                    badgeClass = 'bg-teal-50';
+                                                                    badgeTextClass = 'text-teal-700';
+                                                                    break;
+                                                                case 'delivery':
+                                                                    badgeClass = 'bg-indigo-50';
+                                                                    badgeTextClass = 'text-indigo-700';
+                                                                    break;
+                                                                case 'quotation':
+                                                                    badgeClass = 'bg-blue-50';
+                                                                    badgeTextClass = 'text-blue-700';
+                                                                    break;
+                                                                case 'payment':
+                                                                    badgeClass = 'bg-green-50';
+                                                                    badgeTextClass = 'text-green-700';
+                                                                    break;
+                                                                case 'photo':
+                                                                    badgeClass = 'bg-purple-50';
+                                                                    badgeTextClass = 'text-purple-700';
+                                                                    break;
+                                                            }
+                                                        }
+
                                                         return (
-                                                            <div key={activity.id} className="ml-2">
-                                                                <div className="flex items-start">
-                                                                    <div className={`mt-1 ${color} w-5 h-5 rounded-full flex items-center justify-center text-white shadow-sm flex-shrink-0`}>
-                                                                        <span className="text-xs">{icon}</span>
+                                                            <div key={activity.id} className="border-b border-gray-100 last:border-b-0">
+                                                                <div className="relative pl-8 py-3">
+                                                                    {/* Horizontal connector line */}
+                                                                    <div className="absolute left-3 top-4 w-5 h-px bg-gray-200"></div>
+
+                                                                    {/* Activity circle */}
+                                                                    <div className="absolute left-3 top-4 -mt-1.5 -ml-1.5 z-10">
+                                                                        <div className={`${color} w-3 h-3 rounded-full border border-white`}></div>
                                                                     </div>
 
-                                                                    <div className="ml-3 flex-1">
-                                                                        <div className="flex items-center flex-wrap gap-2">
-                                                                            <h4 className="text-sm font-medium text-gray-800">
-                                                                                {activity.title}
-                                                                            </h4>
-
-                                                                            <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
-                                                                                {activity.category?.charAt(0).toUpperCase() + activity.category?.slice(1)}
-                                                                            </span>
-
-                                                                            {activity.amount && (
-                                                                                <span className="text-xs font-semibold text-green-600">
-                                                                                    {typeof activity.amount === 'string' ? activity.amount : `RM${activity.amount.toLocaleString()}`}
-                                                                                </span>
-                                                                            )}
-
-                                                                            {activity.statusTag && (
-                                                                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${activity.statusTag.color}`}>
-                                                                                    {activity.statusTag.text}
-                                                                                </span>
-                                                                            )}
+                                                                    <div className="flex items-start">
+                                                                        {/* Activity icon */}
+                                                                        <div className={`${color} mr-3 w-6 h-6 rounded-full flex items-center justify-center text-white`}>
+                                                                            <span className="text-xs">{icon}</span>
                                                                         </div>
 
-                                                                        <div className="text-xs text-gray-500 mt-1">
-                                                                            {activity.date}
-                                                                        </div>
+                                                                        {/* Activity content */}
+                                                                        <div className="flex-1">
+                                                                            <div className="flex flex-wrap items-center gap-2 mb-1">
+                                                                                <h4 className="text-sm font-semibold text-gray-800">
+                                                                                    {activity.title}
+                                                                                </h4>
 
-                                                                        {activity.description && (
-                                                                            <p className="text-xs text-gray-600 mt-1">
-                                                                                {activity.description}
-                                                                            </p>
-                                                                        )}
-
-                                                                        {/* Visual proof with simple display */}
-                                                                        {activity.visualProof && (
-                                                                            <div className="mt-2 border border-gray-100 rounded overflow-hidden bg-gray-50 max-w-xs">
-                                                                                {activity.visualProof.thumbnailUrl && (
-                                                                                    <img
-                                                                                        src={activity.visualProof.thumbnailUrl}
-                                                                                        alt="Document thumbnail"
-                                                                                        className="w-full object-cover h-12"
-                                                                                    />
-                                                                                )}
-                                                                                <div className="px-2 py-1 flex justify-between items-center">
-                                                                                    <span className="text-xs text-gray-500">
-                                                                                        {activity.visualProof.type === 'image' ? 'Photo' : 'Document'}
+                                                                                {activity.category && (
+                                                                                    <span className={`text-xs px-2 py-0.5 rounded-full ${badgeClass} ${badgeTextClass}`}>
+                                                                                        {activity.category.charAt(0).toUpperCase() + activity.category.slice(1)}
                                                                                     </span>
-                                                                                    <a
-                                                                                        href={activity.visualProof.url}
-                                                                                        target="_blank"
-                                                                                        rel="noopener noreferrer"
-                                                                                        className="text-blue-500 text-xs flex items-center"
-                                                                                    >
-                                                                                        View <FaLongArrowAltRight className="ml-1" />
-                                                                                    </a>
-                                                                                </div>
+                                                                                )}
+
+                                                                                {activity.amount && (
+                                                                                    <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                                                                                        {typeof activity.amount === 'string' ? activity.amount : `RM${activity.amount.toLocaleString()}`}
+                                                                                    </span>
+                                                                                )}
+
+                                                                                {activity.statusTag && (
+                                                                                    <span className={`text-xs px-2 py-0.5 rounded-full ${activity.statusTag.color}`}>
+                                                                                        {activity.statusTag.text}
+                                                                                    </span>
+                                                                                )}
                                                                             </div>
-                                                                        )}
+
+                                                                            <div className="text-xs text-gray-500 mb-1">
+                                                                                {activity.date}
+                                                                            </div>
+
+                                                                            {activity.description && (
+                                                                                <p className="text-xs text-gray-600 mb-2">
+                                                                                    {activity.description}
+                                                                                </p>
+                                                                            )}
+
+                                                                            {/* Visual proof */}
+                                                                            {activity.visualProof && (
+                                                                                <div className="border border-gray-200 rounded overflow-hidden bg-white max-w-xs">
+                                                                                    {activity.visualProof.thumbnailUrl && (
+                                                                                        <img
+                                                                                            src={activity.visualProof.thumbnailUrl}
+                                                                                            alt="Document thumbnail"
+                                                                                            className="w-full object-cover h-12"
+                                                                                        />
+                                                                                    )}
+                                                                                    <div className="px-3 py-2 flex justify-between items-center border-t border-gray-100">
+                                                                                        <span className="text-xs text-gray-500">
+                                                                                            {activity.visualProof.type === 'image' ? 'Photo' : 'Document'}
+                                                                                        </span>
+                                                                                        <a
+                                                                                            href={activity.visualProof.url}
+                                                                                            target="_blank"
+                                                                                            rel="noopener noreferrer"
+                                                                                            className="text-blue-500 text-xs flex items-center"
+                                                                                        >
+                                                                                            View <FaLongArrowAltRight className="ml-1" />
+                                                                                        </a>
+                                                                                    </div>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -530,21 +650,24 @@ const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
                     {campaignStart && (
                         <div className="flex items-start">
                             {/* Date column */}
-                            <div className="w-16 text-right pr-4 mt-4">
+                            <div className="w-[75px] text-right pr-4 mt-2 flex-shrink-0">
                                 <div className="text-blue-500 text-sm font-medium">{campaignStart.date.split(' ')[0]}</div>
                                 <div className="text-gray-500 text-xs">{campaignStart.date.split(' ').slice(1).join(' ')}</div>
                             </div>
 
-                            {/* Circle on timeline */}
-                            <div className="relative">
-                                <div className="bg-blue-500 w-8 h-8 rounded-full flex items-center justify-center text-white shadow-sm z-10">
-                                    <FaFlag className="text-sm" />
+                            {/* Circle column - positioned for line to go through center */}
+                            <div className="relative w-8 flex-shrink-0 flex justify-center">
+                                {/* Circle on timeline */}
+                                <div className="relative w-8 h-8 mt-2 z-10 last-milestone">
+                                    <div className="bg-blue-500 w-8 h-8 rounded-full flex items-center justify-center text-white shadow-md border-2 border-white">
+                                        <FaCheckCircle className="text-sm" />
+                                    </div>
                                 </div>
                             </div>
 
                             {/* Content */}
                             <div className="ml-4 flex-1">
-                                <div className="bg-white rounded-lg overflow-hidden shadow-sm p-3">
+                                <div className="bg-white rounded-lg border border-gray-100 p-4">
                                     <div className="flex items-center gap-2">
                                         <h3 className="font-semibold text-gray-800">Campaign Started</h3>
                                         <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-green-100 text-green-800">
