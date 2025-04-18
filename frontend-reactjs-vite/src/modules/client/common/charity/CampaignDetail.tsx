@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { FaCalendarAlt, FaMoneyBillWave, FaArrowLeft, FaHandHoldingHeart, FaUsers, FaChartLine, FaHistory, FaBuilding, FaEdit, FaTrash, FaComments, FaClock, FaThumbsUp, FaPlus, FaMapMarkerAlt, FaShare, FaTrophy, FaExchangeAlt, FaTimes, FaHashtag, FaTags, FaFire, FaUserCircle, FaCheck, FaFileInvoice, FaFlag } from "react-icons/fa";
+import { FaCalendarAlt, FaMoneyBillWave, FaArrowLeft, FaHandHoldingHeart, FaUsers, FaChartLine, FaHistory, FaBuilding, FaEdit, FaTrash, FaComments, FaClock, FaThumbsUp, FaPlus, FaMapMarkerAlt, FaShare, FaTrophy, FaExchangeAlt, FaTimes, FaHashtag, FaTags, FaFire, FaUserCircle, FaCheck, FaFileInvoice, FaFlag, FaLock } from "react-icons/fa";
 import { useRole } from "../../../../contexts/RoleContext";
 import { mockCampaigns, mockDonorContributions, mockOrganizations, mockDonationTrackers } from "../../../../utils/mockData";
 import DonationModal from "../../../../components/modals/DonationModal";
@@ -228,17 +228,109 @@ const CampaignDetail: React.FC = () => {
           <p className="text-white text-opacity-90 mb-4">{campaign.description}</p>
 
           {/* Progress bar */}
-          <div className="mb-4">
-            <div className="w-full bg-white bg-opacity-30 rounded-full h-4 mb-2">
-              <div
-                className="h-full rounded-full bg-white"
-                style={{ width: `${progress}%` }}
-              ></div>
-            </div>
-            <div className="flex justify-between items-center text-sm text-white">
-              <span>RM{campaign.currentContributions} raised</span>
-              <span>RM{campaign.goal} goal</span>
-            </div>
+          <div className="mb-6">
+            {/* Get campaign tracker data */}
+            {(() => {
+              // Find campaign tracker or create a placeholder if not found
+              const tracker = mockDonationTrackers.find(t =>
+                t.recipientId === campaignId &&
+                t.recipientType === 'campaign'
+              ) || {
+                id: 9999,
+                recipientId: campaignId,
+                recipientType: 'campaign',
+                donations: {
+                  total: campaign.currentContributions,
+                  count: 45,
+                  campaignSpecificTotal: Math.round(campaign.currentContributions * 0.6), // 60% is campaign-specific
+                  alwaysDonateTotal: Math.round(campaign.currentContributions * 0.4), // 40% is always-donate
+                  timeline: { daily: [], weekly: [], monthly: [] },
+                  topDonors: []
+                }
+              };
+
+              // Calculate progress percentages
+              const campaignSpecificTotal = tracker.donations.campaignSpecificTotal || 0;
+              const alwaysDonateTotal = tracker.donations.alwaysDonateTotal || 0;
+              const campaignSpecificPercent = (campaignSpecificTotal / campaign.goal) * 100;
+              const alwaysDonatePercent = (alwaysDonateTotal / campaign.goal) * 100;
+
+              return (
+                <>
+                  {/* Top row with legend and goal */}
+                  <div className="flex justify-between items-center mb-3">
+                    {/* Legend */}
+                    <div className="flex gap-4 text-sm text-white">
+                      {/* Campaign-specific */}
+                      <div className="flex items-center gap-2 bg-white bg-opacity-10 px-2 py-1 rounded-lg">
+                        <div className="w-3 h-3 rounded-sm bg-gradient-to-r from-green-600 to-green-400 shadow-sm"></div>
+                        <div className="font-medium flex items-center gap-1">
+                          <FaLock className="text-green-300" size={10} />
+                          <span>Campaign-Specific</span>
+                        </div>
+                      </div>
+
+                      {/* Always-donate */}
+                      <div className="flex items-center gap-2 bg-white bg-opacity-10 px-2 py-1 rounded-lg">
+                        <div className="w-3 h-3 rounded-sm bg-gradient-to-r from-blue-500 to-indigo-500 shadow-sm"></div>
+                        <div className="font-medium flex items-center gap-1">
+                          <FaHandHoldingHeart className="text-blue-300" size={10} />
+                          <span>Always-Donate</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Goal indicator */}
+                    <div className="bg-white bg-opacity-20 px-3 py-1 rounded-full text-sm text-white flex items-center gap-1">
+                      <span className="text-white text-opacity-80">Goal:</span>
+                      <span className="font-bold">RM{campaign.goal.toLocaleString()}</span>
+                    </div>
+                  </div>
+
+                  {/* Enhanced progress bar with shadow and glass effect */}
+                  <div className="w-full bg-white bg-opacity-20 backdrop-blur-sm rounded-xl h-12 overflow-hidden flex p-1 shadow-inner relative">
+                    {/* Campaign-specific portion with gradient */}
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${campaignSpecificPercent}%` }}
+                      transition={{ duration: 1, ease: "easeOut" }}
+                      className="h-full rounded-l-lg bg-gradient-to-r from-green-600 to-green-400 shadow-lg flex items-center justify-center"
+                      style={{
+                        width: `${campaignSpecificPercent}%`,
+                        maxWidth: "100%"
+                      }}
+                    >
+                      {campaignSpecificPercent > 15 && (
+                        <span className="text-sm font-bold text-white drop-shadow-md px-2">
+                          RM{campaignSpecificTotal.toLocaleString()}
+                        </span>
+                      )}
+                    </motion.div>
+
+                    {/* Always-donate portion with gradient */}
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${alwaysDonatePercent}%` }}
+                      transition={{ duration: 1, ease: "easeOut", delay: 0.3 }}
+                      className={`h-full ${campaignSpecificPercent > 0 ? "" : "rounded-l-lg"} rounded-r-lg bg-gradient-to-r from-blue-500 to-indigo-500 shadow-lg flex items-center justify-center`}
+                      style={{
+                        width: `${alwaysDonatePercent}%`,
+                        maxWidth: `${100 - campaignSpecificPercent}%`
+                      }}
+                    >
+                      {alwaysDonatePercent > 15 && (
+                        <span className="text-sm font-bold text-white drop-shadow-md px-2">
+                          RM{alwaysDonateTotal.toLocaleString()}
+                        </span>
+                      )}
+                    </motion.div>
+
+                    {/* Subtle grid overlay for texture */}
+                    <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTAgMCBMIDEwIDEwIE0gMTAgMCBMIDAgMTAiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxIiBmaWxsPSJub25lIiAvPjwvc3ZnPg==')]"></div>
+                  </div>
+                </>
+              );
+            })()}
           </div>
 
           {/* Campaign stats */}
