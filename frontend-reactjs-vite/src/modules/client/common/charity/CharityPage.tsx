@@ -18,7 +18,6 @@ import OrganizationCard from "../../../../components/cards/OrganizationCard";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useRole } from "../../../../contexts/RoleContext";
 import DonorSupportedCampaigns from "./DonorSupportedCampaigns";
-import { mockOrganizations } from "../../../../utils/mockData";
 import AutoDonation from "./AutoDonation";
 import { charityService, Campaign } from "../../../../services/supabase/charityService";
 
@@ -68,15 +67,20 @@ const CharityPage: React.FC = () => {
   const { userRole } = useRole();
   const navigate = useNavigate();
   
-  // Add state for real campaigns
+  // Add state for real campaigns and organizations
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [organizations, setOrganizations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [organizationsLoading, setOrganizationsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [organizationsError, setOrganizationsError] = useState<string | null>(null);
 
-  // Fetch campaigns when component mounts
+  // Fetch campaigns when component mounts or tab changes
   useEffect(() => {
     if (activeTab === 'campaigns') {
       fetchCampaigns();
+    } else if (activeTab === 'organizations') {
+      fetchOrganizations();
     }
   }, [activeTab]);
 
@@ -91,6 +95,20 @@ const CharityPage: React.FC = () => {
       setError(err.message || "Failed to load campaigns. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchOrganizations = async () => {
+    try {
+      setOrganizationsLoading(true);
+      const orgsData = await charityService.getAllCharityOrganizations();
+      setOrganizations(orgsData);
+      setOrganizationsError(null);
+    } catch (err: any) {
+      console.error("Error fetching organizations:", err);
+      setOrganizationsError(err.message || "Failed to load organizations. Please try again.");
+    } finally {
+      setOrganizationsLoading(false);
     }
   };
 
@@ -134,10 +152,12 @@ const CharityPage: React.FC = () => {
     }
   });
 
-  const filteredOrganizations = mockOrganizations.filter(org => 
-    org.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    org.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredOrganizations = organizations.filter(org => {
+    // Add null checks for name and description
+    const nameMatch = org.name ? org.name.toLowerCase().includes(searchTerm.toLowerCase()) : false;
+    const descriptionMatch = org.description ? org.description.toLowerCase().includes(searchTerm.toLowerCase()) : false;
+    return nameMatch || descriptionMatch;
+  });
 
   // Reset all filters
   const clearFilters = () => {
@@ -446,7 +466,26 @@ const CharityPage: React.FC = () => {
       ) : activeTab === 'organizations' ? (
         <>
           <h2 className="text-2xl font-bold mb-4 text-[var(--headline)]">Charity Organizations</h2>
-          {filteredOrganizations.length > 0 ? (
+          {organizationsLoading ? (
+            <div className="flex justify-center items-center py-20">
+              <div className="flex flex-col items-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--highlight)] mb-4"></div>
+                <p className="text-[var(--paragraph)]">Loading organizations...</p>
+              </div>
+            </div>
+          ) : organizationsError ? (
+            <div className="text-center py-10 bg-white rounded-lg border border-[var(--stroke)] shadow-sm">
+              <FaTimes className="mx-auto text-4xl text-red-500 mb-4" />
+              <p className="text-lg font-medium text-[var(--headline)]">Error loading organizations</p>
+              <p className="text-[var(--paragraph)]">{organizationsError}</p>
+              <button
+                onClick={fetchOrganizations}
+                className="mt-4 px-4 py-2 bg-[var(--highlight)] text-white rounded-lg hover:bg-opacity-90 transition-colors"
+              >
+                Try Again
+              </button>
+            </div>
+          ) : filteredOrganizations.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredOrganizations.map((org) => (
                 <OrganizationCard

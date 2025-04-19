@@ -11,8 +11,8 @@ export interface Campaign {
   current_amount: number;
   status: string;
   created_at: string;
-  deadline?: string; // This might be missing from your schema
-  image_url?: string; // This might be missing from your schema
+  deadline: string;
+  image_url?: string;
   category?: string; // Adding category field
   charity?: {
     id: string;
@@ -659,39 +659,46 @@ export const charityService = {
   // Get all public charity organizations
   getAllCharityOrganizations: async () => {
     try {
-      // Get all charity users with their profiles
-      const { data, error } = await supabase
+      // Instead of using nested relationships which are causing ambiguity,
+      // fetch users and charity profiles separately and join them in code
+      
+      // First, get all charity users
+      const { data: usersData, error: usersError } = await supabase
         .from('users')
-        .select(`
-          id,
-          name,
-          verified,
-          wallet_address,
-          role,
-          charity_profiles (
-            description,
-            logo,
-            founded,
-            location,
-            website,
-            email,
-            phone
-          )
-        `)
+        .select('id, name, verified, wallet_address, role')
         .eq('role', 'charity')
         .order('name');
       
-      if (error) throw error;
+      if (usersError) throw usersError;
+      if (!usersData || usersData.length === 0) return [];
       
-      // Format organizations with their profiles and campaign stats
-      const organizations = await Promise.all((data || []).map(async (org) => {
+      // Then get charity profiles for these users
+      const userIds = usersData.map(user => user.id);
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('charity_profiles')
+        .select('user_id, description, logo, founded, location, website, email, phone')
+        .in('user_id', userIds);
+      
+      if (profilesError) throw profilesError;
+      
+      // Create a map of profiles by user_id for easier lookup
+      const profilesMap: Record<string, any> = (profilesData || []).reduce((map: Record<string, any>, profile) => {
+        map[profile.user_id] = profile;
+        return map;
+      }, {});
+      
+      // Get campaign statistics for each charity
+      const organizations = await Promise.all(usersData.map(async (user) => {
         // Get campaign statistics
         const { data: campaignsData, error: campaignsError } = await supabase
           .from('campaigns')
           .select('id, status, current_amount')
-          .eq('charity_id', org.id);
+          .eq('charity_id', user.id);
         
         if (campaignsError) throw campaignsError;
+        
+        // Get the profile data for this user
+        const profile = profilesMap[user.id] || {};
         
         const totalRaised = campaignsData?.reduce((sum, campaign) => sum + (campaign.current_amount || 0), 0) || 0;
         const activeCampaigns = campaignsData?.filter(campaign => campaign.status === 'active').length || 0;
@@ -699,13 +706,13 @@ export const charityService = {
         
         // Combine the data
         return {
-          id: org.id,
-          name: org.name,
-          verified: org.verified,
-          description: org.charity_profiles?.[0]?.description || '',
-          logo: org.charity_profiles?.[0]?.logo || null,
-          founded: org.charity_profiles?.[0]?.founded || '',
-          location: org.charity_profiles?.[0]?.location || '',
+          id: user.id,
+          name: user.name,
+          verified: user.verified,
+          description: profile.description || '',
+          logo: profile.logo || null,
+          founded: profile.founded || '',
+          location: profile.location || '',
           totalRaised,
           campaigns: totalCampaigns,
           activeCampaigns
