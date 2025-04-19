@@ -724,5 +724,63 @@ export const charityService = {
       console.error('Error fetching charity organizations:', error);
       throw error;
     }
+  },
+  
+  // Get a single charity organization by ID
+  getCharityOrganizationById: async (id: string) => {
+    try {
+      // Get the user data
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id, name, verified, wallet_address, role')
+        .eq('id', id)
+        .eq('role', 'charity')
+        .single();
+      
+      if (userError) throw userError;
+      if (!userData) throw new Error('Charity organization not found');
+      
+      // Get the charity profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('charity_profiles')
+        .select('description, logo, founded, location, website, email, phone')
+        .eq('user_id', userData.id)
+        .maybeSingle();
+      
+      if (profileError) throw profileError;
+      
+      // Get campaign statistics
+      const { data: campaignsData, error: campaignsError } = await supabase
+        .from('campaigns')
+        .select('id, status, current_amount, title, description, target_amount, deadline, image_url, category')
+        .eq('charity_id', userData.id);
+      
+      if (campaignsError) throw campaignsError;
+      
+      const totalRaised = campaignsData?.reduce((sum, campaign) => sum + (campaign.current_amount || 0), 0) || 0;
+      const activeCampaigns = campaignsData?.filter(campaign => campaign.status === 'active').length || 0;
+      const totalCampaigns = campaignsData?.length || 0;
+      
+      // Combine the data
+      return {
+        id: userData.id,
+        name: userData.name,
+        verified: userData.verified,
+        description: profileData?.description || '',
+        logo: profileData?.logo || null,
+        founded: profileData?.founded || '',
+        location: profileData?.location || '',
+        email: profileData?.email || '',
+        phone: profileData?.phone || '',
+        website: profileData?.website || '',
+        totalRaised,
+        campaigns: totalCampaigns,
+        activeCampaigns,
+        campaignsList: campaignsData || []
+      };
+    } catch (error) {
+      console.error('Error fetching charity organization by ID:', error);
+      throw error;
+    }
   }
 }; 

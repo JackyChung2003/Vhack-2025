@@ -5,7 +5,7 @@ import { FaArrowLeft, FaHandHoldingHeart, FaBuilding, FaUsers, FaHistory, FaChar
 import { motion } from "framer-motion";
 import CampaignCard from "../../../../components/cards/CampaignCard";
 import { useRole } from "../../../../contexts/RoleContext";
-import { mockOrganizations, mockCampaigns, mockDonorContributions, mockDonationTrackers } from "../../../../utils/mockData";
+import { mockDonorContributions, mockDonationTrackers } from "../../../../utils/mockData";
 import DonationModal from "../../../../components/modals/DonationModal";
 import { toast } from "react-toastify";
 import PostFeed from "../../common/community/components/PostFeed";
@@ -34,72 +34,16 @@ const OrganizationDetail: React.FC = () => {
   const [charityLoading, setCharityLoading] = useState(false);
   const [charityError, setCharityError] = useState<string | null>(null);
   
+  // For external organization view
+  const [organization, setOrganization] = useState<any>(null);
+  const [organizationLoading, setOrganizationLoading] = useState(false);
+  const [organizationError, setOrganizationError] = useState<string | null>(null);
+  const [organizationCampaigns, setOrganizationCampaigns] = useState<any[]>([]);
+  
   // Determine if we're viewing as charity's own profile
   const isOwnProfile = userRole === 'charity' && !organizationIdString;
   
-  // For normal organization viewing (not charity's own profile), use the existing logic
-  const organizationId = organizationIdString ? Number(organizationIdString) : 0;
-  const organization = isOwnProfile 
-    ? { 
-        id: Number(charityProfile?.id || 0), 
-        name: charityProfile?.name || '', 
-        totalRaised: charityProfile?.totalRaised || 0,
-        activeCampaigns: charityProfile?.activeCampaigns || 0,
-        campaigns: 0,
-        verified: charityProfile?.verified || false,
-        // other properties needed from mockOrganizations
-      } 
-    : mockOrganizations.find(org => org.id === organizationId);
-  
-  // Get campaigns for this organization - must be called even if organization is null
-  const organizationCampaigns = !isOwnProfile ? mockCampaigns.filter(
-    campaign => campaign.organizationId === organizationId
-  ) : [];
-
-  // Calculate additional stats - must be called even if organization is null
-  const activeCampaigns = isOwnProfile 
-    ? charityProfile?.activeCampaigns || 0
-    : organizationCampaigns.filter(campaign => 
-        new Date(campaign.deadline) > new Date() && campaign.currentContributions < campaign.goal
-      ).length;
-
-  const supporters = isOwnProfile
-    ? charityProfile?.supporters || 0
-    : organizationCampaigns.reduce(
-        (sum, campaign) => sum + Math.floor(campaign.currentContributions / 100), 0
-      );
-
-  // Extended organization details - use charity profile data if viewing own profile
-  const extendedDetails = isOwnProfile && charityProfile
-    ? {
-        email: charityProfile.email || '',
-        phone: charityProfile.phone || '',
-        website: charityProfile.website || '',
-        location: charityProfile.location || '',
-        founded: charityProfile.founded || '',
-        mission: charityProfile.description || '',
-        // Keep the mock impact and values for now
-        impact: "Helping communities through various programs.",
-        values: ["Integrity", "Innovation", "Impact"]
-      }
-    : {
-        email: organizationId === 1 ? "contact@globalrelief.org" : "contact@organization.org",
-        phone: organizationId === 1 ? "+1 (234) 567-890" : "+1 (555) 123-4567",
-        website: organizationId === 1 ? "globalrelief.org" : "organization.org",
-        location: organizationId === 1 ? "New York, USA" : "San Francisco, USA",
-        founded: organizationId === 1 ? "2005" : "2010",
-        mission: organizationId === 1 
-          ? "To provide humanitarian aid and support to communities in crisis around the world through sustainable development programs and emergency relief efforts."
-          : "To make a positive impact through various initiatives and campaigns.",
-        impact: organizationId === 1 
-          ? "Helped over 2 million people across 45 countries with clean water, medical aid, and disaster relief."
-          : "Supported thousands of people through various programs.",
-        values: organizationId === 1 
-          ? ["Compassion", "Integrity", "Accountability", "Sustainability", "Collaboration"]
-          : ["Integrity", "Innovation", "Impact"]
-      };
-  
-  // Load charity's own profile if applicable - ALL hooks must be declared unconditionally!
+  // Load charity's own profile if applicable
   useEffect(() => {
     if (isOwnProfile) {
       const fetchCharityProfile = async () => {
@@ -117,29 +61,92 @@ const OrganizationDetail: React.FC = () => {
       };
 
       fetchCharityProfile();
+    } else if (organizationIdString) {
+      // Fetch organization by ID if we're viewing an external profile
+      const fetchOrganization = async () => {
+        try {
+          setOrganizationLoading(true);
+          const orgData = await charityService.getCharityOrganizationById(organizationIdString);
+          setOrganization(orgData);
+          setOrganizationCampaigns(orgData.campaignsList || []);
+          setOrganizationError(null);
+        } catch (err: any) {
+          console.error("Error fetching organization:", err);
+          setOrganizationError(err.message || "Failed to load organization. Please try again.");
+        } finally {
+          setOrganizationLoading(false);
+        }
+      };
+
+      fetchOrganization();
     }
-  }, [isOwnProfile]);
+  }, [isOwnProfile, organizationIdString]);
   
   // Unconditional donor effect hook
   useEffect(() => {
-    if (userRole === 'donor' && !isOwnProfile && organizationId) {
+    if (userRole === 'donor' && !isOwnProfile && organizationIdString) {
       const hasContributed = mockDonorContributions.supportedCampaigns.some(
-        contribution => mockCampaigns.some(
-          campaign => campaign.organizationId === organizationId && campaign.id === contribution.id
+        contribution => organizationCampaigns.some(
+          campaign => campaign.charity_id === organizationIdString && campaign.id === contribution.id
         )
       );
     }
-  }, [organizationId, userRole, isOwnProfile]);
+  }, [organizationIdString, userRole, isOwnProfile, organizationCampaigns]);
 
+  // Calculate additional stats based on either own profile or external organization
+  const orgData = isOwnProfile
+    ? {
+        id: charityProfile?.id || '',
+        name: charityProfile?.name || '',
+        totalRaised: charityProfile?.totalRaised || 0,
+        activeCampaigns: charityProfile?.activeCampaigns || 0,
+        campaigns: 0,
+        verified: charityProfile?.verified || false,
+      }
+    : organization || {};
+  
+  // Calculate additional stats for active campaigns if viewing external organization
+  const activeCampaigns = isOwnProfile
+    ? charityProfile?.activeCampaigns || 0
+    : organization?.activeCampaigns || 0;
+
+  const supporters = isOwnProfile
+    ? charityProfile?.supporters || 0
+    : organization?.supporters || 0;
+
+  // Extended organization details
+  const extendedDetails = isOwnProfile && charityProfile
+    ? {
+        email: charityProfile.email || '',
+        phone: charityProfile.phone || '',
+        website: charityProfile.website || '',
+        location: charityProfile.location || '',
+        founded: charityProfile.founded || '',
+        mission: charityProfile.description || '',
+        // Default values for impact and values if not provided
+        impact: "Helping communities through various programs.",
+        values: ["Integrity", "Innovation", "Impact"]
+      }
+    : {
+        email: organization?.email || '',
+        phone: organization?.phone || '',
+        website: organization?.website || '',
+        location: organization?.location || '',
+        founded: organization?.founded || '',
+        mission: organization?.description || '',
+        impact: "Helping communities through various programs.",
+        values: ["Integrity", "Innovation", "Impact"]
+      };
+  
   // Add event listener for chat modal - unconditional hook call
   useEffect(() => {
-    if (!organization) return;
+    if (!orgData) return;
     
     const handleOpenChat = (event: CustomEvent) => {
-      if (event.detail.organizationId === organization.id) {
+      if (event.detail.organizationId === orgData.id) {
         // Find the chat ID for this organization
         const chat = useVendorChatStore.getState().chats.find(
-          chat => chat.organizationId === organization.id
+          chat => chat.organizationId === orgData.id
         );
         if (chat) {
           setActiveChatId(chat.id);
@@ -151,7 +158,7 @@ const OrganizationDetail: React.FC = () => {
     return () => {
       window.removeEventListener('openVendorChat', handleOpenChat as EventListener);
     };
-  }, [organization]);
+  }, [orgData]);
   
   // Handle saving charity profile changes
   const handleSaveCharityData = async (updatedData: Partial<CharityProfileType>) => {
@@ -196,8 +203,8 @@ const OrganizationDetail: React.FC = () => {
   };
   
   const handleContactClick = () => {
-    if (organization) {
-      openChat(organization.id);
+    if (orgData && orgData.id) {
+      openChat(Number(orgData.id));
     }
   };
 
@@ -210,6 +217,40 @@ const OrganizationDetail: React.FC = () => {
           <div className="flex flex-col items-center">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--highlight)] mb-4"></div>
             <p className="text-[var(--paragraph)]">Loading charity profile...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // Loading state for external organization
+  if (!isOwnProfile && organizationLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="bg-[var(--main)] p-8 rounded-xl shadow-xl border border-[var(--stroke)]">
+          <div className="flex flex-col items-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--highlight)] mb-4"></div>
+            <p className="text-[var(--paragraph)]">Loading organization profile...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // Error state for external organization
+  if (!isOwnProfile && organizationError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="bg-[var(--main)] p-8 rounded-xl shadow-xl border border-[var(--stroke)]">
+          <div className="flex flex-col items-center">
+            <div className="text-red-500 text-xl mb-4">⚠️</div>
+            <p className="text-red-500">{organizationError}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="mt-4 px-4 py-2 rounded-lg bg-[var(--highlight)] text-white hover:bg-opacity-90"
+            >
+              Try Again
+            </button>
           </div>
         </div>
       </div>
@@ -256,7 +297,7 @@ const OrganizationDetail: React.FC = () => {
   }
   
   // If organization not found for regular view, show error or redirect
-  if (!isOwnProfile && !organization) {
+  if (!isOwnProfile && !organization && !organizationLoading) {
     return (
       <div className="p-6 bg-[var(--background)] text-[var(--paragraph)]">
         <div className="max-w-4xl mx-auto text-center">
@@ -299,15 +340,17 @@ const OrganizationDetail: React.FC = () => {
             <div className="w-32 h-32 rounded-xl bg-gradient-to-br from-[var(--highlight)] to-[var(--tertiary)] flex items-center justify-center text-white text-4xl font-bold shadow-lg">
               {isOwnProfile && charityProfile?.logo ? (
                 <img src={charityProfile.logo} alt={charityProfile.name} className="w-full h-full object-cover rounded-xl" />
+              ) : organization?.logo ? (
+                <img src={organization.logo} alt={organization.name} className="w-full h-full object-cover rounded-xl" />
               ) : (
-                organization!.name.charAt(0)
+                (orgData.name && orgData.name.charAt(0)) || "C"
               )}
             </div>
             
             <div className="flex-1">
               <div className="flex items-center justify-between mb-4">
-                <h1 className="text-3xl font-bold text-[var(--headline)]">{organization!.name}</h1>
-                {userRole === 'donor' && (
+                <h1 className="text-3xl font-bold text-[var(--headline)]">{orgData.name}</h1>
+                {userRole === 'donor' && !isOwnProfile && (
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -315,10 +358,10 @@ const OrganizationDetail: React.FC = () => {
                     className="px-6 py-3 bg-gradient-to-r from-[var(--highlight)] to-[var(--tertiary)] text-white rounded-xl font-medium shadow-lg hover:shadow-xl transition-shadow flex items-center gap-2"
                   >
                     <FaHandHoldingHeart className="text-xl" />
-                    Support {organization!.name}
+                    Support {orgData.name}
                   </motion.button>
                 )}
-                {userRole === 'vendor' && (
+                {userRole === 'vendor' && !isOwnProfile && (
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -326,7 +369,7 @@ const OrganizationDetail: React.FC = () => {
                     className="px-6 py-3 bg-gradient-to-r from-[var(--highlight)] to-[var(--tertiary)] text-white rounded-xl font-medium shadow-lg hover:shadow-xl transition-shadow flex items-center gap-2"
                   >
                     <FaComments className="text-xl" />
-                    Contact {organization!.name}
+                    Contact {orgData.name}
                   </motion.button>
                 )}
                 {isOwnProfile && (
@@ -341,36 +384,46 @@ const OrganizationDetail: React.FC = () => {
               <p className="text-[var(--paragraph)] mt-2">{extendedDetails.mission}</p>
               
               <div className="flex flex-wrap gap-4 mt-4">
-                <div className="flex items-center gap-2">
-                  <FaEnvelope className="text-[var(--highlight)]" />
-                  <a href={`mailto:${extendedDetails.email}`} className="hover:text-[var(--highlight)] transition-colors">
-                    {extendedDetails.email}
-                  </a>
-                </div>
-                <div className="flex items-center gap-2">
-                  <FaGlobe className="text-[var(--highlight)]" />
-                  <a href={extendedDetails.website.startsWith('http') ? extendedDetails.website : `https://${extendedDetails.website}`} target="_blank" rel="noopener noreferrer" 
-                     className="hover:text-[var(--highlight)] transition-colors">
-                    {extendedDetails.website.replace(/^https?:\/\//, '')}
-                  </a>
-                </div>
-                <div className="flex items-center gap-2">
-                  <FaPhone className="text-[var(--highlight)]" />
-                  <a 
-                    href={`tel:${extendedDetails.phone}`}
-                    className="hover:text-[var(--highlight)] hover:underline transition-colors"
-                  >
-                    {extendedDetails.phone}
-                  </a>
-                </div>
-                <div className="flex items-center gap-2">
-                  <FaMapMarkerAlt className="text-[var(--highlight)]" />
-                  <span>{extendedDetails.location}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <FaCalendarAlt className="text-[var(--highlight)]" />
-                  <span>Founded: {extendedDetails.founded}</span>
-                </div>
+                {extendedDetails.email && (
+                  <div className="flex items-center gap-2">
+                    <FaEnvelope className="text-[var(--highlight)]" />
+                    <a href={`mailto:${extendedDetails.email}`} className="hover:text-[var(--highlight)] transition-colors">
+                      {extendedDetails.email}
+                    </a>
+                  </div>
+                )}
+                {extendedDetails.website && (
+                  <div className="flex items-center gap-2">
+                    <FaGlobe className="text-[var(--highlight)]" />
+                    <a href={extendedDetails.website.startsWith('http') ? extendedDetails.website : `https://${extendedDetails.website}`} target="_blank" rel="noopener noreferrer" 
+                      className="hover:text-[var(--highlight)] transition-colors">
+                      {extendedDetails.website.replace(/^https?:\/\//, '')}
+                    </a>
+                  </div>
+                )}
+                {extendedDetails.phone && (
+                  <div className="flex items-center gap-2">
+                    <FaPhone className="text-[var(--highlight)]" />
+                    <a 
+                      href={`tel:${extendedDetails.phone}`}
+                      className="hover:text-[var(--highlight)] hover:underline transition-colors"
+                    >
+                      {extendedDetails.phone}
+                    </a>
+                  </div>
+                )}
+                {extendedDetails.location && (
+                  <div className="flex items-center gap-2">
+                    <FaMapMarkerAlt className="text-[var(--highlight)]" />
+                    <span>{extendedDetails.location}</span>
+                  </div>
+                )}
+                {extendedDetails.founded && (
+                  <div className="flex items-center gap-2">
+                    <FaCalendarAlt className="text-[var(--highlight)]" />
+                    <span>Founded: {extendedDetails.founded}</span>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
@@ -381,7 +434,7 @@ const OrganizationDetail: React.FC = () => {
                   <div className="flex items-center gap-3">
                     <FaHandHoldingHeart className="text-2xl" />
                     <div>
-                      <p className="text-2xl font-bold">RM{(isOwnProfile ? charityProfile?.totalRaised : organization!.totalRaised)?.toLocaleString()}</p>
+                      <p className="text-2xl font-bold">RM{(isOwnProfile ? charityProfile?.totalRaised : organization?.totalRaised || 0)?.toLocaleString()}</p>
                       <p className="text-sm opacity-90">Total Raised</p>
                     </div>
                   </div>
@@ -407,7 +460,7 @@ const OrganizationDetail: React.FC = () => {
                   <div className="flex items-center gap-3">
                     <FaUsers className="text-2xl" />
                     <div>
-                      <p className="text-2xl font-bold">{supporters}</p>
+                      <p className="text-2xl font-bold">{supporters || 0}</p>
                       <p className="text-sm opacity-90">Supporters</p>
                     </div>
                   </div>
@@ -420,7 +473,7 @@ const OrganizationDetail: React.FC = () => {
                   <div className="flex items-center gap-3">
                     <FaHandHoldingHeart className="text-2xl" />
                     <div>
-                      <p className="text-2xl font-bold">{isOwnProfile ? (charityProfile?.activeCampaigns || 0) : organization!.campaigns}</p>
+                      <p className="text-2xl font-bold">{isOwnProfile ? (charityProfile?.activeCampaigns || 0) : (organization?.campaigns || 0)}</p>
                       <p className="text-sm opacity-90">Total Campaigns</p>
                     </div>
                   </div>
@@ -468,7 +521,7 @@ const OrganizationDetail: React.FC = () => {
           >
             <DonationTracker 
               tracker={mockDonationTrackers.find(t => 
-                t.recipientId === organization!.id && 
+                t.recipientId === orgData.id && 
                 t.recipientType === 'organization'
               ) || mockDonationTrackers[0]} 
             />
@@ -497,20 +550,41 @@ const OrganizationDetail: React.FC = () => {
             )}
           </div>
           
-          {organizationCampaigns.length > 0 ? (
+          {isOwnProfile ? (
+            /* Original code for charity viewing own campaigns */
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {organizationCampaigns.map((campaign) => (
-                <CampaignCard
-                  key={campaign.id}
-                  {...campaign}
-                />
-              ))}
+              {/* This section is for charity viewing own campaigns - will be filled in later */}
+              <p className="text-center col-span-3">Your campaigns will appear here.</p>
             </div>
           ) : (
-            <div className="text-center py-10 bg-[var(--main)] rounded-xl border border-[var(--stroke)]">
-              <FaHandHoldingHeart className="mx-auto text-4xl text-[var(--paragraph)] opacity-30 mb-4" />
-              <p className="text-lg">No campaigns found for this organization.</p>
-            </div>
+            /* Updated code to show real organization campaigns */
+            organizationCampaigns && organizationCampaigns.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {organizationCampaigns.map((campaign) => {
+                  // Calculate a default deadline of 30 days from now if not provided
+                  const defaultDeadline = new Date();
+                  defaultDeadline.setDate(defaultDeadline.getDate() + 30);
+                  
+                  return (
+                    <CampaignCard
+                      key={campaign.id}
+                      id={campaign.id}
+                      name={campaign.title}
+                      description={campaign.description}
+                      goal={campaign.target_amount}
+                      currentContributions={campaign.current_amount}
+                      deadline={campaign.deadline || defaultDeadline.toISOString()}
+                      category={campaign.category}
+                    />
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-10 bg-[var(--main)] rounded-xl border border-[var(--stroke)]">
+                <FaHandHoldingHeart className="mx-auto text-4xl text-[var(--paragraph)] opacity-30 mb-4" />
+                <p className="text-lg">No campaigns found for this organization.</p>
+              </div>
+            )
           )}
         </motion.section>
 
@@ -595,7 +669,7 @@ const OrganizationDetail: React.FC = () => {
                   {/* Community Content */}
                   <div className="bg-[var(--background)] rounded-lg p-4">
                     {communityView === 'feed' && (
-                      <PostFeed communityId={organization!.id} communityType="organization" />
+                      <PostFeed communityId={orgData.id} communityType="organization" />
                     )}
                     {communityView === 'members' && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -628,7 +702,7 @@ const OrganizationDetail: React.FC = () => {
                   <FaHandHoldingHeart className="mx-auto text-4xl text-[var(--highlight)] mb-4" />
                   <h2 className="text-2xl font-bold text-[var(--headline)] mb-2">Join Our Community</h2>
                   <p className="text-[var(--paragraph)] mb-6">
-                    Support {organization!.name} by making a donation to unlock access to our community features.
+                    Support {orgData.name} by making a donation to unlock access to our community features.
                   </p>
                   <motion.button
                     whileHover={{ scale: 1.05 }}
@@ -647,15 +721,15 @@ const OrganizationDetail: React.FC = () => {
       </div>
       
       {/* Donation Modal */}
-      {isDonationModalOpen && (
+      {isDonationModalOpen && orgData && (
         <DonationModal
           isOpen={isDonationModalOpen}
           onClose={() => setIsDonationModalOpen(false)}
-          organizationId={organization!.id.toString()}
-          organizationName={organization!.name}
+          organizationId={orgData.id.toString()}
+          organizationName={orgData.name}
           campaignId=""
           onDonationComplete={(amount) => {
-            toast.success(`Thank you for your donation of RM${amount} to ${organization!.name}!`);
+            toast.success(`Thank you for your donation of RM${amount} to ${orgData.name}!`);
             setIsDonationModalOpen(false);
           }}
         />
