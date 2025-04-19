@@ -14,6 +14,8 @@ import DonationTracker from "../../../../components/donation/DonationTracker";
 import MyContributionPopup from '../../../../components/modals/MyContributionPopup';
 // Import our new CampaignTimeline component
 import CampaignTimeline from "../../../../components/campaign/CampaignTimeline";
+// Add this import
+import DonorLeaderboardAndTracker from '../../../../components/donation/DonorLeaderboardAndTracker';
 
 // Floating Modal Component for Full Leaderboard
 const LeaderboardModal: React.FC<{
@@ -534,34 +536,43 @@ const CampaignDetail: React.FC = () => {
 
           {/* Right column - Supplementary information */}
           <div className="space-y-6">
-            {/* Donor Leaderboard - only show for charity users or donors who have contributed */}
+            {/* Combined Donor Leaderboard and Donation Tracker - only show for charity users or donors who have contributed */}
             {(userRole === 'charity' || (userRole === 'donor' && donorContribution)) ? (
-              <div className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] overflow-hidden">
-                <div className="p-4">
-                  <h2 className="text-xl font-bold text-[var(--headline)] flex items-center gap-2">
-                    <FaTrophy className="text-[var(--highlight)]" />
-                    Top Donors
-                  </h2>
-                  <p className="text-[var(--paragraph)] text-sm mt-1">
-                    Recognizing our most generous supporters
-                  </p>
-                </div>
-
-                <div className="p-0">
-                  <DonationLeaderboard
-                    communityId={campaignId}
-                    communityType="campaign"
-                    simplified={true}
-                    onViewFullLeaderboard={handleViewFullLeaderboard}
-                    maxItems={5}
-                  />
-                </div>
+              <div className="mb-8">
+                <DonorLeaderboardAndTracker
+                  tracker={
+                    mockDonationTrackers.find(t =>
+                      t.recipientId === campaignId &&
+                      t.recipientType === 'campaign'
+                    ) || {
+                      id: 0,
+                      recipientId: campaignId,
+                      recipientType: 'campaign',
+                      donations: {
+                        total: campaign.currentContributions,
+                        count: 45,
+                        campaignSpecificTotal: Math.round(campaign.currentContributions * 0.6),
+                        alwaysDonateTotal: Math.round(campaign.currentContributions * 0.4),
+                        timeline: {
+                          daily: [
+                            { date: new Date().toISOString().split('T')[0], amount: 500, donationPolicy: 'campaign-specific' },
+                            { date: new Date(Date.now() - 86400000).toISOString().split('T')[0], amount: 300, donationPolicy: 'always-donate' }
+                          ],
+                          weekly: [{ week: '2025-W12', amount: 1500 }],
+                          monthly: [{ month: '2025-03', amount: 4500 }]
+                        },
+                        topDonors: []
+                      }
+                    }
+                  }
+                  userDonorId={userRole === 'donor' ? 1 : undefined}
+                />
               </div>
             ) : (
-              <div className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] p-6">
+              <div className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] p-6 mb-8">
                 <div className="flex items-center gap-2 mb-4">
                   <FaTrophy className="text-[var(--highlight)]" />
-                  <h3 className="text-lg font-bold text-[var(--headline)]">Top Donors</h3>
+                  <h3 className="text-lg font-bold text-[var(--headline)]">Donors & Donations</h3>
                 </div>
                 <div className="border-t border-[var(--stroke)] pt-4 mt-2 text-center">
                   <p className="text-[var(--paragraph)] mb-4">
@@ -577,52 +588,6 @@ const CampaignDetail: React.FC = () => {
                   )}
                 </div>
               </div>
-            )}
-
-            {/* Donation Tracker */}
-            {(userRole === 'charity' || (userRole === 'donor' && donorContribution)) && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="mb-8"
-              >
-                <h3 className="text-xl font-bold text-[var(--headline)] mb-4 flex items-center gap-2">
-                  <FaChartLine className="text-[var(--highlight)]" />
-                  Donation Breakdown
-                </h3>
-
-                {/* Find campaign tracker or create a placeholder if not found */}
-                <div className="max-w-full overflow-hidden">
-                  <DonationTracker
-                    tracker={
-                      mockDonationTrackers.find(t =>
-                        t.recipientId === campaignId &&
-                        t.recipientType === 'campaign'
-                      ) || {
-                        id: 9999,
-                        recipientId: campaignId,
-                        recipientType: 'campaign',
-                        donations: {
-                          total: campaign.currentContributions,
-                          count: 45,
-                          campaignSpecificTotal: Math.round(campaign.currentContributions * 0.6), // 60% is campaign-specific
-                          alwaysDonateTotal: Math.round(campaign.currentContributions * 0.4), // 40% is always-donate
-                          timeline: {
-                            daily: [
-                              { date: new Date().toISOString().split('T')[0], amount: 500, donationPolicy: 'campaign-specific' },
-                              { date: new Date(Date.now() - 86400000).toISOString().split('T')[0], amount: 300, donationPolicy: 'always-donate' }
-                            ],
-                            weekly: [{ week: '2025-W12', amount: 1500 }],
-                            monthly: [{ month: '2025-03', amount: 4500 }]
-                          },
-                          topDonors: []
-                        }
-                      }
-                    }
-                  />
-                </div>
-              </motion.div>
             )}
           </div>
         </div>
