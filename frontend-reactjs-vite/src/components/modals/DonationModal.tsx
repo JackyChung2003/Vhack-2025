@@ -7,7 +7,7 @@ import { createPortal } from "react-dom";
 interface DonationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onDonationComplete: (amount: number, donationPolicy?: string, isAnonymous?: boolean) => void;
+  onDonationComplete: (amount: number, donationPolicy?: string, isAnonymous?: boolean, isRecurring?: boolean) => void;
 
   // Support either the new props
   targetName?: string;
@@ -127,10 +127,12 @@ const DonationModal: React.FC<DonationModalProps> = ({
 
       if (onDonationComplete && typeof amount === 'number') {
         // Pass the selectedDonationPolicy for campaigns to onDonationComplete
+        // Also pass whether this is a recurring donation
+        const isRecurring = donationType === 'monthly';
         if (derivedTargetType === 'campaign') {
-          onDonationComplete(amount, selectedDonationPolicy, false);
+          onDonationComplete(amount, selectedDonationPolicy, false, isRecurring);
         } else {
-          onDonationComplete(amount, undefined, false);
+          onDonationComplete(amount, undefined, false, isRecurring);
         }
       }
       setIsProcessing(false);

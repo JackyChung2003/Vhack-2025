@@ -793,9 +793,45 @@ const OrganizationDetail: React.FC = () => {
           organizationId={orgData.id.toString()}
           organizationName={orgData.name}
           campaignId=""
-          onDonationComplete={(amount) => {
-            toast.success(`Thank you for your donation of RM${amount} to ${orgData.name}!`);
-            setIsDonationModalOpen(false);
+          onDonationComplete={async (amount, _, isAnonymous, isRecurring) => {
+            try {
+              console.log("Full organization data:", orgData);
+              
+              // Ensure we have a valid charity ID
+              if (!orgData.id) {
+                throw new Error("Invalid charity ID for donation");
+              }
+              
+              // Debug information
+              console.log("Making general charity donation with parameters:", {
+                charityId: orgData.id,
+                amount,
+                isAnonymous,
+                isRecurring
+              });
+              
+              // Call charityService to make a general donation to the organization
+              await charityService.makeDonation({
+                charityId: orgData.id,
+                amount: amount,
+                isAnonymous: isAnonymous || false,
+                isRecurring: isRecurring || false
+              });
+              
+              const donationType = isRecurring ? 'monthly' : 'one-time';
+              toast.success(`Thank you for your ${donationType} donation of RM${amount} to ${orgData.name}!`);
+              setIsDonationModalOpen(false);
+              
+              // Optionally refresh organization data to show updated stats
+              if (!isOwnProfile && organizationIdString) {
+                const refreshedOrgData = await charityService.getCharityOrganizationById(organizationIdString);
+                setOrganization(refreshedOrgData);
+                setOrganizationCampaigns(refreshedOrgData.campaignsList || []);
+              }
+            } catch (error: any) {
+              console.error('Error making donation:', error);
+              toast.error(error.message || 'Failed to process donation. Please try again.');
+            }
           }}
         />
       )}
