@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { FaArrowLeft, FaHandHoldingHeart, FaBuilding, FaUsers, FaHistory, FaChartLine, 
-         FaGlobe, FaEnvelope, FaPhone, FaMapMarkerAlt, FaCalendarAlt, FaComments, FaClock, FaPencilAlt, FaTimes, FaPlus } from "react-icons/fa";
+         FaGlobe, FaEnvelope, FaPhone, FaMapMarkerAlt, FaCalendarAlt, FaComments, FaClock, FaPencilAlt, FaTimes, FaPlus, FaFacebook, FaTwitter, FaInstagram, FaCoins, FaChevronLeft, FaGift } from "react-icons/fa";
 import { motion } from "framer-motion";
 import CampaignCard from "../../../../components/cards/CampaignCard";
 import { useRole } from "../../../../contexts/RoleContext";
@@ -38,6 +38,11 @@ const OrganizationDetail: React.FC = () => {
   const [charityCampaignsLoading, setCharityCampaignsLoading] = useState(false);
   const [charityCampaignsError, setCharityCampaignsError] = useState<string | null>(null);
   
+  // For general fund data
+  const [generalFund, setGeneralFund] = useState<{ totalAmount: number, donationsCount: number }>({ totalAmount: 0, donationsCount: 0 });
+  const [generalFundLoading, setGeneralFundLoading] = useState(false);
+  const [generalFundError, setGeneralFundError] = useState<string | null>(null);
+  
   // For external organization view
   const [organization, setOrganization] = useState<any>(null);
   const [organizationLoading, setOrganizationLoading] = useState(false);
@@ -62,12 +67,19 @@ const OrganizationDetail: React.FC = () => {
           const campaignsData = await charityService.getCharityCampaigns();
           setCharityCampaigns(campaignsData);
           setCharityCampaignsError(null);
+          
+          // Fetch general fund data
+          setGeneralFundLoading(true);
+          const fundData = await charityService.getCharityGeneralFund(profileData.id);
+          setGeneralFund(fundData);
+          setGeneralFundError(null);
         } catch (err: any) {
           console.error("Error fetching charity profile:", err);
           setCharityError(err.message || "Failed to load charity profile. Please try again.");
         } finally {
           setCharityLoading(false);
           setCharityCampaignsLoading(false);
+          setGeneralFundLoading(false);
         }
       };
 
@@ -81,11 +93,18 @@ const OrganizationDetail: React.FC = () => {
           setOrganization(orgData);
           setOrganizationCampaigns(orgData.campaignsList || []);
           setOrganizationError(null);
+          
+          // Fetch general fund data for the organization
+          setGeneralFundLoading(true);
+          const fundData = await charityService.getCharityGeneralFund(organizationIdString);
+          setGeneralFund(fundData);
+          setGeneralFundError(null);
         } catch (err: any) {
           console.error("Error fetching organization:", err);
           setOrganizationError(err.message || "Failed to load organization. Please try again.");
         } finally {
           setOrganizationLoading(false);
+          setGeneralFundLoading(false);
         }
       };
 
@@ -242,6 +261,11 @@ const OrganizationDetail: React.FC = () => {
       window.removeEventListener('refreshCampaigns', handleRefreshCampaigns);
     };
   }, [isOwnProfile]);
+
+  // Calculate combined total raised (campaign + general fund)
+  const combinedTotalRaised = (isOwnProfile ? 
+    (charityProfile?.totalRaised || 0) : 
+    (organization?.totalRaised || 0)) + generalFund.totalAmount;
 
   // Conditional rendering after all hooks are called
   // If we're viewing as charity profile and still loading
@@ -469,7 +493,7 @@ const OrganizationDetail: React.FC = () => {
                   <div className="flex items-center gap-3">
                     <FaHandHoldingHeart className="text-2xl" />
                     <div>
-                      <p className="text-2xl font-bold">RM{(isOwnProfile ? charityProfile?.totalRaised : organization?.totalRaised || 0)?.toLocaleString()}</p>
+                      <p className="text-2xl font-bold">RM{combinedTotalRaised.toLocaleString()}</p>
                       <p className="text-sm opacity-90">Total Raised</p>
                     </div>
                   </div>
@@ -543,6 +567,81 @@ const OrganizationDetail: React.FC = () => {
                 </span>
               ))}
             </div>
+          </div>
+        </motion.section>
+
+        {/* General Fund Section */}
+        <motion.section 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="mb-8"
+        >
+          <div className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] p-6">
+            <h2 className="text-2xl font-bold text-[var(--headline)] flex items-center gap-2 mb-4">
+              <FaHandHoldingHeart className="text-[var(--highlight)]" />
+              General Fund
+            </h2>
+            
+            {generalFundLoading ? (
+              <div className="flex justify-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[var(--highlight)]"></div>
+              </div>
+            ) : generalFundError ? (
+              <div className="text-red-500 py-2">{generalFundError}</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <motion.div 
+                  whileHover={{ scale: 1.02 }}
+                  className="bg-gradient-to-r from-[var(--highlight)] to-[var(--tertiary)] rounded-lg p-6 text-white"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-white bg-opacity-20 rounded-full">
+                      <FaHandHoldingHeart className="text-3xl" />
+                    </div>
+                    <div>
+                      <p className="text-3xl font-bold">RM{generalFund.totalAmount.toLocaleString()}</p>
+                      <p className="text-sm opacity-90">Total Direct Donations</p>
+                    </div>
+                  </div>
+                  <p className="mt-4 text-white text-opacity-90">
+                    Funds donated directly to support our general operations and mission.
+                  </p>
+                </motion.div>
+                
+                <motion.div 
+                  whileHover={{ scale: 1.02 }}
+                  className="bg-gradient-to-r from-[var(--secondary)] to-[var(--tertiary)] rounded-lg p-6 text-white"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-white bg-opacity-20 rounded-full">
+                      <FaUsers className="text-3xl" />
+                    </div>
+                    <div>
+                      <p className="text-3xl font-bold">{generalFund.donationsCount}</p>
+                      <p className="text-sm opacity-90">Direct Supporters</p>
+                    </div>
+                  </div>
+                  <p className="mt-4 text-white text-opacity-90">
+                    People who believe in our organization's mission and have donated directly.
+                  </p>
+                </motion.div>
+              </div>
+            )}
+            
+            {userRole === 'donor' && !isOwnProfile && (
+              <div className="mt-6 text-center">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setIsDonationModalOpen(true)}
+                  className="px-6 py-3 bg-gradient-to-r from-[var(--highlight)] to-[var(--tertiary)] text-white rounded-xl font-medium shadow-lg hover:shadow-xl transition-shadow flex items-center gap-2 mx-auto"
+                >
+                  <FaHandHoldingHeart className="text-xl" />
+                  Support Our General Fund
+                </motion.button>
+              </div>
+            )}
           </div>
         </motion.section>
 
