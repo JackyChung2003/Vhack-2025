@@ -208,22 +208,22 @@ const VendorProfile: React.FC = () => {
         {/* Content Sections - Now only showing Financial Report */}
         <div className="space-y-8 mb-12">
           {/* Always render Financial Report Content */}
-          <>
-            {/* Financial Dashboard Section */}
-            <div className="animate-fadeIn">
-              <FinancialDashboard />
-            </div>
+            <>
+              {/* Financial Dashboard Section */}
+              <div className="animate-fadeIn">
+                <FinancialDashboard />
+              </div>
 
-            {/* Transaction History Section */}
-            <div className="animate-fadeIn delay-100">
-              <TransactionHistory />
-            </div>
+              {/* Transaction History Section */}
+              <div className="animate-fadeIn delay-100">
+                <TransactionHistory />
+              </div>
 
-            {/* Reports Section */}
-            <div className="animate-fadeIn delay-200">
-              <Report />
-            </div>
-          </>
+              {/* Reports Section */}
+              <div className="animate-fadeIn delay-200">
+                <Report />
+              </div>
+            </>
         </div>
       </div>
     </div>

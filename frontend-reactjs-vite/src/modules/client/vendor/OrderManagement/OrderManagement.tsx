@@ -1,23 +1,18 @@
 import React from "react";
-import OrderHistory from "./OrderHistory";
-import OrderRequest from "./OrderRequest";
-import OrganizationOrders from "../VendorHomePage/OrderManagement";
+import OrderAnalytics from "./OrderAnalytics";
+import OrganizationOrderList from "../VendorHomePage/OrderManagement";
 
 const OrderManagement = () => {
   return (
-    <div className="container mx-auto p-6 space-y-8 ">
-      <div className="border border-black rounded-xl p-4">
-        <OrganizationOrders />
-      </div>
-      
-      <div className="bg-[var(--main)] rounded-xl shadow-md border border-[var(--stroke)] p-6">
-        <h2 className="text-xl font-bold text-[var(--headline)] mb-4">Order History</h2>
-        <OrderHistory />
-      </div>
-
-      <div className="bg-[var(--main)] rounded-xl shadow-md border border-[var(--stroke)] p-6">
-        <h2 className="text-xl font-bold text-[var(--headline)] mb-4">Order Requests</h2>
-        <OrderRequest />
+    <div className="container mx-auto p-6">
+      <div className="flex flex-col lg:flex-row gap-6">
+        <div className="w-full lg:w-1/4">
+          <OrderAnalytics />
+        </div>
+        
+        <div className="w-full lg:w-3/4 bg-[var(--main)] rounded-xl shadow-md border border-[var(--stroke)] p-6">
+          <OrganizationOrderList />
+        </div>
       </div>
     </div>
   );

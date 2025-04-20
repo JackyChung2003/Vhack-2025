@@ -5,11 +5,10 @@ import { FaArrowLeft, FaHandHoldingHeart, FaBuilding, FaUsers, FaHistory, FaChar
 import { motion } from "framer-motion";
 import CampaignCard from "../../../../components/cards/CampaignCard";
 import { useRole } from "../../../../contexts/RoleContext";
-import { mockDonorContributions, mockDonationTrackers } from "../../../../utils/mockData";
+import { mockDonorContributions } from "../../../../utils/mockData";
 import DonationModal from "../../../../components/modals/DonationModal";
 import { toast } from "react-toastify";
 import PostFeed from "../../common/community/components/PostFeed";
-import DonationTracker from "../../../../components/donation/DonationTracker";
 import { useVendorChatStore } from "../../../../services/VendorChatService";
 import ChatModal from "../../../client/vendor/VendorHomePage/ChatModal";
 import { charityService, CharityProfile as CharityProfileType } from "../../../../services/supabase/charityService";
@@ -28,11 +27,16 @@ const OrganizationDetail: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [showAddCampaignModal, setShowAddCampaignModal] = useState(false);
   const [communityView, setCommunityView] = useState<'feed' | 'members'>('feed');
-  
+
   // For charity viewing own profile
   const [charityProfile, setCharityProfile] = useState<CharityProfileType | null>(null);
   const [charityLoading, setCharityLoading] = useState(false);
   const [charityError, setCharityError] = useState<string | null>(null);
+  
+  // For charity's own campaigns
+  const [charityCampaigns, setCharityCampaigns] = useState<any[]>([]);
+  const [charityCampaignsLoading, setCharityCampaignsLoading] = useState(false);
+  const [charityCampaignsError, setCharityCampaignsError] = useState<string | null>(null);
   
   // For external organization view
   const [organization, setOrganization] = useState<any>(null);
@@ -52,11 +56,18 @@ const OrganizationDetail: React.FC = () => {
           const profileData = await charityService.getCharityProfile();
           setCharityProfile(profileData);
           setCharityError(null);
+          
+          // Also fetch the charity's campaigns
+          setCharityCampaignsLoading(true);
+          const campaignsData = await charityService.getCharityCampaigns();
+          setCharityCampaigns(campaignsData);
+          setCharityCampaignsError(null);
         } catch (err: any) {
           console.error("Error fetching charity profile:", err);
           setCharityError(err.message || "Failed to load charity profile. Please try again.");
         } finally {
           setCharityLoading(false);
+          setCharityCampaignsLoading(false);
         }
       };
 
@@ -208,6 +219,30 @@ const OrganizationDetail: React.FC = () => {
     }
   };
 
+  // Force refresh of campaigns when new campaign is added
+  useEffect(() => {
+    const handleRefreshCampaigns = async () => {
+      if (isOwnProfile) {
+        try {
+          setCharityCampaignsLoading(true);
+          const campaignsData = await charityService.getCharityCampaigns();
+          setCharityCampaigns(campaignsData);
+          setCharityCampaignsError(null);
+        } catch (err: any) {
+          console.error("Error refreshing charity campaigns:", err);
+          setCharityCampaignsError(err.message || "Failed to refresh campaigns. Please try again.");
+        } finally {
+          setCharityCampaignsLoading(false);
+        }
+      }
+    };
+    
+    window.addEventListener('refreshCampaigns', handleRefreshCampaigns);
+    return () => {
+      window.removeEventListener('refreshCampaigns', handleRefreshCampaigns);
+    };
+  }, [isOwnProfile]);
+
   // Conditional rendering after all hooks are called
   // If we're viewing as charity profile and still loading
   if (isOwnProfile && charityLoading) {
@@ -320,12 +355,12 @@ const OrganizationDetail: React.FC = () => {
       <div className="relative h-64 bg-gradient-to-r from-[var(--highlight)] to-[var(--tertiary)]">
         <div className="absolute inset-0 bg-black bg-opacity-50"></div>
         {!isOwnProfile && (
-          <button
-            onClick={() => navigate(-1)}
-            className="absolute top-6 left-6 z-10 text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
-          >
-            <FaArrowLeft size={20} />
-          </button>
+        <button
+          onClick={() => navigate(-1)}
+          className="absolute top-6 left-6 z-10 text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
+        >
+          <FaArrowLeft size={20} />
+        </button>
         )}
       </div>
 
@@ -385,44 +420,44 @@ const OrganizationDetail: React.FC = () => {
               
               <div className="flex flex-wrap gap-4 mt-4">
                 {extendedDetails.email && (
-                  <div className="flex items-center gap-2">
-                    <FaEnvelope className="text-[var(--highlight)]" />
-                    <a href={`mailto:${extendedDetails.email}`} className="hover:text-[var(--highlight)] transition-colors">
-                      {extendedDetails.email}
-                    </a>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <FaEnvelope className="text-[var(--highlight)]" />
+                  <a href={`mailto:${extendedDetails.email}`} className="hover:text-[var(--highlight)] transition-colors">
+                    {extendedDetails.email}
+                  </a>
+                </div>
                 )}
                 {extendedDetails.website && (
-                  <div className="flex items-center gap-2">
-                    <FaGlobe className="text-[var(--highlight)]" />
+                <div className="flex items-center gap-2">
+                  <FaGlobe className="text-[var(--highlight)]" />
                     <a href={extendedDetails.website.startsWith('http') ? extendedDetails.website : `https://${extendedDetails.website}`} target="_blank" rel="noopener noreferrer" 
-                      className="hover:text-[var(--highlight)] transition-colors">
+                     className="hover:text-[var(--highlight)] transition-colors">
                       {extendedDetails.website.replace(/^https?:\/\//, '')}
-                    </a>
-                  </div>
+                  </a>
+                </div>
                 )}
                 {extendedDetails.phone && (
-                  <div className="flex items-center gap-2">
-                    <FaPhone className="text-[var(--highlight)]" />
-                    <a 
-                      href={`tel:${extendedDetails.phone}`}
-                      className="hover:text-[var(--highlight)] hover:underline transition-colors"
-                    >
-                      {extendedDetails.phone}
-                    </a>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <FaPhone className="text-[var(--highlight)]" />
+                  <a 
+                    href={`tel:${extendedDetails.phone}`}
+                    className="hover:text-[var(--highlight)] hover:underline transition-colors"
+                  >
+                    {extendedDetails.phone}
+                  </a>
+                </div>
                 )}
                 {extendedDetails.location && (
-                  <div className="flex items-center gap-2">
-                    <FaMapMarkerAlt className="text-[var(--highlight)]" />
-                    <span>{extendedDetails.location}</span>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <FaMapMarkerAlt className="text-[var(--highlight)]" />
+                  <span>{extendedDetails.location}</span>
+                </div>
                 )}
                 {extendedDetails.founded && (
-                  <div className="flex items-center gap-2">
-                    <FaCalendarAlt className="text-[var(--highlight)]" />
-                    <span>Founded: {extendedDetails.founded}</span>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <FaCalendarAlt className="text-[var(--highlight)]" />
+                  <span>Founded: {extendedDetails.founded}</span>
+                </div>
                 )}
               </div>
 
@@ -511,23 +546,6 @@ const OrganizationDetail: React.FC = () => {
           </div>
         </motion.section>
 
-        {/* Donation Tracker */}
-        {userRole === 'charity' && (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="mb-8"
-          >
-            <DonationTracker 
-              tracker={mockDonationTrackers.find(t => 
-                t.recipientId === orgData.id && 
-                t.recipientType === 'organization'
-              ) || mockDonationTrackers[0]} 
-            />
-          </motion.div>
-        )}
-
         {/* Campaigns Section */}
         <motion.section 
           initial={{ opacity: 0, y: 20 }}
@@ -551,11 +569,58 @@ const OrganizationDetail: React.FC = () => {
           </div>
           
           {isOwnProfile ? (
-            /* Original code for charity viewing own campaigns */
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* This section is for charity viewing own campaigns - will be filled in later */}
-              <p className="text-center col-span-3">Your campaigns will appear here.</p>
-            </div>
+            /* Updated code for charity viewing own campaigns */
+            charityCampaignsLoading ? (
+              <div className="p-8 flex justify-center">
+                <div className="flex flex-col items-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[var(--highlight)] mb-4"></div>
+                  <p className="text-[var(--paragraph)]">Loading campaigns...</p>
+                </div>
+              </div>
+            ) : charityCampaignsError ? (
+              <div className="text-center py-10 bg-[var(--main)] rounded-xl border border-[var(--stroke)]">
+                <FaHandHoldingHeart className="mx-auto text-4xl text-[var(--paragraph)] opacity-30 mb-4" />
+                <p className="text-lg text-red-500">{charityCampaignsError}</p>
+                <button 
+                  onClick={() => window.location.reload()}
+                  className="mt-4 px-4 py-2 rounded-lg bg-[var(--highlight)] text-white hover:bg-opacity-90"
+                >
+                  Try Again
+                </button>
+              </div>
+            ) : charityCampaigns && charityCampaigns.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {charityCampaigns.map((campaign) => {
+                  // Calculate a default deadline of 30 days from now if not provided
+                  const defaultDeadline = new Date();
+                  defaultDeadline.setDate(defaultDeadline.getDate() + 30);
+                  
+                  return (
+                    <CampaignCard
+                      key={campaign.id}
+                      id={campaign.id}
+                      name={campaign.title}
+                      description={campaign.description}
+                      goal={campaign.target_amount}
+                      currentContributions={campaign.current_amount}
+                      deadline={campaign.deadline || defaultDeadline.toISOString()}
+                      category={campaign.category}
+                    />
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-10 bg-[var(--main)] rounded-xl border border-[var(--stroke)]">
+                <FaHandHoldingHeart className="mx-auto text-4xl text-[var(--paragraph)] opacity-30 mb-4" />
+                <p className="text-lg">You don't have any campaigns yet.</p>
+                <button 
+                  onClick={handleOpenCampaignModal}
+                  className="mt-4 px-4 py-2 rounded-lg bg-[var(--highlight)] text-white hover:bg-opacity-90 flex items-center gap-2 mx-auto"
+                >
+                  <FaPlus /> Create Your First Campaign
+                </button>
+              </div>
+            )
           ) : (
             /* Updated code to show real organization campaigns */
             organizationCampaigns && organizationCampaigns.length > 0 ? (

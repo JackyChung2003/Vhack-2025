@@ -31,6 +31,7 @@ const HorizontalNavbar: React.FC<NavbarProps> = ({ toggle }) => {
       link: "/Vhack-2025/charity/vendor-page",
       icon: <FaComments />,
     },
+    { title: "Open Market", link: `/charity/open-market`, icon: <FaListAlt /> },
     {
       title: "Profile",
       link: "/Vhack-2025/charity/profile",
@@ -45,6 +46,7 @@ const HorizontalNavbar: React.FC<NavbarProps> = ({ toggle }) => {
       link: "/Vhack-2025/vendor/dashboard",
       icon: <FaHome />,
     },
+    { title: "Open Market", link: `/vendor/open-market`, icon: <FaListAlt /> },
       {
         title: "Order",
         link: "/vendor/order-management",
