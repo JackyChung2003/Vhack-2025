@@ -139,7 +139,7 @@ const CharityHomePage: React.FC = () => {
           icon={<FaMoneyBillWave className="text-green-500" />} 
           title="Total Funds" 
           value={`RM${(generalFundBalance + campaignFundsRaised).toLocaleString()}`}
-          onClick={() => handleNavigate("/charity-management")}
+          onClick={() => handleNavigate("/charity-management?tab=funds")}
           colorClass="from-green-50 to-green-100"
           iconBg="bg-green-100"
           badge="Finance"
@@ -228,7 +228,7 @@ const CharityHomePage: React.FC = () => {
                     const campaignStrokeDasharray = `${((100 - generalPercentage) * circumference) / 100} ${circumference}`;
                     
                     return (
-                      <div className="relative">
+              <div className="relative">
                         <svg viewBox="0 0 100 100" className="transform -rotate-90">
                           {/* Background circle */}
                           <circle
@@ -267,10 +267,10 @@ const CharityHomePage: React.FC = () => {
                         {/* Fund amounts */}
                         <div className="absolute top-1/4 -left-16 transform -translate-y-1/2 text-right">
                           <span className="text-sm font-medium text-[#10b981]">RM{campaignFundsRaised.toLocaleString()}</span>
-                        </div>
+              </div>
                         <div className="absolute bottom-1/4 -right-16 transform translate-y-1/2 text-left">
                           <span className="text-sm font-medium text-[#3b82f6]">RM{generalFundBalance.toLocaleString()}</span>
-                        </div>
+              </div>
                       </div>
                     );
                   })()}
@@ -285,7 +285,7 @@ const CharityHomePage: React.FC = () => {
               </div>
             </div>
           </div>
-
+          
           {/* Recent Transactions */}
           <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
             <div className="p-4 flex justify-between items-center border-b border-gray-100 bg-white hover:bg-gray-50/50 transition-colors duration-300">
@@ -306,31 +306,31 @@ const CharityHomePage: React.FC = () => {
               <div className="space-y-4">
                 {/* Mock recent transactions */}
                 <div className="flex items-center justify-between p-3 bg-gradient-to-br from-white to-blue-50 rounded-lg shadow-sm hover:shadow-md transition-all">
-                  <div className="flex items-center">
+                      <div className="flex items-center">
                     <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
                       <FaMoneyBillWave className="text-green-600" />
-                    </div>
-                    <div>
+                        </div>
+                        <div>
                       <p className="font-medium text-[var(--headline)]">Donation Received</p>
                       <p className="text-xs text-[var(--paragraph)]">From John Doe</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
+                        </div>
+                      </div>
+                      <div className="text-right">
                     <p className="font-bold text-green-600">+RM5,000</p>
                     <p className="text-xs text-[var(--paragraph)]">2025-03-20</p>
-                  </div>
-                </div>
+                      </div>
+                    </div>
                 <div className="flex items-center justify-between p-3 bg-gradient-to-br from-white to-red-50 rounded-lg shadow-sm hover:shadow-md transition-all">
-                  <div className="flex items-center">
+                      <div className="flex items-center">
                     <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
                       <FaShoppingCart className="text-red-600" />
-                    </div>
-                    <div>
+                        </div>
+                        <div>
                       <p className="font-medium text-[var(--headline)]">Campaign Expense</p>
                       <p className="text-xs text-[var(--paragraph)]">Clean Water Initiative</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
+                        </div>
+                      </div>
+                      <div className="text-right">
                     <p className="font-bold text-red-600">-RM2,500</p>
                     <p className="text-xs text-[var(--paragraph)]">2025-03-18</p>
                   </div>
@@ -372,38 +372,38 @@ const CharityHomePage: React.FC = () => {
               </div>
             </div>
             <div className="p-4 bg-gradient-to-br from-gray-50/50 via-white to-blue-50/30 hover:from-blue-50/30 hover:to-blue-100/20 transition-all duration-300">
-              <div className="space-y-4">
-                {organizationCampaigns.slice(0, 3).map((campaign, index) => {
-                  const progress = Math.min(100, (campaign.currentContributions / campaign.goal) * 100);
-                  return (
+                <div className="space-y-4">
+                  {organizationCampaigns.slice(0, 3).map((campaign, index) => {
+                    const progress = Math.min(100, (campaign.currentContributions / campaign.goal) * 100);
+                    return (
                     <div 
-                      key={campaign.id}
+                        key={campaign.id}
                       className="bg-gradient-to-br from-white to-gray-50 p-4 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer"
                       onClick={() => handleNavigate(`/campaign/${campaign.id}`)}
-                    >
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="flex items-center">
-                          {progress >= 75 ? (
-                            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
-                              <FaTrophy className="text-green-600" />
-                            </div>
-                          ) : progress >= 50 ? (
-                            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                              <FaChartLine className="text-blue-600" />
-                            </div>
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center mr-3">
-                              <FaHandHoldingHeart className="text-yellow-600" />
-                            </div>
-                          )}
-                          <div>
-                            <h3 className="font-medium text-[var(--headline)]">{campaign.name}</h3>
-                            <div className="flex items-center text-xs text-[var(--paragraph)] mt-1">
-                              <FaCalendarAlt className="mr-1" />
-                              <span>Ends: {new Date(campaign.deadline).toLocaleDateString()}</span>
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex items-center">
+                            {progress >= 75 ? (
+                              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                                <FaTrophy className="text-green-600" />
+                              </div>
+                            ) : progress >= 50 ? (
+                              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                                <FaChartLine className="text-blue-600" />
+                              </div>
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center mr-3">
+                                <FaHandHoldingHeart className="text-yellow-600" />
+                              </div>
+                            )}
+                            <div>
+                              <h3 className="font-medium text-[var(--headline)]">{campaign.name}</h3>
+                              <div className="flex items-center text-xs text-[var(--paragraph)] mt-1">
+                                <FaCalendarAlt className="mr-1" />
+                                <span>Ends: {new Date(campaign.deadline).toLocaleDateString()}</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
                         <div className="text-right">
                           <p className="font-bold text-[var(--headline)]">
                             RM{campaign.currentContributions.toLocaleString()}
@@ -419,17 +419,17 @@ const CharityHomePage: React.FC = () => {
                             progress >= 75 ? 'bg-green-500' : 
                             progress >= 50 ? 'bg-blue-500' : 
                             'bg-yellow-500'
-                          }`}
-                          style={{ width: `${progress}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                            }`}
+                            style={{ width: `${progress}%` }}
+                          ></div>
+                          </div>
+                        </div>
+                    );
+                  })}
+                </div>
             </div>
           </div>
-
+          
           {/* Monthly Donation Trends */}
           <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
             <div className="p-4 flex justify-between items-center border-b border-gray-100 bg-white hover:bg-gray-50/50 transition-colors duration-300">
@@ -446,7 +446,7 @@ const CharityHomePage: React.FC = () => {
                   <div className="w-8 h-24 bg-blue-500 rounded-t-lg"></div>
                   <p className="text-xs mt-2">2025-01</p>
                   <p className="text-xs font-medium">RM48,000</p>
-                </div>
+                      </div>
                 <div className="flex flex-col items-center">
                   <div className="w-8 h-32 bg-blue-500 rounded-t-lg"></div>
                   <p className="text-xs mt-2">2025-02</p>
@@ -486,11 +486,11 @@ const StatCard: React.FC<{
   iconBg: string;
   badge: string;
 }> = ({ icon, title, value, onClick, colorClass, iconBg, badge }) => (
-  <motion.div
+    <motion.div 
     whileHover={{ y: -5 }}
     className={`bg-gradient-to-br ${colorClass} rounded-xl p-4 shadow-sm hover:shadow-md transition-all cursor-pointer`}
-    onClick={onClick}
-  >
+      onClick={onClick}
+    >
     <div className="flex justify-between items-start">
       <div className={`${iconBg} p-2 rounded-lg`}>
         {icon}
@@ -502,8 +502,8 @@ const StatCard: React.FC<{
     <div className="mt-4">
       <p className="text-sm text-gray-600">{title}</p>
       <p className="text-2xl font-bold text-gray-800">{value}</p>
-    </div>
-  </motion.div>
-);
+      </div>
+    </motion.div>
+  );
 
 export default CharityHomePage;
