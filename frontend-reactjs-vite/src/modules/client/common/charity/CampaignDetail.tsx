@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { FaCalendarAlt, FaMoneyBillWave, FaArrowLeft, FaHandHoldingHeart, FaUsers, FaChartLine, FaHistory, FaBuilding, FaEdit, FaTrash, FaComments, FaClock, FaThumbsUp, FaPlus, FaMapMarkerAlt, FaShare, FaTrophy, FaExchangeAlt, FaTimes, FaHashtag, FaTags, FaFire, FaUserCircle, FaCheck, FaFileInvoice, FaFlag, FaLock } from "react-icons/fa";
+import { FaCalendarAlt, FaMoneyBillWave, FaArrowLeft, FaHandHoldingHeart, FaUsers, FaChartLine, FaHistory, FaBuilding, FaEdit, FaTrash, FaComments, FaClock, FaThumbsUp, FaPlus, FaMapMarkerAlt, FaShare, FaTrophy, FaExchangeAlt, FaTimes, FaHashtag, FaTags, FaFire, FaUserCircle, FaCheck, FaFileInvoice, FaFlag, FaLock, FaDownload } from "react-icons/fa";
 import { useRole } from "../../../../contexts/RoleContext";
 import { charityService, Campaign as CampaignType } from "../../../../services/supabase/charityService";
 import DonationModal from "../../../../components/modals/DonationModal";
@@ -126,6 +126,9 @@ const CampaignDetail: React.FC = () => {
   const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
   const [showFullLeaderboard, setShowFullLeaderboard] = useState(false);
   const [isContributionPopupOpen, setIsContributionPopupOpen] = useState(false);
+
+  // Add state for selected donor ID
+  const [selectedDonorId, setSelectedDonorId] = useState<number | null>(null);
 
   // Add new state for community features
   const [activeSection, setActiveSection] = useState<'feed'>('feed');
@@ -271,61 +274,118 @@ const CampaignDetail: React.FC = () => {
           <p className="text-white text-opacity-90 mb-4">{campaign.description}</p>
 
           {/* Progress bar */}
-          <div className="mb-4">
-            <div className="w-full bg-white bg-opacity-30 rounded-full h-4 mb-2">
-              <div
-                className="h-full rounded-full bg-white"
-                style={{ width: `${progress}%` }}
-              ></div>
+          <div className="mb-6">
+            {/* Enhanced progress bar with donation policy visualization */}
+            <div className="flex justify-between items-center mb-3">
+              {/* Legend */}
+              <div className="flex gap-4 text-sm text-white">
+                {/* Campaign-specific */}
+                <div className="flex items-center gap-2 bg-white bg-opacity-10 px-2 py-1 rounded-lg">
+                  <div className="w-3 h-3 rounded-sm bg-gradient-to-r from-green-600 to-green-400 shadow-sm"></div>
+                  <div className="font-medium flex items-center gap-1">
+                    <FaLock className="text-green-300" size={10} />
+                    <span>Campaign-Specific</span>
+                  </div>
+                </div>
+
+                {/* Always-donate */}
+                <div className="flex items-center gap-2 bg-white bg-opacity-10 px-2 py-1 rounded-lg">
+                  <div className="w-3 h-3 rounded-sm bg-gradient-to-r from-blue-500 to-indigo-500 shadow-sm"></div>
+                  <div className="font-medium flex items-center gap-1">
+                    <FaHandHoldingHeart className="text-blue-300" size={10} />
+                    <span>Always-Donate</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Goal indicator */}
+              <div className="bg-white/50 px-4 py-1.5 rounded-full text-sm text-black flex items-center gap-2 shadow-md border border-white/30 font-semibold">
+                <span className="text-black/70 font-medium">Goal:</span>
+                <span className="font-bold text-base">RM{campaign.target_amount.toLocaleString()}</span>
+              </div>
             </div>
-            <div className="flex justify-between items-center text-sm text-white">
-              <span>RM{campaign.current_amount} raised</span>
-              <span>RM{campaign.target_amount} goal</span>
+
+            {/* Enhanced progress bar with shadow and glass effect */}
+            <div className="w-full bg-white bg-opacity-20 backdrop-blur-sm rounded-xl h-12 overflow-hidden flex p-1 shadow-inner relative">
+              {/* Campaign-specific portion with gradient */}
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${progress * 0.6}%` }}
+                transition={{ duration: 1, ease: "easeOut" }}
+                className="h-full rounded-l-lg bg-gradient-to-r from-green-600 to-green-400 shadow-lg flex items-center justify-center"
+                style={{
+                  width: `${progress * 0.6}%`,
+                  maxWidth: "100%"
+                }}
+              >
+                {progress * 0.6 > 15 && (
+                  <span className="text-sm font-bold text-white drop-shadow-md px-2">
+                    RM{Math.round(campaign.current_amount * 0.6).toLocaleString()}
+                  </span>
+                )}
+              </motion.div>
+
+              {/* Always-donate portion with gradient */}
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${progress * 0.4}%` }}
+                transition={{ duration: 1, ease: "easeOut", delay: 0.3 }}
+                className={`h-full ${progress * 0.6 > 0 ? "" : "rounded-l-lg"} rounded-r-lg bg-gradient-to-r from-blue-500 to-indigo-500 shadow-lg flex items-center justify-center`}
+                style={{
+                  width: `${progress * 0.4}%`,
+                  maxWidth: `${100 - (progress * 0.6)}%`
+                }}
+              >
+                {progress * 0.4 > 15 && (
+                  <span className="text-sm font-bold text-white drop-shadow-md px-2">
+                    RM{Math.round(campaign.current_amount * 0.4).toLocaleString()}
+                  </span>
+                )}
+              </motion.div>
+
+              {/* Subtle grid overlay for texture */}
+              <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTAgMCBMIDEwIDEwIE0gMTAgMCBMIDAgMTAiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxIiBmaWxsPSJub25lIiAvPjwvc3ZnPg==')]"></div>
             </div>
           </div>
 
           {/* Campaign stats */}
           <div className="grid grid-cols-3 gap-4">
-            <div className="bg-white bg-opacity-20 p-3 rounded-lg text-center">
-              <div className="text-2xl font-bold">RM{campaign.current_amount}</div>
-              <div className="text-sm">Raised</div>
+            <div className="bg-white/60 p-3 rounded-lg text-center backdrop-blur-sm shadow-inner border border-white/20">
+              <div className="text-2xl font-bold text-black">RM{campaign.current_amount.toLocaleString()}</div>
+              <div className="text-sm mt-1 text-black/70 font-medium">Raised</div>
             </div>
-            <div className="bg-white bg-opacity-20 p-3 rounded-lg text-center">
-              <div className="text-2xl font-bold">{campaign.deadline ? timeLeft : 'No'}</div>
-              <div className="text-sm">Days Left</div>
+            <div className="bg-white/60 p-3 rounded-lg text-center backdrop-blur-sm shadow-inner border border-white/20">
+              <div className="text-2xl font-bold text-black">{campaign.deadline ? timeLeft : 'No'}</div>
+              <div className="text-sm mt-1 text-black/70 font-medium">Days Left</div>
             </div>
-            <div className="bg-white bg-opacity-20 p-3 rounded-lg text-center">
-              <div className="text-2xl font-bold">-</div>
-              <div className="text-sm">Donors</div>
+            <div className="bg-white/60 p-3 rounded-lg text-center backdrop-blur-sm shadow-inner border border-white/20">
+              <div className="text-2xl font-bold text-black">42</div>
+              <div className="text-sm mt-1 text-black/70 font-medium">Donors</div>
             </div>
           </div>
 
           {/* User's donation - show for all donors */}
           {userRole === 'donor' && (
-            <div className="mt-4 bg-white bg-opacity-20 p-4 rounded-lg flex justify-between items-center">
-              <div className="flex items-center">
-                {/* User avatar/icon */}
-                <div className="w-10 h-10 rounded-full bg-white bg-opacity-30 flex items-center justify-center mr-3">
-                  <FaUserCircle className="text-white text-xl" />
-                </div>
-                <div className="text-left">
-                  <div className="text-lg font-bold text-white flex items-center">
-                    Your Total: RM{donorContribution.totalAmount}
+            <div
+              className="mt-4 group bg-white/70 p-3.5 px-5 rounded-lg cursor-pointer hover:bg-white/80 transition-all duration-300 shadow-sm border border-white/30"
+              onClick={() => setSelectedDonorId(1)} // Assuming current user's ID is 1 for now
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3.5">
+                  <div className="flex items-center justify-center w-9 h-9 rounded-full bg-amber-100 border border-amber-200">
+                    <span className="text-xl" role="img" aria-label="raised hands">🙌</span>
                   </div>
-                  <div className="text-sm text-white text-opacity-90">
-                    {donorContribution.percentageOfTotal}% of Campaign
+                  <div className="text-black">
+                    <div className="font-bold text-base">Thanks for your support!</div>
+                    <div className="text-sm text-black/70 mt-0.5">
+                      Top 3 Donor · RM{donorContribution.totalAmount} · Last on Apr 14, 2025
+                    </div>
                   </div>
                 </div>
+                <svg className="w-5 h-5 text-black/50 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
               </div>
-
-              {/* My Contributions button */}
-              <button
-                onClick={() => setIsContributionPopupOpen(true)}
-                className="px-4 py-2 rounded-lg bg-white text-[var(--highlight)] hover:bg-opacity-90 transition-colors duration-300 flex items-center gap-2 font-bold shadow-sm"
-              >
-                <FaHistory className="text-[var(--highlight)]" />
-                My Contributions
-              </button>
             </div>
           )}
         </div>
@@ -631,14 +691,144 @@ const CampaignDetail: React.FC = () => {
         campaignName={campaign.title}
       />
 
-      {/* MyContributionPopup modal */}
+      {/* Donor Profile Popup */}
+      {selectedDonorId && campaign && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto backdrop-blur-sm"
+          onClick={() => setSelectedDonorId(null)}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="bg-[var(--main)] rounded-xl overflow-hidden shadow-xl max-w-3xl w-full"
+            onClick={(e) => e.stopPropagation()}>
+
+            {/* Popout Header */}
+            <div className="p-4 border-b border-[var(--stroke)] flex justify-between items-center bg-gradient-to-r from-[var(--highlight)] to-[var(--secondary)] text-white">
+              <h3 className="text-xl font-bold">Donor Profile</h3>
+              <button
+                onClick={() => setSelectedDonorId(null)}
+                className="h-8 w-8 flex items-center justify-center rounded-full bg-white bg-opacity-20 hover:bg-opacity-30 transition-colors"
+                aria-label="Close"
+              >
+                <FaTimes />
+              </button>
+            </div>
+
+            {/* Popout Content */}
+            <div className="p-6">
+              <div className="flex flex-col md:flex-row gap-6">
+                {/* Donor Profile Section */}
+                <div className="md:w-1/3 bg-[var(--background)] rounded-lg border border-[var(--stroke)] p-5">
+                  <div className="flex flex-col items-center mb-6">
+                    {/* Top 3 badge */}
+                    <div className="mb-2 text-3xl">🥉</div>
+
+                    {/* Avatar */}
+                    <div className="w-24 h-24 mb-4 rounded-full overflow-hidden border-2 border-[var(--highlight)] p-1">
+                      <div className="w-full h-full flex items-center justify-center rounded-full bg-[#CD6116] text-white text-3xl font-bold">
+                        Y
+                      </div>
+                    </div>
+
+                    {/* Donor name and rank */}
+                    <h4 className="text-xl font-bold text-[var(--highlight)]">
+                      You
+                    </h4>
+
+                    <div className="text-[var(--paragraph)] mt-1">
+                      Rank: 3
+                    </div>
+                  </div>
+
+                  {/* Donor stats */}
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center p-3 bg-[var(--main)] rounded-lg border border-[var(--stroke)]">
+                      <div className="text-sm text-[var(--paragraph)]">Total Donated</div>
+                      <div className="font-bold text-[#00674D]">RM{donorContribution.totalAmount}</div>
+                    </div>
+
+                    <div className="flex justify-between items-center p-3 bg-[var(--main)] rounded-lg border border-[var(--stroke)]">
+                      <div className="text-sm text-[var(--paragraph)]">Transactions</div>
+                      <div className="font-bold text-[#00674D]">{donorContribution.contributions.length}</div>
+                    </div>
+
+                    <div className="flex justify-between items-center p-3 bg-[var(--main)] rounded-lg border border-[var(--stroke)]">
+                      <div className="text-sm text-[var(--paragraph)]">Last Donation</div>
+                      <div className="font-bold text-[#00674D]">Apr 14, 2025</div>
+                    </div>
+                  </div>
+
+                  {/* View full profile button */}
+                  <button
+                    className="w-full mt-6 px-4 py-3 bg-[var(--highlight)] text-white rounded-lg hover:bg-opacity-90 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <FaUserCircle size={16} />
+                    View Full Profile
+                  </button>
+                </div>
+
+                {/* Donation History Section */}
+                <div className="md:w-2/3 bg-[var(--background)] rounded-lg border border-[var(--stroke)] p-5 flex flex-col h-full">
+                  <h3 className="text-lg font-bold text-[#00674D] flex items-center gap-2 mb-4">
+                    <FaHistory className="text-[var(--highlight)]" />
+                    Donation History
+                  </h3>
+
+                  {/* Donation timeline */}
+                  <div className="flex-1 overflow-y-auto pr-2" style={{ maxHeight: "350px" }}>
+                    <div className="space-y-2">
+                      {donorContribution.contributions.length > 0 ? (
+                        donorContribution.contributions.map((contribution, index) => (
+                          <div
+                            key={contribution.id}
+                            className="bg-[var(--main)] p-4 rounded-lg border border-[var(--stroke)] flex justify-between items-center"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-[var(--highlight)] bg-opacity-10 flex items-center justify-center">
+                                <FaCalendarAlt className="text-[var(--highlight)]" />
+                              </div>
+                              <div>
+                                <div className="font-medium text-lg text-[#00674D]">
+                                  RM{contribution.amount}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className="text-xs text-[var(--paragraph)]">
+                                    {new Date(contribution.date).toLocaleDateString()}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <button className="px-3 py-1.5 bg-[#FFA500] bg-opacity-10 text-[#FF8C00] rounded-md hover:bg-opacity-20 transition-colors flex items-center gap-1.5 text-xs font-medium ml-2">
+                              <FaDownload className="text-sm" />
+                              <span>Receipt</span>
+                            </button>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-8 text-[var(--paragraph)]">
+                          No donation history available
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* MyContributionPopup - Keep but set isOpen to false */}
       <MyContributionPopup
-        isOpen={isContributionPopupOpen}
+        isOpen={false}
         onClose={() => setIsContributionPopupOpen(false)}
         contributions={donorContribution.contributions}
         totalContributed={donorContribution.totalAmount}
         donationsCount={donorContribution.contributions.length}
         percentageOfTotal={parseFloat(donorContribution.percentageOfTotal)}
+        displayAsCenterModal={true}
       />
     </div>
   );
