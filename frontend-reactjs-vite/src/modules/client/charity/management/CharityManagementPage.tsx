@@ -39,6 +39,7 @@ import { toast } from "react-toastify";
 import { mockCampaigns, mockOrganizations, Campaign, mockDonationTrackers } from "../../../../utils/mockData";
 import AddCampaignModal from "../../../../components/modals/AddCampaignModal";
 import { motion, AnimatePresence } from "framer-motion";
+import { charityService } from "../../../../services/supabase/charityService";
 
 // Mock current charity organization ID (Global Relief)
 const CURRENT_CHARITY_ORG_ID = 1;
@@ -107,8 +108,7 @@ const CharityManagementPage: React.FC = () => {
   const handleSaveCampaign = async (campaignData: FormData) => {
     try {
       setLoading(true);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await charityService.createCampaign(campaignData);
       toast.success("Campaign created successfully!");
       setShowAddCampaignModal(false);
       // Refresh campaigns
