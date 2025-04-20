@@ -149,6 +149,9 @@ const CampaignDetail: React.FC = () => {
       try {
         setLoading(true);
         const campaignData = await charityService.getCampaignById(id);
+        console.log("Campaign data fetched:", campaignData);
+        console.log("Campaign charity_id:", campaignData.charity_id);
+        console.log("Campaign charity object:", campaignData.charity);
         setCampaign(campaignData);
         setError(null);
       } catch (err: any) {
@@ -216,22 +219,64 @@ const CampaignDetail: React.FC = () => {
   // Check if campaign is active
   const isCampaignActive = campaign.status === 'active';
 
-  const handleDonationComplete = (amount: number, donationPolicy?: string) => {
-    // In a real app, you would update the campaign data after a successful donation
-    console.log(`Donation of RM${amount} completed for campaign: ${campaign.title}`);
-    console.log(`Donation policy: ${donationPolicy || 'N/A'}`);
-
-    // Add donation to campaign-specific or always-donate total based on policy
-    // This would be handled by the backend in a real app
-    if (donationPolicy) {
-      // For demonstration, let's show a toast message about the donation policy
-      if (donationPolicy === 'campaign-specific') {
-        toast.success(`Thank you for your campaign-specific donation of RM${amount}! You can get a refund if the campaign doesn't reach its goal.`);
-      } else if (donationPolicy === 'always-donate') {
-        toast.success(`Thank you for your always-donate donation of RM${amount}! Your donation will support the organization even if the campaign doesn't reach its goal.`);
+  const handleDonationComplete = async (amount: number, donationPolicy?: string, isAnonymous?: boolean, isRecurring?: boolean) => {
+    try {
+      console.log("Full campaign object:", campaign);
+      
+      // Ensure we have the proper charity ID
+      // First check if charity object is available and has an ID
+      let charityId;
+      if (campaign.charity && campaign.charity.id) {
+        charityId = campaign.charity.id;
+        console.log("Using charity ID from charity object:", charityId);
+      } else {
+        // Fallback to charity_id from campaign
+        charityId = campaign.charity_id;
+        console.log("Using charity_id from campaign:", charityId);
       }
-    } else {
-      toast.success(`Thank you for your donation of RM${amount}!`);
+
+      if (!charityId) {
+        throw new Error("Unable to determine charity ID for donation");
+      }
+      
+      console.log("Making campaign donation with parameters:", {
+        campaignId: campaign.id,
+        charityId: charityId,
+        amount: amount,
+        donationPolicy: donationPolicy,
+        isAnonymous: isAnonymous || false,
+        isRecurring: isRecurring || false
+      });
+
+      // Call the charityService to make the donation
+      const donation = await charityService.makeDonation({
+        campaignId: campaign.id,
+        charityId: charityId,
+        amount: amount,
+        donationPolicy: donationPolicy,
+        isAnonymous: isAnonymous || false,
+        isRecurring: isRecurring || false
+      });
+
+      // Show success message based on donation policy and recurring status
+      let message = `Thank you for your ${isRecurring ? 'monthly' : 'one-time'} donation of RM${amount}!`;
+      
+      if (donationPolicy) {
+        if (donationPolicy === 'campaign-specific') {
+          message += ` You can get a refund if the campaign doesn't reach its goal.`;
+        } else if (donationPolicy === 'always-donate') {
+          message += ` Your donation will support the organization even if the campaign doesn't reach its goal.`;
+        }
+      }
+      
+      toast.success(message);
+
+      // Refresh the campaign data to reflect the new donation amount
+      const updatedCampaign = await charityService.getCampaignById(campaign.id);
+      setCampaign(updatedCampaign);
+    } catch (error: any) {
+      console.error('Error making donation:', error);
+      toast.error(error.message || 'Failed to process donation. Please try again.');
     }
   };
 
