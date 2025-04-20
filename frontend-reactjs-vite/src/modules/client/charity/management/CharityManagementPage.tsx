@@ -374,193 +374,277 @@ const CharityManagementPage: React.FC = () => {
         
         {activeTab === 'funds' && (
             <motion.div
-            key="funds"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
+              key="funds"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
-          >
-            {/* Fund Management Section */}
-            <div className="bg-white rounded-xl shadow-md border border-[var(--stroke)] overflow-hidden">
-              <div className="p-4 border-b border-[var(--stroke)]">
-                <h2 className="text-xl font-bold text-[var(--headline)]">Fund Management</h2>
-              </div>
-
-              {/* Total Fund Display */}
-              <div className="p-4 border-b border-[var(--stroke)] bg-gradient-to-r from-[#004D99] to-[#0066CC] text-white">
-                <div className="text-center">
-                  <h3 className="text-lg font-medium mb-2 text-[#92C5F9]">Total Funds</h3>
-                  <p className="text-4xl font-bold">RM{totalFunds.toLocaleString()}</p>
-                  <p className="text-sm mt-2 text-[#92C5F9]">Combined General and Campaign Funds</p>
+            >
+              <div className="bg-white rounded-xl shadow-md border border-[var(--stroke)] overflow-hidden">
+                {/* Fund Management Section */}
+                <div className="p-4 border-b border-[var(--stroke)]">
+                  <h2 className="text-xl font-bold text-[var(--headline)]">Fund Management</h2>
                 </div>
-              </div>
 
-              {/* Fund Summary */}
-              <div className="p-4 border-b border-[var(--stroke)]">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-gradient-to-br from-white to-blue-50 p-4 rounded-lg shadow-sm">
+                {/* Total Fund Display */}
+                <div className="p-4 border-b border-[var(--stroke)] bg-gradient-to-r from-[#004D99] to-[#0066CC] text-white">
+                  <div className="text-center">
+                    <h3 className="text-lg font-medium mb-2 text-[#92C5F9]">Total Funds</h3>
+                    <p className="text-4xl font-bold">RM{totalFunds.toLocaleString()}</p>
+                    <p className="text-sm mt-2 text-[#92C5F9]">Combined General and Campaign Funds</p>
+                  </div>
+                </div>
+
+                {/* Fund Summary */}
+                <div className="p-4 border-b border-[var(--stroke)]">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-gradient-to-br from-white to-blue-50 p-4 rounded-lg shadow-sm">
                     <div className="flex justify-between items-center mb-2">
                       <h3 className="font-medium text-[var(--headline)]">General Fund</h3>
                       <span className="text-sm px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
                         Unrestricted
                       </span>
                     </div>
-                    <p className="text-2xl font-bold text-[var(--headline)]">
+                      <p className="text-2xl font-bold text-[var(--headline)]">
                       RM{generalFundBalance.toLocaleString()}
                     </p>
-                    <p className="text-sm text-[var(--paragraph)] mt-2">
+                      <p className="text-sm text-[var(--paragraph)] mt-2">
                       Available for any charitable purpose
                     </p>
-                  </div>
-                  <div className="bg-gradient-to-br from-white to-green-50 p-4 rounded-lg shadow-sm">
+                    </div>
+                    <div className="bg-gradient-to-br from-white to-green-50 p-4 rounded-lg shadow-sm">
                     <div className="flex justify-between items-center mb-2">
                       <h3 className="font-medium text-[var(--headline)]">Campaign Funds</h3>
                       <span className="text-sm px-2 py-1 bg-green-100 text-green-800 rounded-full">
                         Restricted
                       </span>
                     </div>
-                    <p className="text-2xl font-bold text-[var(--headline)]">
+                      <p className="text-2xl font-bold text-[var(--headline)]">
                       RM{campaignFundsRaised.toLocaleString()}
                     </p>
-                    <p className="text-sm text-[var(--paragraph)] mt-2">
+                      <p className="text-sm text-[var(--paragraph)] mt-2">
                       Designated for specific campaigns
                     </p>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Fund Allocation Chart */}
+                <div className="p-4 border-b border-[var(--stroke)]">
+                  <h3 className="text-lg font-medium text-[var(--headline)] mb-4">Fund Allocation</h3>
+                  <div className="relative flex justify-center">
+                    {/* Legend positioned absolutely */}
+                    <div className="absolute left-12 top-0 flex flex-col gap-2">
+                      {organizationCampaigns
+                        .filter(campaign => new Date(campaign.deadline) > new Date())
+                        .map((campaign, index) => {
+                          const percentage = Math.round((campaign.currentContributions / campaignFundsRaised) * 100) || 0;
+                          const color = [
+                            '#fd7979', '#ffa77f', '#ffcc8f', '#7dc9ff'
+                          ][index % 4];
+                          
+                          return (
+                            <div key={campaign.id} className="flex items-center hover:scale-105 transition-transform duration-300">
+                              <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: color }}></div>
+                              <span className="text-sm whitespace-nowrap">{campaign.name} ({percentage}%)</span>
+                            </div>
+                          );
+                      })}
+                    </div>
+                    <div className="relative w-48 h-48">
+                      {(() => {
+                        // Calculate the circumference of the circle
+                        const radius = 40;
+                        const circumference = 2 * Math.PI * radius;
+                        
+                        // Get active campaigns and their percentages
+                        const activeCampaigns = organizationCampaigns
+                          .filter(campaign => new Date(campaign.deadline) > new Date())
+                          .map(campaign => ({
+                            id: campaign.id,
+                            name: campaign.name,
+                            amount: campaign.currentContributions,
+                            percentage: Math.round((campaign.currentContributions / campaignFundsRaised) * 100) || 0
+                          }))
+                          .sort((a, b) => b.amount - a.amount);
+
+                        // Define campaign colors
+                        const campaignColors = [
+                          '#fd7979', // coral red
+                          '#ffa77f', // peach
+                          '#ffcc8f', // light orange
+                          '#7dc9ff'  // light blue
+                        ];
+
+                        // Calculate cumulative offset for positioning each segment
+                        let cumulativePercentage = 0;
+                        
+                        return (
+                          <div className="relative">
+                            <svg viewBox="0 0 100 100" className="transform -rotate-90">
+                              {/* Background circle */}
+                              <circle
+                                cx="50"
+                                cy="50"
+                                r={radius}
+                                fill="none"
+                                stroke="#e5e7eb"
+                                strokeWidth="10"
+                              />
+                              {/* Campaign segments */}
+                              {activeCampaigns.map((campaign, index) => {
+                                const strokeDasharray = `${(campaign.percentage * circumference) / 100} ${circumference}`;
+                                const strokeDashoffset = `${-(cumulativePercentage * circumference) / 100}`;
+                                cumulativePercentage += campaign.percentage;
+                                
+                                return (
+                                  <circle
+                                    key={campaign.id}
+                                    cx="50"
+                                    cy="50"
+                                    r={radius}
+                                    fill="none"
+                                    stroke={campaignColors[index % campaignColors.length]}
+                                    strokeWidth="10"
+                                    strokeDasharray={strokeDasharray}
+                                    strokeDashoffset={strokeDashoffset}
+                                    className="transition-all duration-500"
+                                  />
+                                );
+                              })}
+                            </svg>
+                            {/* Fund amounts */}
+                            {activeCampaigns.map((campaign, index) => {
+                              // Calculate the angle for this segment
+                              let segmentStart = 0;
+                              for (let i = 0; i < index; i++) {
+                                segmentStart += activeCampaigns[i].percentage;
+                              }
+                              const angle = -90 + (segmentStart + campaign.percentage / 2) * 3.6;
+                              const radius = 70;
+                              const x = 50 + radius * Math.cos(angle * Math.PI / 180);
+                              const y = 50 + radius * Math.sin(angle * Math.PI / 180);
+                              
+                              return (
+                                <div
+                                  key={campaign.id}
+                                  className="absolute transform -translate-x-1/2 -translate-y-1/2 text-sm font-bold bg-white px-2 py-1 rounded-md shadow-sm"
+                                  style={{
+                                    left: `${x}%`,
+                                    top: `${y}%`,
+                                    color: campaignColors[index % campaignColors.length]
+                                  }}
+                                >
+                                  RM{campaign.amount.toLocaleString()}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-2xl font-bold text-[var(--headline)]">RM{campaignFundsRaised.toLocaleString()}</span>
+                        <span className="text-sm text-[var(--paragraph)]">Campaign Funds</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Campaign Fund Details */}
+                <div className="p-4">
+                  <h3 className="text-lg font-medium text-[var(--headline)] mb-4">Campaign Fund Details</h3>
+                  <div className="space-y-6">
+                    {organizationCampaigns
+                      .filter(campaign => new Date(campaign.deadline) > new Date())
+                      .map((campaign) => {
+                        // Mock data for fund status - Replace with actual data later
+                        const availableFunds = campaign.currentContributions * 0.4;
+                        const onHoldFunds = campaign.currentContributions * 0.3;
+                        const usedFunds = campaign.currentContributions * 0.3;
+                        const remainingTarget = campaign.goal - campaign.currentContributions;
+
+                        // Calculate percentages for the progress bar
+                        const availablePercentage = (availableFunds / campaign.goal * 100);
+                        const onHoldPercentage = (onHoldFunds / campaign.goal * 100);
+                        const usedPercentage = (usedFunds / campaign.goal * 100);
+
+                        return (
+                          <div key={campaign.id} className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all">
+                            <div className="flex items-center gap-3 mb-3">
+                              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                <FaChartPie className="text-blue-600" />
+                              </div>
+                    <div>
+                                <h4 className="font-medium text-[var(--headline)]">{campaign.name}</h4>
+                                <div className="flex items-center text-sm text-[var(--paragraph)]">
+                                  <FaCalendarAlt className="mr-1" />
+                                  <span>Ends: {new Date(campaign.deadline).toLocaleDateString()}</span>
                         </div>
+                      </div>
+                              <div className="ml-auto text-right">
+                                <p className="font-bold text-[var(--headline)]">
+                                  RM{campaign.currentContributions.toLocaleString()}
+                                </p>
+                                <p className="text-sm text-[var(--paragraph)]">
+                                  of RM{campaign.goal.toLocaleString()}
+                                </p>
                       </div>
                     </div>
                     
-              {/* Fund Allocation Chart */}
-              <div className="p-4 border-b border-[var(--stroke)]">
-                <h3 className="text-lg font-medium text-[var(--headline)] mb-4">Fund Allocation</h3>
-                <div className="relative flex justify-center">
-                  {/* Legend positioned absolutely */}
-                  <div className="absolute left-12 top-0 flex flex-col gap-2">
-                    {organizationCampaigns
-                      .filter(campaign => new Date(campaign.deadline) > new Date())
-                      .map((campaign, index) => {
-                        const percentage = Math.round((campaign.currentContributions / campaignFundsRaised) * 100) || 0;
-                        const color = [
-                          '#fd7979', '#ffa77f', '#ffcc8f', '#7dc9ff'
-                        ][index % 4];
-                        
-                        return (
-                          <div key={campaign.id} className="flex items-center hover:scale-105 transition-transform duration-300">
-                            <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: color }}></div>
-                            <span className="text-sm whitespace-nowrap">{campaign.name} ({percentage}%)</span>
-                    </div>
-                        );
-                    })}
-                  </div>
-                  <div className="relative w-48 h-48">
-                    {(() => {
-                      // Calculate the circumference of the circle
-                      const radius = 40;
-                      const circumference = 2 * Math.PI * radius;
-                      
-                      // Get active campaigns and their percentages
-                      const activeCampaigns = organizationCampaigns
-                        .filter(campaign => new Date(campaign.deadline) > new Date())
-                        .map(campaign => ({
-                          id: campaign.id,
-                          name: campaign.name,
-                          amount: campaign.currentContributions,
-                          percentage: Math.round((campaign.currentContributions / campaignFundsRaised) * 100) || 0
-                        }))
-                        .sort((a, b) => b.amount - a.amount);
-
-                      // Define campaign colors
-                      const campaignColors = [
-                        '#fd7979', // coral red
-                        '#ffa77f', // peach
-                        '#ffcc8f', // light orange
-                        '#7dc9ff'  // light blue
-                      ];
-
-                      // Calculate cumulative offset for positioning each segment
-                      let cumulativePercentage = 0;
-                      
-                      return (
-                        <div className="relative">
-                          <svg viewBox="0 0 100 100" className="transform -rotate-90">
-                            {/* Background circle */}
-                            <circle
-                              cx="50"
-                              cy="50"
-                              r={radius}
-                              fill="none"
-                              stroke="#e5e7eb"
-                              strokeWidth="10"
-                            />
-                            {/* Campaign segments */}
-                            {activeCampaigns.map((campaign, index) => {
-                              const strokeDasharray = `${(campaign.percentage * circumference) / 100} ${circumference}`;
-                              const strokeDashoffset = `${-(cumulativePercentage * circumference) / 100}`;
-                              cumulativePercentage += campaign.percentage;
-                              
-                              return (
-                                <circle
-                                  key={campaign.id}
-                                  cx="50"
-                                  cy="50"
-                                  r={radius}
-                                  fill="none"
-                                  stroke={campaignColors[index % campaignColors.length]}
-                                  strokeWidth="10"
-                                  strokeDasharray={strokeDasharray}
-                                  strokeDashoffset={strokeDashoffset}
-                                  className="transition-all duration-500"
-                                />
-                              );
-                            })}
-                          </svg>
-                          {/* Fund amounts */}
-                          {activeCampaigns.map((campaign, index) => {
-                            // Calculate the angle for this segment
-                            let segmentStart = 0;
-                            // Sum up all previous segments to get the starting point
-                            for (let i = 0; i < index; i++) {
-                              segmentStart += activeCampaigns[i].percentage;
-                            }
-                            // Calculate the middle of this segment
-                            const angle = -90 + (segmentStart + campaign.percentage / 2) * 3.6;
-                            const radius = 70;
-                            const x = 50 + radius * Math.cos(angle * Math.PI / 180);
-                            const y = 50 + radius * Math.sin(angle * Math.PI / 180);
-                            
-                            return (
-                              <div
-                                key={campaign.id}
-                                className="absolute transform -translate-x-1/2 -translate-y-1/2 text-sm font-bold bg-white px-2 py-1 rounded-md shadow-sm"
-                                style={{
-                                  left: `${x}%`,
-                                  top: `${y}%`,
-                                  color: campaignColors[index % campaignColors.length]
-                                }}
-                              >
-                                RM{campaign.amount.toLocaleString()}
+                            {/* Fund Status Bar */}
+                            <div className="h-4 bg-gray-200 rounded-full overflow-hidden flex">
+                              <div 
+                                className="h-full bg-green-500 transition-all duration-300"
+                                style={{ width: `${availablePercentage}%` }}
+                                title={`Available: RM${availableFunds.toLocaleString()}`}
+                              />
+                              <div 
+                                className="h-full bg-[#FFF44F] transition-all duration-300 rounded-none"
+                                style={{ width: `${onHoldPercentage}%` }}
+                                title={`On Hold: RM${onHoldFunds.toLocaleString()}`}
+                              />
+                              <div 
+                                className="h-full bg-red-500 transition-all duration-300 rounded-r-full"
+                                style={{ width: `${usedPercentage}%` }}
+                                title={`Used: RM${usedFunds.toLocaleString()}`}
+                              />
+                            </div>
+                  
+                            {/* Fund Status Legend */}
+                            <div className="mt-3 flex items-center gap-6 text-sm">
+                              <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 bg-green-500 rounded-full" />
+                                <span>Available: RM{availableFunds.toLocaleString()}</span>
+                          </div>
+                              <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 bg-[#FFF44F] rounded-none" />
+                                <span>On Hold: RM{onHoldFunds.toLocaleString()}</span>
+                          </div>
+                              <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 bg-red-500 rounded-full" />
+                                <span>Used: RM{usedFunds.toLocaleString()}</span>
                         </div>
+                              {remainingTarget > 0 && (
+                                <div className="flex items-center gap-2">
+                                  <div className="w-3 h-3 bg-gray-200 rounded-full" />
+                                  <span>Remaining: RM{remainingTarget.toLocaleString()}</span>
+                                </div>
+                              )}
+                    </div>
+                              </div>
                             );
                           })}
                         </div>
-                      );
-                    })()}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-2xl font-bold text-[var(--headline)]">RM{campaignFundsRaised.toLocaleString()}</span>
-                      <span className="text-sm text-[var(--paragraph)]">Campaign Funds</span>
-                    </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-            </div>
-          </motion.div>
-        )}
+                </div>
+              </div>
+            </motion.div>
+          )}
 
         {activeTab === 'vendors' && (
-          <motion.div
+      <motion.div
             key="vendors"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
           >
@@ -568,20 +652,20 @@ const CharityManagementPage: React.FC = () => {
             <div className="bg-white rounded-xl shadow-md border border-[var(--stroke)] overflow-hidden">
               <div className="p-4 border-b border-[var(--stroke)]">
                 <h2 className="text-xl font-bold text-[var(--headline)]">Vendor Management</h2>
-                                </div>
+              </div>
 
               {/* Vendor Search */}
               <div className="p-4 border-b border-[var(--stroke)]">
                 <div className="relative">
-                  <input
-                    type="text"
+              <input
+                type="text"
                     placeholder="Search vendors..."
                     className="w-full pl-10 pr-4 py-2 border border-[var(--stroke)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--highlight)]"
                   />
                   <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                    </div>
-                  </div>
-                  
+            </div>
+          </div>
+          
               {/* Vendor List */}
               <div className="p-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -590,56 +674,56 @@ const CharityManagementPage: React.FC = () => {
                     <div className="flex items-center mb-3">
                       <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium mr-3">
                         MS
-                                </div>
-                      <div>
+                  </div>
+                  <div>
                         <h3 className="font-medium text-[var(--headline)]">Medical Supplies Co.</h3>
                         <p className="text-sm text-[var(--paragraph)]">Medical Equipment</p>
-                      </div>
-                    </div>
+                  </div>
+                </div>
                     <div className="flex items-center gap-2 text-sm text-[var(--paragraph)]">
                       <FaEnvelope className="text-gray-400" />
                       <span>contact@medicalsupplies.com</span>
-                </div>
+        </div>
                     <div className="flex items-center gap-2 text-sm text-[var(--paragraph)] mt-1">
                       <FaPhone className="text-gray-400" />
                       <span>+60 12-345-6789</span>
-              </div>
+                      </div>
                     <div className="flex items-center gap-2 text-sm text-[var(--paragraph)] mt-1">
                       <FaMapMarkerAlt className="text-gray-400" />
                       <span>Kuala Lumpur, Malaysia</span>
-          </div>
+                        </div>
                     <div className="mt-3 flex gap-2">
                       <button className="px-3 py-1 bg-[var(--highlight)] text-white rounded-lg text-sm hover:bg-opacity-90 transition-all">
                         Message
-          </button>
+                      </button>
                       <button className="px-3 py-1 border border-[var(--stroke)] rounded-lg text-sm hover:bg-[var(--highlight)] hover:bg-opacity-10 transition-all">
                         View Profile
-              </button>
-            </div>
-                  </div>
-                  
+                      </button>
+                        </div>
+                      </div>
+                      
                   <div className="bg-gradient-to-br from-white to-green-50 p-4 rounded-lg shadow-sm">
                     <div className="flex items-center mb-3">
                       <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-600 font-medium mr-3">
                         FD
-                                </div>
-                  <div>
+                      </div>
+                      <div>
                         <h3 className="font-medium text-[var(--headline)]">Food Distribution Inc.</h3>
                         <p className="text-sm text-[var(--paragraph)]">Food Supplies</p>
                       </div>
-                        </div>
+                    </div>
                     <div className="flex items-center gap-2 text-sm text-[var(--paragraph)]">
                       <FaEnvelope className="text-gray-400" />
                       <span>info@fooddist.com</span>
-                        </div>
+                    </div>
                     <div className="flex items-center gap-2 text-sm text-[var(--paragraph)] mt-1">
                       <FaPhone className="text-gray-400" />
                       <span>+60 12-987-6543</span>
-                      </div>
+                    </div>
                     <div className="flex items-center gap-2 text-sm text-[var(--paragraph)] mt-1">
                       <FaMapMarkerAlt className="text-gray-400" />
                       <span>Penang, Malaysia</span>
-                      </div>
+                    </div>
                     <div className="mt-3 flex gap-2">
                       <button className="px-3 py-1 bg-[var(--highlight)] text-white rounded-lg text-sm hover:bg-opacity-90 transition-all">
                         Message
@@ -650,7 +734,7 @@ const CharityManagementPage: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                </div>
+              </div>
             </div>
             </motion.div>
           )}
