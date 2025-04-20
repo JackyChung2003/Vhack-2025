@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, useNavigate, useParams } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate, useParams, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "./contexts/AuthContext";
 import "./App.css";
@@ -34,12 +34,62 @@ import SettingsPage from "./modules/client/settings/SettingsPage";
 import CharityOpenMarket from "./modules/client/charity/CharityOpenMarket/CharityOpenMarket";
 import VendorOpenMarket from "./modules/client/vendor/OpenMarket/OpenMarket";
 
+// Detect if URL contains OAuth tokens from any provider
+const hasOAuthTokens = window.location.hash.includes('access_token=') || 
+                      window.location.search.includes('access_token=') ||
+                      window.location.hash.includes('refresh_token=') ||
+                      window.location.search.includes('refresh_token=');
+
 export function App() {
 	const { user, loading: authLoading } = useAuth();
 	const { userRole, isLoading, roleChecked } = useRole(); // Removed clearRole as it's handled elsewhere
+	const location = useLocation();
+	const navigate = useNavigate();
 
 	console.log("User:", user?.id);
 	console.log("userRole", userRole);
+
+	// Handle OAuth callback if tokens are present
+	useEffect(() => {
+		if (hasOAuthTokens && user) {
+			console.log("OAuth login successful, redirecting based on role");
+			if (roleChecked) {
+				if (userRole) {
+					// User has a role, redirect to appropriate dashboard
+					let targetPath = "/";
+					switch (userRole) {
+						case 'charity':
+							targetPath = "/charity/home";
+							break;
+						case 'vendor':
+							targetPath = "/vendor/dashboard";
+							break;
+						case 'donor':
+							targetPath = "/donor-homepage";
+							break;
+					}
+					// Use window.location for a full page reload to reset URL
+					window.location.href = `${window.location.origin}/Vhack-2025${targetPath}`;
+				} else {
+					// User doesn't have a role, redirect to registration
+					window.location.href = `${window.location.origin}/Vhack-2025/register`;
+				}
+			}
+		}
+	}, [user, userRole, roleChecked, hasOAuthTokens]);
+
+	// Show loading state if we're authenticating via OAuth
+	if (hasOAuthTokens && (authLoading || isLoading || !roleChecked)) {
+		return (
+			<div className="flex justify-center items-center h-screen">
+				<div className="text-center">
+					<h2 className="text-xl mb-4">Processing authentication...</h2>
+					<p>Please wait while we complete your login.</p>
+					<div className="mt-4 w-16 h-16 border-t-4 border-blue-500 border-solid rounded-full animate-spin mx-auto"></div>
+				</div>
+			</div>
+		);
+	}
 
 	const [isopen, setisopen] = useState(false);
 	const toggle = () => setisopen(!isopen);
@@ -89,7 +139,7 @@ export function App() {
 					<Route path="/*" element={renderAppLayout(
 						<Routes> {/* Nested Routes for authenticated layout */} 
 							{/* Redirect logged-in user away from root if they land there */}
-							<Route path="/" element={<Navigate to={loggedInHomepage} replace />} />
+							<Route path="/" element={<Navigate to={loggedInHomepage} replace state={{ from: location }} />} />
 
 							{/* Common Protected Routes */}
 							<Route element={<ProtectedRoute allowedRoles={['charity', 'vendor', 'donor']} redirectPath="/" />}>

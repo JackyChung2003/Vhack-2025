@@ -1,9 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 // import { useRole } from '../../../../contexts/RoleContext'; // No longer needed for redirection
 import { Link, useNavigate } from 'react-router-dom';
-import { FaHandHoldingHeart, FaBuilding, FaShoppingCart, FaChartLine, FaShieldAlt, FaGlobe, FaArrowRight } from 'react-icons/fa';
+import { FaHandHoldingHeart, FaBuilding, FaShoppingCart, FaChartLine, FaShieldAlt, FaGlobe, FaArrowRight, FaSearch, FaListAlt, FaInfoCircle, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import ThemeToggle from '../../../../components/Button/ThemeToggleButton';
 import LoginButton from '../../../../components/Button/LoginButton';
+import { useAuth } from '../../../../contexts/AuthContext';
+import { navigateWithoutHash } from '../../../../utils/navigateWithoutHash';
 
 const LandingPage = () => {
     // const { userRole, isLoading } = useRole(); // Removed role context usage 
@@ -22,9 +24,9 @@ const LandingPage = () => {
     }, [userRole, isLoading, navigate]);
     */
 
-    // Function to handle navigation to REGISTER page
+    // Function to handle navigation to REGISTER page first
     const navigateToRegister = () => {
-        navigate('/register'); // Changed from /login to /register
+        navigateWithoutHash(navigate, '/register', { replace: true });
     };
 
     return (

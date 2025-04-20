@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaStar, FaCheckCircle, FaThumbtack, FaExternalLinkAlt, FaCalendarAlt } from 'react-icons/fa';
+import { FaStar, FaRegStar, FaStarHalfAlt, FaCheckCircle, FaTimes, FaExternalLinkAlt, FaCalendarAlt, FaComment, FaTrash } from 'react-icons/fa';
 
 interface QuotationProps {
   quotation: {
@@ -11,15 +11,24 @@ interface QuotationProps {
     details: string;
     attachment_url: string | null;
     is_accepted: boolean;
-    is_pinned: boolean;
     created_at: string;
     vendor_rating: number;
   };
-  onPin: () => void;
+  requestDeadline?: string;
   onAccept?: () => void;
+  onDelete?: () => void;
+  onChat?: () => void;
+  isVendor?: boolean;
 }
 
-const QuotationCard: React.FC<QuotationProps> = ({ quotation, onPin, onAccept }) => {
+const QuotationCard: React.FC<QuotationProps> = ({ 
+  quotation, 
+  requestDeadline,
+  onAccept, 
+  onDelete,
+  onChat,
+  isVendor = false
+}) => {
   // Format date
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -53,21 +62,69 @@ const QuotationCard: React.FC<QuotationProps> = ({ quotation, onPin, onAccept })
     );
   };
 
+  const isExpired = requestDeadline ? new Date() > new Date(requestDeadline) : false;
+
+  // Action buttons section
+  const renderActionButtons = () => {
+    if (quotation.is_accepted) {
+      return (
+        <div className="flex items-center justify-center py-2 px-4 bg-green-50 border border-green-100 rounded-md">
+          <FaCheckCircle className="text-green-500 mr-2" />
+          <span className="text-green-600 font-medium">Accepted</span>
+        </div>
+      );
+    }
+
+    // Vendor view - only show delete button
+    if (isVendor) {
+      return (
+        <div className="flex flex-row gap-2">
+          {onDelete && (
+            <button
+              onClick={onDelete}
+              className="flex-1 py-2 px-4 bg-red-50 text-red-600 hover:bg-red-100 rounded-md flex items-center justify-center"
+            >
+              <FaTrash className="mr-2" />
+              Delete Quotation
+            </button>
+          )}
+        </div>
+      );
+    }
+
+    // Charity view - show chat and accept buttons
+    return (
+      <div className="flex flex-row gap-2">
+        {onChat && (
+          <button
+            onClick={onChat}
+            className="flex-1 py-2 px-4 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-md flex items-center justify-center"
+          >
+            <FaComment className="mr-2" />
+            Chat with Vendor
+          </button>
+        )}
+        {onAccept && (
+          <button
+            onClick={onAccept}
+            className="flex-1 py-2 px-4 bg-green-50 text-green-600 hover:bg-green-100 rounded-md flex items-center justify-center"
+          >
+            <FaCheckCircle className="mr-2" />
+            Accept Quotation
+          </button>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div 
       className={`
         rounded-lg shadow-md overflow-hidden relative transition-all 
         ${quotation.is_accepted ? 'border-2 border-green-500' : 'border border-[var(--stroke)]'} 
-        ${quotation.is_pinned ? 'bg-blue-50' : 'bg-[var(--main)]'}
+        bg-[var(--main)]
       `}
     >
-      {/* Pin indicator */}
-      {quotation.is_pinned && (
-        <div className="absolute top-0 right-0 bg-blue-500 text-white px-2 py-1 text-xs font-medium">
-          Pinned
-        </div>
-      )}
-      
       {/* Accepted indicator */}
       {quotation.is_accepted && (
         <div className="absolute top-0 left-0 right-0 bg-green-500 text-white px-2 py-1 text-xs font-medium text-center">
@@ -75,7 +132,14 @@ const QuotationCard: React.FC<QuotationProps> = ({ quotation, onPin, onAccept })
         </div>
       )}
       
-      <div className="p-4">
+      {/* Open indicator */}
+      {!quotation.is_accepted && !isExpired && !isVendor && (
+        <div className="absolute top-0 left-0 right-0 bg-green-500 text-white px-2 py-1 text-xs font-medium text-center">
+          Open for Acceptance
+        </div>
+      )}
+      
+      <div className={`p-4 ${(quotation.is_accepted || (!isExpired && !quotation.is_accepted && !isVendor)) ? 'pt-8' : ''}`}>
         {/* Vendor info */}
         <div className="flex justify-between items-start mb-3">
           <div>
@@ -88,6 +152,14 @@ const QuotationCard: React.FC<QuotationProps> = ({ quotation, onPin, onAccept })
             {formatPrice(quotation.price)}
           </div>
         </div>
+        
+        {/* Accepted badge for prominent display */}
+        {quotation.is_accepted && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-2 mb-3 flex items-center justify-center">
+            <FaCheckCircle className="text-green-500 mr-2" />
+            <span className="text-green-700 font-medium">This quotation has been accepted</span>
+          </div>
+        )}
         
         {/* Quotation details */}
         <div className="bg-white p-3 rounded-lg my-3 text-sm text-[var(--paragraph)]">
@@ -112,30 +184,23 @@ const QuotationCard: React.FC<QuotationProps> = ({ quotation, onPin, onAccept })
           )}
         </div>
         
+        {/* Show deadline if provided */}
+        {requestDeadline && (
+          <div className="text-xs text-[var(--paragraph-light)] mb-4">
+            <span className="flex items-center">
+              <FaCalendarAlt className="mr-1" />
+              Due by: {formatDate(requestDeadline)}
+              {!isExpired && (
+                <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-xs">
+                  Active
+                </span>
+              )}
+            </span>
+          </div>
+        )}
+        
         {/* Action buttons */}
-        <div className="flex gap-2 mt-2">
-          <button
-            onClick={onPin}
-            className={`flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg text-sm 
-              ${quotation.is_pinned 
-                ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' 
-                : 'bg-[var(--background)] text-[var(--paragraph)] hover:bg-gray-200'} 
-              transition-colors`}
-          >
-            <FaThumbtack className={`${quotation.is_pinned ? 'rotate-45' : ''} transition-transform`} />
-            {quotation.is_pinned ? 'Unpin' : 'Pin'}
-          </button>
-          {onAccept && (
-            <button
-              onClick={onAccept}
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded-lg flex items-center justify-center gap-1 text-sm transition-colors"
-              disabled={quotation.is_accepted}
-            >
-              <FaCheckCircle />
-              Accept
-            </button>
-          )}
-        </div>
+        {renderActionButtons()}
       </div>
     </div>
   );
