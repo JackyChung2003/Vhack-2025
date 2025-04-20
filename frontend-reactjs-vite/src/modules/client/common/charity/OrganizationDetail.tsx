@@ -5,11 +5,10 @@ import { FaArrowLeft, FaHandHoldingHeart, FaBuilding, FaUsers, FaHistory, FaChar
 import { motion } from "framer-motion";
 import CampaignCard from "../../../../components/cards/CampaignCard";
 import { useRole } from "../../../../contexts/RoleContext";
-import { mockDonorContributions, mockDonationTrackers } from "../../../../utils/mockData";
+import { mockDonorContributions } from "../../../../utils/mockData";
 import DonationModal from "../../../../components/modals/DonationModal";
 import { toast } from "react-toastify";
 import PostFeed from "../../common/community/components/PostFeed";
-import DonationTracker from "../../../../components/donation/DonationTracker";
 import { useVendorChatStore } from "../../../../services/VendorChatService";
 import ChatModal from "../../../client/vendor/VendorHomePage/ChatModal";
 import { charityService, CharityProfile as CharityProfileType } from "../../../../services/supabase/charityService";
@@ -28,7 +27,7 @@ const OrganizationDetail: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [showAddCampaignModal, setShowAddCampaignModal] = useState(false);
   const [communityView, setCommunityView] = useState<'feed' | 'members'>('feed');
-  
+
   // For charity viewing own profile
   const [charityProfile, setCharityProfile] = useState<CharityProfileType | null>(null);
   const [charityLoading, setCharityLoading] = useState(false);
@@ -320,12 +319,12 @@ const OrganizationDetail: React.FC = () => {
       <div className="relative h-64 bg-gradient-to-r from-[var(--highlight)] to-[var(--tertiary)]">
         <div className="absolute inset-0 bg-black bg-opacity-50"></div>
         {!isOwnProfile && (
-          <button
-            onClick={() => navigate(-1)}
-            className="absolute top-6 left-6 z-10 text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
-          >
-            <FaArrowLeft size={20} />
-          </button>
+        <button
+          onClick={() => navigate(-1)}
+          className="absolute top-6 left-6 z-10 text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
+        >
+          <FaArrowLeft size={20} />
+        </button>
         )}
       </div>
 
@@ -385,44 +384,44 @@ const OrganizationDetail: React.FC = () => {
               
               <div className="flex flex-wrap gap-4 mt-4">
                 {extendedDetails.email && (
-                  <div className="flex items-center gap-2">
-                    <FaEnvelope className="text-[var(--highlight)]" />
-                    <a href={`mailto:${extendedDetails.email}`} className="hover:text-[var(--highlight)] transition-colors">
-                      {extendedDetails.email}
-                    </a>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <FaEnvelope className="text-[var(--highlight)]" />
+                  <a href={`mailto:${extendedDetails.email}`} className="hover:text-[var(--highlight)] transition-colors">
+                    {extendedDetails.email}
+                  </a>
+                </div>
                 )}
                 {extendedDetails.website && (
-                  <div className="flex items-center gap-2">
-                    <FaGlobe className="text-[var(--highlight)]" />
+                <div className="flex items-center gap-2">
+                  <FaGlobe className="text-[var(--highlight)]" />
                     <a href={extendedDetails.website.startsWith('http') ? extendedDetails.website : `https://${extendedDetails.website}`} target="_blank" rel="noopener noreferrer" 
-                      className="hover:text-[var(--highlight)] transition-colors">
+                     className="hover:text-[var(--highlight)] transition-colors">
                       {extendedDetails.website.replace(/^https?:\/\//, '')}
-                    </a>
-                  </div>
+                  </a>
+                </div>
                 )}
                 {extendedDetails.phone && (
-                  <div className="flex items-center gap-2">
-                    <FaPhone className="text-[var(--highlight)]" />
-                    <a 
-                      href={`tel:${extendedDetails.phone}`}
-                      className="hover:text-[var(--highlight)] hover:underline transition-colors"
-                    >
-                      {extendedDetails.phone}
-                    </a>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <FaPhone className="text-[var(--highlight)]" />
+                  <a 
+                    href={`tel:${extendedDetails.phone}`}
+                    className="hover:text-[var(--highlight)] hover:underline transition-colors"
+                  >
+                    {extendedDetails.phone}
+                  </a>
+                </div>
                 )}
                 {extendedDetails.location && (
-                  <div className="flex items-center gap-2">
-                    <FaMapMarkerAlt className="text-[var(--highlight)]" />
-                    <span>{extendedDetails.location}</span>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <FaMapMarkerAlt className="text-[var(--highlight)]" />
+                  <span>{extendedDetails.location}</span>
+                </div>
                 )}
                 {extendedDetails.founded && (
-                  <div className="flex items-center gap-2">
-                    <FaCalendarAlt className="text-[var(--highlight)]" />
-                    <span>Founded: {extendedDetails.founded}</span>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <FaCalendarAlt className="text-[var(--highlight)]" />
+                  <span>Founded: {extendedDetails.founded}</span>
+                </div>
                 )}
               </div>
 
@@ -511,23 +510,6 @@ const OrganizationDetail: React.FC = () => {
           </div>
         </motion.section>
 
-        {/* Donation Tracker */}
-        {userRole === 'charity' && (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="mb-8"
-          >
-            <DonationTracker 
-              tracker={mockDonationTrackers.find(t => 
-                t.recipientId === orgData.id && 
-                t.recipientType === 'organization'
-              ) || mockDonationTrackers[0]} 
-            />
-          </motion.div>
-        )}
-
         {/* Campaigns Section */}
         <motion.section 
           initial={{ opacity: 0, y: 20 }}
@@ -578,12 +560,12 @@ const OrganizationDetail: React.FC = () => {
                     />
                   );
                 })}
-              </div>
-            ) : (
-              <div className="text-center py-10 bg-[var(--main)] rounded-xl border border-[var(--stroke)]">
-                <FaHandHoldingHeart className="mx-auto text-4xl text-[var(--paragraph)] opacity-30 mb-4" />
-                <p className="text-lg">No campaigns found for this organization.</p>
-              </div>
+            </div>
+          ) : (
+            <div className="text-center py-10 bg-[var(--main)] rounded-xl border border-[var(--stroke)]">
+              <FaHandHoldingHeart className="mx-auto text-4xl text-[var(--paragraph)] opacity-30 mb-4" />
+              <p className="text-lg">No campaigns found for this organization.</p>
+            </div>
             )
           )}
         </motion.section>
