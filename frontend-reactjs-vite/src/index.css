@@ -142,6 +142,7 @@
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -172,73 +173,151 @@
 
 :root[data-theme="light"] {
   /* Card-specific variables for light mode */
-  --card-background: #ffffff; /* Bright white background */
-  --card-border: #e0e0e0; /* Light gray border */
-  --card-headline: #333333; /* Dark headline text */
-  --card-paragraph: #666666; /* Gray paragraph text */
+  --card-background: #ffffff;
+  /* Bright white background */
+  --card-border: #e0e0e0;
+  /* Light gray border */
+  --card-headline: #333333;
+  /* Dark headline text */
+  --card-paragraph: #666666;
+  /* Gray paragraph text */
 }
 
 :root[data-theme="dark"] {
   /* Card-specific variables for dark mode */
-  --card-background: #1e1e1e; /* Dark gray background */
-  --card-border: #333333; /* Darker gray border */
-  --card-headline: #ffffff; /* White headline text */
-  --card-paragraph: #cccccc; /* Light gray paragraph text */
+  --card-background: #1e1e1e;
+  /* Dark gray background */
+  --card-border: #333333;
+  /* Darker gray border */
+  --card-headline: #ffffff;
+  /* White headline text */
+  --card-paragraph: #cccccc;
+  /* Light gray paragraph text */
 }
 
 /* Add these new animations to your existing CSS */
 @keyframes slideDown {
-  from { opacity: 0; transform: translateY(-30px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(30px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes float {
-  0% { transform: translate(0, 0); }
-  50% { transform: translate(10px, -10px); }
-  100% { transform: translate(0, 0); }
+  0% {
+    transform: translate(0, 0);
+  }
+
+  50% {
+    transform: translate(10px, -10px);
+  }
+
+  100% {
+    transform: translate(0, 0);
+  }
 }
 
 @keyframes float-slow {
-  0% { transform: translate(0, 0); }
-  50% { transform: translate(15px, -15px); }
-  100% { transform: translate(0, 0); }
+  0% {
+    transform: translate(0, 0);
+  }
+
+  50% {
+    transform: translate(15px, -15px);
+  }
+
+  100% {
+    transform: translate(0, 0);
+  }
 }
 
 @keyframes pulse-subtle {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.05);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
 
 @keyframes pulse-slow {
-  0% { opacity: 0.05; }
-  50% { opacity: 0.1; }
-  100% { opacity: 0.05; }
+  0% {
+    opacity: 0.05;
+  }
+
+  50% {
+    opacity: 0.1;
+  }
+
+  100% {
+    opacity: 0.05;
+  }
 }
 
 @keyframes bounce-right {
-  0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(5px); }
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  50% {
+    transform: translateX(5px);
+  }
 }
 
 @keyframes bounce-subtle {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
 }
 
 @keyframes width {
-  from { width: 0; }
-  to { width: 6rem; }
+  from {
+    width: 0;
+  }
+
+  to {
+    width: 6rem;
+  }
 }
 
 @keyframes progress {
-  from { width: 0; }
-  to { width: var(--progress-width); }
+  from {
+    width: 0;
+  }
+
+  to {
+    width: var(--progress-width);
+  }
 }
 
 .animate-slideDown {
@@ -298,6 +377,7 @@
   opacity: 1;
   transform: translateY(0);
 }
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

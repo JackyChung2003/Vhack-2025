@@ -1,33 +1,158 @@
-import React, { useState } from "react";
-import { FaBox, FaClipboardList, FaTruck, FaCalendarAlt, FaMoneyBillWave, FaChartLine } from "react-icons/fa";
+import React, { useState, useEffect } from "react";
+import { FaBox, FaClipboardList, FaTruck, FaCalendarAlt, FaMoneyBillWave, FaChartLine, FaSpinner } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import OrderHistory from "./OrderManagement/OrderHistory";
-import OrderRequest from "./OrderManagement/OrderRequest";
-import OrderManagement from "./VendorHomePage/OrderManagement";
+import { useAuth } from "../../../contexts/AuthContext";
+import supabase from "../../../services/supabase/supabaseClient";
 import FinancialDashboard from "./FinancialManagement/FinancialDashboard"; // Import Financial Dashboard
 import TransactionHistory from "./FinancialManagement/TransactionHistory"; // Import Transaction History
 import Report from "./FinancialManagement/Report"; // Import Report
 
+interface VendorData {
+  name: string;
+  id: string;
+  created_at: string;
+  email?: string;
+  company_name?: string;
+  location?: string;
+  wallet_address?: string;
+  // Statistics
+  totalOrders: number;
+  pendingOrders: number;
+  completedOrders: number;
+  totalEarnings: string;
+}
+
 const VendorProfile: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [vendorData, setVendorData] = useState<VendorData>({
+    name: "",
+    id: "",
+    created_at: new Date().toISOString(),
+    wallet_address: "",
+    totalOrders: 0,
+    pendingOrders: 0,
+    completedOrders: 0,
+    totalEarnings: "RM0"
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // State for active tab
-  const [activeTab, setActiveTab] = useState<"manageOrders" | "financialReport">("manageOrders");
+  // Fetch vendor data from the database
+  useEffect(() => {
+    const fetchVendorData = async () => {
+      if (!user) return;
+      
+      setIsLoading(true);
+      try {
+        // Get vendor profile from the users table
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', user.id)
+          .eq('role', 'vendor')
+          .single();
+        
+        if (userError) {
+          console.error('Error fetching vendor data:', userError);
+          setError('Failed to load vendor profile');
+          return;
+        }
 
-  // Mock vendor data - In a real app, fetch this from your backend
-  const vendorData = {
-    name: "Vendor ABC",
-    walletAddress: "0xEBC8...62D9",
-    joinDate: "2023-05-10",
-    totalOrders: 15,
-    pendingOrders: 5,
-    completedOrders: 10,
-    totalEarnings: "RM120,000",
-  };
+        // Get detailed vendor information from vendor_profiles table
+        const { data: vendorProfileData, error: vendorProfileError } = await supabase
+          .from('vendor_profiles')
+          .select('*')
+          .eq('user_id', userData.id)
+          .maybeSingle();
+        
+        if (vendorProfileError && vendorProfileError.code !== 'PGRST116') {
+          console.error('Error fetching vendor profile data:', vendorProfileError);
+        }
 
-  const handleViewAllOrders = () => {
-    navigate("/vendor/order-history-details"); // Redirect to the detailed order history page
-  };
+        // Get order statistics - in a real app, this would come from an orders table
+        // For now, we'll use mock data as a fallback but structured to be extensible
+        // In the future, you can replace this with actual queries from your orders table
+        
+        // Example of how to fetch order statistics (commented as placeholder):
+        // const { data: ordersData, error: ordersError } = await supabase
+        //   .from('orders')
+        //   .select('status')
+        //   .eq('vendor_id', userData.id);
+        
+        // const totalOrders = ordersData?.length || 0;
+        // const pendingOrders = ordersData?.filter(order => order.status === 'pending').length || 0;
+        // const completedOrders = ordersData?.filter(order => order.status === 'completed').length || 0;
+        
+        // Get transaction data for total earnings (placeholder)
+        // const { data: transactionsData, error: transactionsError } = await supabase
+        //   .from('transactions')
+        //   .select('amount')
+        //   .eq('vendor_id', userData.id)
+        //   .eq('status', 'completed');
+        
+        // const totalEarnings = transactionsData?.reduce((sum, tx) => sum + tx.amount, 0) || 0;
+
+        // Use mock data for statistics that aren't yet implemented
+        const mockTotalOrders = 15;
+        const mockPendingOrders = 5;
+        const mockCompletedOrders = 10;
+        const mockTotalEarnings = "RM120,000";
+
+        // Combine all data
+        setVendorData({
+          name: userData.name || "Vendor",
+          id: userData.id,
+          created_at: userData.created_at,
+          email: user.email,
+          company_name: vendorProfileData?.company_name,
+          location: vendorProfileData?.location,
+          wallet_address: userData.wallet_address || user.id.substring(0, 6) + "..." + user.id.substring(user.id.length - 4),
+          totalOrders: mockTotalOrders,
+          pendingOrders: mockPendingOrders,
+          completedOrders: mockCompletedOrders, 
+          totalEarnings: mockTotalEarnings
+        });
+        
+        setError(null);
+      } catch (err: any) {
+        console.error('Error in fetchVendorData:', err);
+        setError(err.message || 'Failed to load vendor data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchVendorData();
+  }, [user]);
+
+  if (isLoading && !vendorData.name) {
+    return (
+      <div className="min-h-screen bg-[var(--background)] flex items-center justify-center">
+        <div className="text-center">
+          <FaSpinner className="spinner mx-auto text-[var(--highlight)] text-4xl mb-4" />
+          <p className="text-[var(--paragraph)]">Loading vendor profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !vendorData.name) {
+    return (
+      <div className="min-h-screen bg-[var(--background)] flex items-center justify-center">
+        <div className="bg-[var(--main)] p-8 rounded-xl shadow-xl border border-[var(--stroke)] max-w-md">
+          <h2 className="text-xl font-bold text-red-500 mb-4">Error Loading Profile</h2>
+          <p className="text-[var(--paragraph)] mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-[var(--highlight)] text-white rounded-lg hover:bg-opacity-90 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
@@ -51,20 +176,21 @@ const VendorProfile: React.FC = () => {
               <div className="flex flex-col md:flex-row md:items-center justify-between mb-4">
                 <div>
                   <h1 className="text-2xl md:text-3xl font-bold text-[var(--headline)]">{vendorData.name}</h1>
-                  <div className="flex items-center gap-2 text-[var(--paragraph)] mt-1">
-                    <span className="bg-[var(--highlight)] bg-opacity-20 text-white font-bold px-3 py-1 rounded-full text-sm drop-shadow-sm">
-                      Vendor
-                    </span>
+                  <div className="flex flex-wrap items-center gap-2 text-[var(--paragraph)] mt-1">
                     <span className="flex items-center gap-1 text-sm">
                       <FaCalendarAlt />
-                      Joined {new Date(vendorData.joinDate).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
+                      Joined {new Date(vendorData.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
                     </span>
-                  </div>
-                </div>
-                <div className="mt-4 md:mt-0">
-                  <div className="bg-[var(--background)] px-4 py-2 rounded-lg text-sm font-medium text-[var(--headline)] flex items-center gap-2 border border-[var(--stroke)]">
-                    <span className="font-bold">Wallet:</span>
-                    <span className="font-mono">{vendorData.walletAddress}</span>
+                    {vendorData.company_name && (
+                      <span className="flex items-center gap-1 text-sm ml-2">
+                        <span className="font-medium">{vendorData.company_name}</span>
+                      </span>
+                    )}
+                    {vendorData.location && (
+                      <span className="flex items-center gap-1 text-sm ml-2">
+                        <span>{vendorData.location}</span>
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -79,72 +205,9 @@ const VendorProfile: React.FC = () => {
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] mb-8">
-          <div className="flex p-2">
-            <button
-              onClick={() => setActiveTab("manageOrders")}
-              className={`flex-1 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                activeTab === "manageOrders"
-                  ? "bg-[var(--highlight)] text-white font-bold shadow-sm"
-                  : "text-[var(--paragraph)] hover:text-[var(--headline)] hover:bg-[var(--background)]"
-              }`}
-            >
-              <FaBox className="inline mr-2" />
-              Manage Your Orders
-            </button>
-            <button
-              onClick={() => setActiveTab("financialReport")}
-              className={`flex-1 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                activeTab === "financialReport"
-                  ? "bg-[var(--highlight)] text-white font-bold shadow-sm"
-                  : "text-[var(--paragraph)] hover:text-[var(--headline)] hover:bg-[var(--background)]"
-              }`}
-            >
-              <FaChartLine className="inline mr-2" />
-              Financial Report
-            </button>
-          </div>
-        </div>
-
-        {/* Content Sections */}
+        {/* Content Sections - Now only showing Financial Report */}
         <div className="space-y-8 mb-12">
-          {activeTab === "manageOrders" && (
-            <>
-              {/* Order History Section */}
-              <div className="animate-fadeIn">
-                <div className="bg-[var(--main)] rounded-xl shadow-md border border-[var(--stroke)] p-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-bold text-[var(--headline)]">Order History</h2>
-                    <button
-                      onClick={handleViewAllOrders}
-                      className="flex items-center justify-center w-10 h-10 bg-white text-[var(--highlight)] rounded-full shadow-md hover:opacity-90 transition-all"
-                    >
-                      →
-                    </button>
-                  </div>
-                  <OrderHistory />
-                </div>
-              </div>
-
-              {/* Order Management Section */}
-              <div className="animate-fadeIn delay-100">
-                <div className="bg-[var(--main)] rounded-xl shadow-md border border-[var(--stroke)] p-6">
-                  <OrderManagement />
-                </div>
-              </div>
-
-              {/* Order Request Section */}
-              <div className="animate-fadeIn delay-200">
-                <div className="bg-[var(--main)] rounded-xl shadow-md border border-[var(--stroke)] p-6">
-                  <h2 className="text-xl font-bold text-[var(--headline)] mb-4">Order Requests</h2>
-                  <OrderRequest />
-                </div>
-              </div>
-            </>
-          )}
-
-          {activeTab === "financialReport" && (
+          {/* Always render Financial Report Content */}
             <>
               {/* Financial Dashboard Section */}
               <div className="animate-fadeIn">
@@ -161,7 +224,6 @@ const VendorProfile: React.FC = () => {
                 <Report />
               </div>
             </>
-          )}
         </div>
       </div>
     </div>

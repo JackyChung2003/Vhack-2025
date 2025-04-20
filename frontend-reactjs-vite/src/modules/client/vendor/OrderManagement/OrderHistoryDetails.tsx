@@ -18,7 +18,7 @@ const OrderHistoryDetails: React.FC = () => {
   ];
 
   const handleBack = () => {
-    navigate("/vendor/profile"); // Redirects to the vendor profile page
+    navigate("/vendor/profile"); 
   };
 
   return (

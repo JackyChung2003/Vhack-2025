@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useActiveAccount } from 'thirdweb/react';
+import { useAuth } from '../contexts/AuthContext';
 import supabase from '../services/supabase/supabaseClient';
 
 export const useAuthCheck = () => {
@@ -8,20 +8,20 @@ export const useAuthCheck = () => {
     const [roleChecked, setRoleChecked] = useState<boolean>(false);
     const [roleFetched, setRoleFetched] = useState<boolean>(false);
 
-    const activeAccount = useActiveAccount();
+    const { user } = useAuth();
 
     /**
      * 🔄 Ensures Supabase role fetching is attempted immediately once AND retries if needed.
      */
-    const fetchRoleWithRetry = async (retryCount = 3) => {
-        if (!activeAccount?.address) return;  // 🚨 Prevent fetching if no address
+    const fetchRoleWithRetry = async (retryCount = 1) => {
+        if (!user?.id) return;  // 🚨 Prevent fetching if no user ID
 
         console.log(`🟡 Attempting to fetch role... (Remaining Retries: ${retryCount})`);
 
         const { data, error } = await supabase
             .from('users')
             .select('role')
-            .eq('wallet_address', activeAccount.address)
+            .eq('id', user.id)
             .single();
 
         if (data?.role) {
@@ -41,8 +41,8 @@ export const useAuthCheck = () => {
     };
 
     const refetchRole = useCallback(async () => {
-        if (!activeAccount?.address) {
-            console.warn("❗ No active account found — Clearing role.");
+        if (!user?.id) {
+            console.warn("❗ No authenticated user found — Clearing role.");
             setUserRole(null);
             setIsLoading(false);
             setRoleChecked(true);
@@ -54,7 +54,7 @@ export const useAuthCheck = () => {
         const { data } = await supabase
             .from('users')
             .select('role')
-            .eq('wallet_address', activeAccount.address)
+            .eq('id', user.id)
             .single();
 
         if (data?.role) {
@@ -69,11 +69,11 @@ export const useAuthCheck = () => {
 
         setIsLoading(false);
         setRoleChecked(true);
-    }, [activeAccount]);
+    }, [user]);
 
     useEffect(() => {
         refetchRole();
-    }, [activeAccount]);
+    }, [user, refetchRole]);
 
     return { userRole, isLoading, refetchRole, roleChecked, roleFetched };
 };

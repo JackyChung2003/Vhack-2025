@@ -1,11 +1,11 @@
 import React from "react";
 import { Link, NavLink } from "react-router-dom";
-import { FaBars, FaHome, FaListAlt, FaUsers, FaUserCircle, FaComments, FaChartLine } from "react-icons/fa";
+import { FaBars, FaHome, FaListAlt, FaUsers, FaUserCircle, FaComments, FaChartLine, FaReceipt } from "react-icons/fa";
 import LoginButton from "../../../../components/Button/LoginButton";
 import logoNameImage from "../../../../assets/images/logo-name.png";
 import logoPNGImage from "../../../../assets/images/logo-png.png";
 import { useRole } from "../../../../contexts/RoleContext";
-import styles from "./HorizontalNavBar.module.css"; // Module CSS Import
+import styles from "./HorizontalNavBar.module.css";
 
 interface NavbarProps {
   toggle: () => void;
@@ -31,6 +31,7 @@ const HorizontalNavbar: React.FC<NavbarProps> = ({ toggle }) => {
       link: "/Vhack-2025/charity/vendor-page",
       icon: <FaComments />,
     },
+    { title: "Open Market", link: `/charity/open-market`, icon: <FaListAlt /> },
     {
       title: "Profile",
       link: "/Vhack-2025/charity/profile",
@@ -45,6 +46,12 @@ const HorizontalNavbar: React.FC<NavbarProps> = ({ toggle }) => {
       link: "/Vhack-2025/vendor/dashboard",
       icon: <FaHome />,
     },
+    { title: "Open Market", link: `/vendor/open-market`, icon: <FaListAlt /> },
+      {
+        title: "Order",
+        link: "/vendor/order-management",
+        icon: <FaReceipt />,
+      },
     {
       title: "Profile",
       link: "/Vhack-2025/vendor/profile",
@@ -82,8 +89,7 @@ const HorizontalNavbar: React.FC<NavbarProps> = ({ toggle }) => {
   return (
     <nav className={styles.nav}>
       <Link to={userRole === 'charity' ? "/Vhack-2025/charity/home" : userRole === 'vendor' ? "/Vhack-2025/vendor/dashboard" : "/"} className={styles.link}>
-        <img src={logoPNGImage} alt="DermaNow " className={styles.logoIcon} />
-        {/* <img src={logoNameImage} alt="Power Stake Name" className={styles.logoName} /> */}
+        <img src={logoPNGImage} alt="DermaNow Logo" className={styles.logoIcon} />
         <span className={styles.logoName}>DermaNow</span>
       </Link>
       <div className={styles.menuItems}>

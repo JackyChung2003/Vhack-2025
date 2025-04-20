@@ -243,11 +243,11 @@ const OrderManagement: React.FC = () => {
   };
 
   return (
-    <div className="bg-[var(--main)] p-6 rounded-lg shadow-xl">
+    <>
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-[var(--headline)]">Organization Orders</h2>
         <div className="flex space-x-4">
-          <div className="relative">
+          <div className="relative"> 
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value as any)}
@@ -363,7 +363,7 @@ const OrderManagement: React.FC = () => {
           onClose={() => setShowCreateModal(false)}
         />
       )}
-    </div>
+    </>
   );
 };
 
