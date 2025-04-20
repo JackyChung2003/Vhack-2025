@@ -33,6 +33,11 @@ const OrganizationDetail: React.FC = () => {
   const [charityLoading, setCharityLoading] = useState(false);
   const [charityError, setCharityError] = useState<string | null>(null);
   
+  // For charity's own campaigns
+  const [charityCampaigns, setCharityCampaigns] = useState<any[]>([]);
+  const [charityCampaignsLoading, setCharityCampaignsLoading] = useState(false);
+  const [charityCampaignsError, setCharityCampaignsError] = useState<string | null>(null);
+  
   // For external organization view
   const [organization, setOrganization] = useState<any>(null);
   const [organizationLoading, setOrganizationLoading] = useState(false);
@@ -51,11 +56,18 @@ const OrganizationDetail: React.FC = () => {
           const profileData = await charityService.getCharityProfile();
           setCharityProfile(profileData);
           setCharityError(null);
+          
+          // Also fetch the charity's campaigns
+          setCharityCampaignsLoading(true);
+          const campaignsData = await charityService.getCharityCampaigns();
+          setCharityCampaigns(campaignsData);
+          setCharityCampaignsError(null);
         } catch (err: any) {
           console.error("Error fetching charity profile:", err);
           setCharityError(err.message || "Failed to load charity profile. Please try again.");
         } finally {
           setCharityLoading(false);
+          setCharityCampaignsLoading(false);
         }
       };
 
@@ -206,6 +218,30 @@ const OrganizationDetail: React.FC = () => {
       openChat(Number(orgData.id));
     }
   };
+
+  // Force refresh of campaigns when new campaign is added
+  useEffect(() => {
+    const handleRefreshCampaigns = async () => {
+      if (isOwnProfile) {
+        try {
+          setCharityCampaignsLoading(true);
+          const campaignsData = await charityService.getCharityCampaigns();
+          setCharityCampaigns(campaignsData);
+          setCharityCampaignsError(null);
+        } catch (err: any) {
+          console.error("Error refreshing charity campaigns:", err);
+          setCharityCampaignsError(err.message || "Failed to refresh campaigns. Please try again.");
+        } finally {
+          setCharityCampaignsLoading(false);
+        }
+      }
+    };
+    
+    window.addEventListener('refreshCampaigns', handleRefreshCampaigns);
+    return () => {
+      window.removeEventListener('refreshCampaigns', handleRefreshCampaigns);
+    };
+  }, [isOwnProfile]);
 
   // Conditional rendering after all hooks are called
   // If we're viewing as charity profile and still loading
@@ -533,11 +569,58 @@ const OrganizationDetail: React.FC = () => {
           </div>
           
           {isOwnProfile ? (
-            /* Original code for charity viewing own campaigns */
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* This section is for charity viewing own campaigns - will be filled in later */}
-              <p className="text-center col-span-3">Your campaigns will appear here.</p>
-            </div>
+            /* Updated code for charity viewing own campaigns */
+            charityCampaignsLoading ? (
+              <div className="p-8 flex justify-center">
+                <div className="flex flex-col items-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[var(--highlight)] mb-4"></div>
+                  <p className="text-[var(--paragraph)]">Loading campaigns...</p>
+                </div>
+              </div>
+            ) : charityCampaignsError ? (
+              <div className="text-center py-10 bg-[var(--main)] rounded-xl border border-[var(--stroke)]">
+                <FaHandHoldingHeart className="mx-auto text-4xl text-[var(--paragraph)] opacity-30 mb-4" />
+                <p className="text-lg text-red-500">{charityCampaignsError}</p>
+                <button 
+                  onClick={() => window.location.reload()}
+                  className="mt-4 px-4 py-2 rounded-lg bg-[var(--highlight)] text-white hover:bg-opacity-90"
+                >
+                  Try Again
+                </button>
+              </div>
+            ) : charityCampaigns && charityCampaigns.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {charityCampaigns.map((campaign) => {
+                  // Calculate a default deadline of 30 days from now if not provided
+                  const defaultDeadline = new Date();
+                  defaultDeadline.setDate(defaultDeadline.getDate() + 30);
+                  
+                  return (
+                    <CampaignCard
+                      key={campaign.id}
+                      id={campaign.id}
+                      name={campaign.title}
+                      description={campaign.description}
+                      goal={campaign.target_amount}
+                      currentContributions={campaign.current_amount}
+                      deadline={campaign.deadline || defaultDeadline.toISOString()}
+                      category={campaign.category}
+                    />
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-10 bg-[var(--main)] rounded-xl border border-[var(--stroke)]">
+                <FaHandHoldingHeart className="mx-auto text-4xl text-[var(--paragraph)] opacity-30 mb-4" />
+                <p className="text-lg">You don't have any campaigns yet.</p>
+                <button 
+                  onClick={handleOpenCampaignModal}
+                  className="mt-4 px-4 py-2 rounded-lg bg-[var(--highlight)] text-white hover:bg-opacity-90 flex items-center gap-2 mx-auto"
+                >
+                  <FaPlus /> Create Your First Campaign
+                </button>
+              </div>
+            )
           ) : (
             /* Updated code to show real organization campaigns */
             organizationCampaigns && organizationCampaigns.length > 0 ? (
@@ -560,12 +643,12 @@ const OrganizationDetail: React.FC = () => {
                     />
                   );
                 })}
-            </div>
-          ) : (
-            <div className="text-center py-10 bg-[var(--main)] rounded-xl border border-[var(--stroke)]">
-              <FaHandHoldingHeart className="mx-auto text-4xl text-[var(--paragraph)] opacity-30 mb-4" />
-              <p className="text-lg">No campaigns found for this organization.</p>
-            </div>
+              </div>
+            ) : (
+              <div className="text-center py-10 bg-[var(--main)] rounded-xl border border-[var(--stroke)]">
+                <FaHandHoldingHeart className="mx-auto text-4xl text-[var(--paragraph)] opacity-30 mb-4" />
+                <p className="text-lg">No campaigns found for this organization.</p>
+              </div>
             )
           )}
         </motion.section>
@@ -710,9 +793,45 @@ const OrganizationDetail: React.FC = () => {
           organizationId={orgData.id.toString()}
           organizationName={orgData.name}
           campaignId=""
-          onDonationComplete={(amount) => {
-            toast.success(`Thank you for your donation of RM${amount} to ${orgData.name}!`);
-            setIsDonationModalOpen(false);
+          onDonationComplete={async (amount, _, isAnonymous, isRecurring) => {
+            try {
+              console.log("Full organization data:", orgData);
+              
+              // Ensure we have a valid charity ID
+              if (!orgData.id) {
+                throw new Error("Invalid charity ID for donation");
+              }
+              
+              // Debug information
+              console.log("Making general charity donation with parameters:", {
+                charityId: orgData.id,
+                amount,
+                isAnonymous,
+                isRecurring
+              });
+              
+              // Call charityService to make a general donation to the organization
+              await charityService.makeDonation({
+                charityId: orgData.id,
+                amount: amount,
+                isAnonymous: isAnonymous || false,
+                isRecurring: isRecurring || false
+              });
+              
+              const donationType = isRecurring ? 'monthly' : 'one-time';
+              toast.success(`Thank you for your ${donationType} donation of RM${amount} to ${orgData.name}!`);
+              setIsDonationModalOpen(false);
+              
+              // Optionally refresh organization data to show updated stats
+              if (!isOwnProfile && organizationIdString) {
+                const refreshedOrgData = await charityService.getCharityOrganizationById(organizationIdString);
+                setOrganization(refreshedOrgData);
+                setOrganizationCampaigns(refreshedOrgData.campaignsList || []);
+              }
+            } catch (error: any) {
+              console.error('Error making donation:', error);
+              toast.error(error.message || 'Failed to process donation. Please try again.');
+            }
           }}
         />
       )}

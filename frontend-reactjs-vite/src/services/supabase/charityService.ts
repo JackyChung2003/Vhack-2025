@@ -782,5 +782,155 @@ export const charityService = {
       console.error('Error fetching charity organization by ID:', error);
       throw error;
     }
+  },
+  
+  // Make a donation to a campaign or charity
+  makeDonation: async (donationData: {
+    campaignId?: string; // Optional - if not provided, it's a general donation to the charity
+    charityId: string;
+    amount: number;
+    donationPolicy?: string;
+    message?: string;
+    donorName?: string;
+    donorEmail?: string;
+    isAnonymous?: boolean;
+    isRecurring?: boolean;
+  }) => {
+    try {
+      // Get current authenticated user
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) throw authError;
+      if (!user) throw new Error('User not authenticated');
+
+      // Determine whether this is a campaign donation or a general charity donation
+      if (donationData.campaignId) {
+        // This is a campaign donation
+        console.log(`Processing campaign donation to campaign ID: ${donationData.campaignId}`);
+        
+        // Verify the campaign exists and get its current amount
+        const { data: campaignData, error: campaignError } = await supabase
+          .from('campaigns')
+          .select('charity_id, current_amount')
+          .eq('id', donationData.campaignId)
+          .single();
+          
+        if (campaignError) {
+          console.error('Error verifying campaign:', campaignError);
+          throw new Error('Campaign not found');
+        }
+        
+        // Create donation record for a campaign donation
+        // For campaign donations, we ONLY include campaign_id and NOT charity_id
+        // This is likely what the constraint is enforcing
+        const donationRecord = {
+          user_id: user.id,
+          campaign_id: donationData.campaignId,
+          amount: donationData.amount,
+          donation_policy: donationData.donationPolicy || null,
+          transaction_hash: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
+          message: donationData.message || null,
+          donor_name: donationData.donorName || null,
+          donor_email: donationData.donorEmail || null,
+          is_anonymous: donationData.isAnonymous || false,
+          is_recurring: donationData.isRecurring || false,
+          status: 'completed',
+          created_at: new Date().toISOString()
+        };
+        
+        console.log('Submitting campaign donation record:', donationRecord);
+        
+        // Insert the campaign donation record
+        const { data, error } = await supabase
+          .from('campaign_donations')
+          .insert(donationRecord)
+          .select()
+          .single();
+          
+        if (error) {
+          console.error('Campaign donation insertion error:', error);
+          throw error;
+        }
+        
+        // Calculate new amount
+        const newAmount = campaignData.current_amount + donationData.amount;
+        
+        // Try to update the campaign amount using a simple patch operation
+        console.log(`Updating campaign ${donationData.campaignId} amount from ${campaignData.current_amount} to ${newAmount}`);
+        
+        try {
+          // Use a basic update (patch) operation that only changes current_amount
+          const { error: updateError } = await supabase
+            .from('campaigns')
+            .update({ current_amount: newAmount })
+            .eq('id', donationData.campaignId);
+          
+          if (updateError) {
+            console.error('Error updating campaign amount:', updateError);
+            console.warn('Campaign donation was recorded, but campaign amount could not be updated automatically.');
+            console.info('The current_amount will need to be updated manually or through a database trigger.');
+          } else {
+            console.log('Campaign amount updated successfully');
+          }
+        } catch (err) {
+          console.error('Exception during campaign update:', err);
+          console.warn('Campaign donation was recorded, but campaign amount could not be updated.');
+        }
+        
+        return data;
+      } 
+      else {
+        // This is a general charity donation
+        console.log(`Processing general charity donation to charity ID: ${donationData.charityId}`);
+        
+        // Verify the charity exists
+        const { data: charityData, error: charityError } = await supabase
+          .from('users')
+          .select('id')
+          .eq('id', donationData.charityId)
+          .eq('role', 'charity')
+          .single();
+          
+        if (charityError) {
+          console.error('Error verifying charity:', charityError);
+          throw new Error('Charity not found');
+        }
+        
+        // Create donation record for a general charity donation
+        // For charity donations, we ONLY include charity_id and NOT campaign_id
+        const donationRecord = {
+          user_id: user.id,
+          charity_id: donationData.charityId,
+          amount: donationData.amount,
+          transaction_hash: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
+          message: donationData.message || null,
+          donor_name: donationData.donorName || null,
+          donor_email: donationData.donorEmail || null,
+          is_anonymous: donationData.isAnonymous || false,
+          is_recurring: donationData.isRecurring || false,
+          status: 'completed',
+          created_at: new Date().toISOString()
+        };
+        
+        console.log('Submitting charity donation record:', donationRecord);
+        
+        // Insert the charity donation record
+        const { data, error } = await supabase
+          .from('campaign_donations')
+          .insert(donationRecord)
+          .select()
+          .single();
+          
+        if (error) {
+          console.error('Charity donation insertion error:', error);
+          throw error;
+        }
+        
+        return data;
+      }
+    } catch (error) {
+      console.error('Error making donation:', error);
+      throw error;
+    }
   }
 }; 

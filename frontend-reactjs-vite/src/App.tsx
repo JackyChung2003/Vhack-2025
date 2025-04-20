@@ -15,6 +15,7 @@ import HomePage from "./modules/client/common/Dashboard";
 import ThemeToggle from "./components/Button/ThemeToggleButton";
 import CharityPage from "./modules/client/common/charity/CharityPage";
 import CampaignDetail from "./modules/client/common/charity/CampaignDetail";
+import CampaignDetailCopy from "./modules/client/common/charity/CampaignDetailCopy";
 import OrganizationDetail from "./modules/client/common/charity/OrganizationDetail";
 import DonorProfile from "./modules/client/donor/profile/DonorProfile";
 import CharityHomePage from "./modules/client/charity/CharityHomePage/CharityHomePage";
@@ -69,7 +70,7 @@ export function App() {
 					<>
 						<Route path="/login" element={<LoginPage />} />
 						<Route path="/register" element={<RegisterPage />} />
-            			<Route path="*" element={<Navigate to="/login" replace />} />
+						<Route path="*" element={<Navigate to="/login" replace />} />
 					</>
 				) : (
 					<>
@@ -78,6 +79,7 @@ export function App() {
 							<Route path="/" element={<HomePage />} />
 							<Route path="/charity" element={<CharityPage />} />
 							<Route path="/charity/:id" element={<CampaignDetail />} />
+							{/* <Route path="/charity/:id" element={<CampaignDetailCopy />} /> */}
 							<Route path="/organization/:id" element={<OrganizationDetail />} />
 							<Route path="/settings" element={<SettingsPage />} />
 						</Route>
@@ -108,21 +110,21 @@ export function App() {
 						{/* Donor-Specific Routes */}
 						<Route element={<ProtectedRoute allowedRoles={['donor']} redirectPath="/" />}>
 							<Route path="/donor/profile" element={<DonorProfile />} />
-							
+
 						</Route>
 
 						<Route path="/register" element={<RegisterPage />} />
 						<Route path="/login" element={<LoginPage />} />
-                    </>
-                )}
-				
-                {/* Default Fallback */}
-                <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+					</>
+				)}
+
+				{/* Default Fallback */}
+				<Route path="*" element={<Navigate to="/" replace />} />
+			</Routes>
 			{/* Footer */}
 			<footer className="footer">
 				<p>© Vhack2025 - All Rights Reserved</p>
-      		</footer>
+			</footer>
 		</div>
 	);
 }
