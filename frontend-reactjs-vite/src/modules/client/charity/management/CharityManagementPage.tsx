@@ -318,8 +318,7 @@ const CharityManagementPage: React.FC = () => {
                     return (
                       <div
                         key={campaign.id}
-                        className="bg-gradient-to-br from-white to-gray-50 p-4 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer"
-                        onClick={() => navigate(`/campaign/${campaign.id}`)}
+                        className="bg-gradient-to-br from-white to-gray-50 p-4 rounded-lg shadow-sm hover:shadow-md transition-all"
                       >
                         <div className="flex justify-between items-start mb-3">
             <div className="flex items-center">
@@ -447,10 +446,10 @@ const CharityManagementPage: React.FC = () => {
                             <div key={campaign.id} className="flex items-center hover:scale-105 transition-transform duration-300">
                               <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: color }}></div>
                               <span className="text-sm whitespace-nowrap">{campaign.name} ({percentage}%)</span>
-                            </div>
+                          </div>
                           );
                       })}
-                    </div>
+                        </div>
                     <div className="relative w-48 h-48">
                       {(() => {
                         // Calculate the circumference of the circle
@@ -549,7 +548,7 @@ const CharityManagementPage: React.FC = () => {
                     </div>
                   </div>
                 </div>
-
+                
                 {/* Campaign Fund Details */}
                 <div className="p-4">
                   <h3 className="text-lg font-medium text-[var(--headline)] mb-4">Campaign Fund Details</h3>
@@ -569,7 +568,11 @@ const CharityManagementPage: React.FC = () => {
                         const usedPercentage = (usedFunds / campaign.goal * 100);
 
                         return (
-                          <div key={campaign.id} className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all">
+                          <div 
+                            key={campaign.id} 
+                            className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer transform hover:-translate-y-1 active:translate-y-0"
+                            onClick={() => navigate(`/campaign/${campaign.id}/transactions`)}
+                          >
                             <div className="flex items-center gap-3 mb-3">
                               <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                                 <FaChartPie className="text-blue-600" />
@@ -608,7 +611,7 @@ const CharityManagementPage: React.FC = () => {
                                 style={{ width: `${usedPercentage}%` }}
                                 title={`Used: RM${usedFunds.toLocaleString()}`}
                               />
-                            </div>
+                  </div>
                   
                             {/* Fund Status Legend */}
                             <div className="mt-3 flex items-center gap-6 text-sm">
