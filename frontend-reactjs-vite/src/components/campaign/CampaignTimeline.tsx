@@ -34,6 +34,7 @@ interface CampaignTimelineProps {
     deadline?: string;
     daysLeft?: number;
     startDate?: string;
+    todaysDonations?: number; // Amount donated today
 }
 
 const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
@@ -44,7 +45,8 @@ const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
     goalAmount,
     deadline,
     daysLeft,
-    startDate
+    startDate,
+    todaysDonations = 0
 }) => {
     // Add custom animation style for subtle pulse and smaller ping
     const customAnimations = `
@@ -291,18 +293,27 @@ const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
             }
         ];
 
-        // Add campaign progress entry based on current progress
-        if (currentAmount && goalAmount) {
-            defaultEntries.push({
-                id: 'current-progress',
-                date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                title: `Current Progress: ${progressPercentage}%`,
-                description: `RM${currentAmount.toLocaleString()} raised of RM${goalAmount.toLocaleString()} goal`,
-                icon: <FaMoneyBillWave />,
-                color: 'bg-orange-500',
-                type: 'status'
-            });
-        }
+        // Always add a Today entry showing current donation progress
+        const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+        // Enhanced Today entry with progress information
+        defaultEntries.push({
+            id: 'today-progress',
+            date: today,
+            title: `Campaign Progress`,
+            description: currentAmount && goalAmount
+                ? `Current funding: RM${currentAmount.toLocaleString()} of RM${goalAmount.toLocaleString()} goal${todaysDonations > 0 ? ` • RM${todaysDonations.toLocaleString()} donated today` : ''}`
+                : 'Current funding status',
+            icon: <FaChartLine />,
+            color: 'bg-blue-600',
+            type: 'status',
+            statusTag: {
+                text: 'Today',
+                color: 'bg-blue-100 text-blue-800'
+            },
+            // Add amount to represent the goal for visualization
+            amount: goalAmount
+        });
 
         // Add deadline entry if available
         if (deadline) {
@@ -343,7 +354,7 @@ const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
 
     // Add this function to determine if the milestone is the current progress indicator
     const isCurrentProgressMilestone = (milestoneId: string) => {
-        return milestoneId === 'current-progress';
+        return milestoneId === 'today-progress';
     };
 
     // Group related activities by their milestone
@@ -529,11 +540,6 @@ const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
                                                                 {milestone.statusTag.text}
                                                             </span>
                                                         )}
-                                                        {isCurrent && (
-                                                            <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-blue-100 text-blue-800">
-                                                                Current
-                                                            </span>
-                                                        )}
                                                     </div>
                                                     <p className="text-xs text-gray-500 mt-1">
                                                         {milestone.id.includes('percent') ?
@@ -555,6 +561,82 @@ const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
                                                     </button>
                                                 )}
                                             </div>
+
+                                            {/* Add progress bar for today's entry */}
+                                            {milestone.id === 'today-progress' && (
+                                                <div className="mt-4 border-t border-gray-200 pt-4">
+                                                    <div className="flex items-baseline justify-between mb-2">
+                                                        <div className="font-medium text-gray-700 flex items-center gap-1.5">
+                                                            <span className="text-2xl font-bold text-blue-600">{progressPercentage}%</span>
+                                                            <span className="text-sm">completed</span>
+                                                        </div>
+                                                        {currentAmount && goalAmount && (
+                                                            <div className="text-sm text-gray-600">
+                                                                <span className="font-semibold text-blue-600">RM{currentAmount.toLocaleString()}</span>
+                                                                <span className="mx-1">of</span>
+                                                                <span>RM{goalAmount.toLocaleString()}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Today's donations */}
+                                                    {todaysDonations > 0 && (
+                                                        <div className="mb-3 bg-green-50 p-2 rounded-md border border-green-100 flex items-center justify-between">
+                                                            <div className="flex items-center text-green-700">
+                                                                <FaMoneyBillWave className="mr-2" />
+                                                                <span className="text-sm font-medium">Today's Donations</span>
+                                                            </div>
+                                                            <span className="text-sm font-bold text-green-700">
+                                                                RM{todaysDonations.toLocaleString()}
+                                                            </span>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Progress bar with animated gradient and smoother design */}
+                                                    <div className="h-3.5 w-full bg-gray-100 rounded-full overflow-hidden shadow-inner relative">
+                                                        {/* Base progress */}
+                                                        <div
+                                                            className="h-full bg-gradient-to-r from-blue-500 via-blue-400 to-blue-600 rounded-full shadow-sm transition-all duration-1000 ease-in-out"
+                                                            style={{ width: `${Math.min(progressPercentage, 100)}%` }}
+                                                        ></div>
+
+                                                        {/* Today's progress overlay - only show if we have today's donations */}
+                                                        {todaysDonations > 0 && goalAmount && (
+                                                            <div
+                                                                className="h-full bg-gradient-to-r from-green-500 to-green-600 rounded-r-full shadow-sm absolute top-0 left-0 transition-all duration-1000 ease-in-out"
+                                                                style={{
+                                                                    width: `${Math.min((todaysDonations / goalAmount) * 100, 100)}%`,
+                                                                    opacity: 0.8
+                                                                }}
+                                                            ></div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Progress milestones */}
+                                                    <div className="flex justify-between mt-2">
+                                                        <div className="flex flex-col items-center">
+                                                            <div className={`h-1.5 w-1.5 rounded-full ${progressPercentage >= 0 ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
+                                                            <span className="text-xs text-gray-500 mt-1">0%</span>
+                                                        </div>
+                                                        <div className="flex flex-col items-center">
+                                                            <div className={`h-1.5 w-1.5 rounded-full ${progressPercentage >= 25 ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
+                                                            <span className="text-xs text-gray-500 mt-1">25%</span>
+                                                        </div>
+                                                        <div className="flex flex-col items-center">
+                                                            <div className={`h-1.5 w-1.5 rounded-full ${progressPercentage >= 50 ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
+                                                            <span className="text-xs text-gray-500 mt-1">50%</span>
+                                                        </div>
+                                                        <div className="flex flex-col items-center">
+                                                            <div className={`h-1.5 w-1.5 rounded-full ${progressPercentage >= 75 ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
+                                                            <span className="text-xs text-gray-500 mt-1">75%</span>
+                                                        </div>
+                                                        <div className="flex flex-col items-center">
+                                                            <div className={`h-1.5 w-1.5 rounded-full ${progressPercentage >= 100 ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
+                                                            <span className="text-xs text-gray-500 mt-1">100%</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
 
                                         {/* Related activities */}
