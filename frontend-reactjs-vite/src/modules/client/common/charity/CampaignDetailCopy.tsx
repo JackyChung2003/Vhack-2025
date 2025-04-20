@@ -2,13 +2,14 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { FaCalendarAlt, FaMoneyBillWave, FaArrowLeft, FaHandHoldingHeart, FaUsers, FaChartLine, FaHistory, FaBuilding, FaEdit, FaTrash, FaComments, FaClock, FaThumbsUp, FaPlus, FaMapMarkerAlt, FaShare, FaTrophy, FaExchangeAlt, FaTimes, FaHashtag, FaTags, FaFire, FaUserCircle, FaCheck, FaFileInvoice, FaFlag, FaLock } from "react-icons/fa";
 import { useRole } from "../../../../contexts/RoleContext";
-import { charityService, Campaign as CampaignType } from "../../../../services/supabase/charityService";
+import { mockCampaigns, mockDonorContributions, mockOrganizations, mockDonationTrackers } from "../../../../utils/mockData";
 import DonationModal from "../../../../components/modals/DonationModal";
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
 // Import the community components
-import PostFeed from "../../common/community/components/PostFeed";
-import DonationLeaderboard from "../../common/community/components/DonationLeaderboard";
+import PostFeed from "../community/components/PostFeed";
+import DonationLeaderboard from "../community/components/DonationLeaderboard";
+import TransactionTimeline from "../community/components/TransactionTimeline";
 import DonationTracker from "../../../../components/donation/DonationTracker";
 import MyContributionPopup from '../../../../components/modals/MyContributionPopup';
 // Import our new CampaignTimeline component
@@ -20,7 +21,7 @@ import DonorLeaderboardAndTracker from '../../../../components/donation/DonorLea
 const LeaderboardModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
-  campaignId: string;
+  campaignId: number;
   campaignName: string;
 }> = ({ isOpen, onClose, campaignId, campaignName }) => {
   if (!isOpen) return null;
@@ -101,32 +102,27 @@ const LeaderboardModal: React.FC<{
   );
 };
 
-// Define a type for donor contribution
-interface DonorContribution {
-  totalAmount: number;
-  contributions: Array<{
-    date: string;
-    amount: number;
-    id: string;  // Add id field to match MyContributionPopup requirements
-  }>;
-  percentageOfTotal: string;
+// Define types for the campaign and related objects
+interface Campaign {
+  id: number;
+  name: string;
+  description: string;
+  goal: number;
+  currentContributions: number;
+  deadline: string;
+  organizationId: number;
+  startDate?: string;
 }
 
-const CampaignDetail: React.FC = () => {
+const CampaignDetailCopy: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const { userRole } = useRole();
-
-  // State for campaign data
-  const [campaign, setCampaign] = useState<CampaignType | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
+  const campaignId = parseInt(id || "0");
   const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
   const [showFullLeaderboard, setShowFullLeaderboard] = useState(false);
   const [isContributionPopupOpen, setIsContributionPopupOpen] = useState(false);
-
   // Add new state for community features
   const [activeSection, setActiveSection] = useState<'feed'>('feed');
 
@@ -136,49 +132,15 @@ const CampaignDetail: React.FC = () => {
     return params.get('tab') === 'community' ? 'community' : 'transactions';
   });
 
-  // Fetch campaign data
-  useEffect(() => {
-    const fetchCampaign = async () => {
-      if (!id) {
-        setError("Campaign ID is missing");
-        setLoading(false);
-        return;
-      }
+  // Find the campaign from our centralized mock data
+  const campaign = mockCampaigns.find(c => c.id === campaignId) as Campaign;
 
-      try {
-        setLoading(true);
-        const campaignData = await charityService.getCampaignById(id);
-        setCampaign(campaignData);
-        setError(null);
-      } catch (err: any) {
-        console.error("Error fetching campaign:", err);
-        setError(err.message || "Failed to load campaign. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCampaign();
-  }, [id]);
-
-  // Show loading state
-  if (loading) {
-    return (
-      <div className="p-6 bg-[var(--background)] min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--highlight)] mb-4"></div>
-          <p className="text-[var(--paragraph)]">Loading campaign...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // If campaign not found or error, show error or redirect
-  if (error || !campaign) {
+  // If campaign not found, show error or redirect
+  if (!campaign) {
     return (
       <div className="p-6 bg-[var(--background)] text-[var(--paragraph)]">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-2xl font-bold mb-4">{error || "Campaign not found"}</h1>
+          <h1 className="text-2xl font-bold mb-4">Campaign not found</h1>
           <button
             onClick={() => navigate('/charity')}
             className="button flex items-center gap-2 px-6 py-2 mx-auto"
@@ -191,33 +153,30 @@ const CampaignDetail: React.FC = () => {
     );
   }
 
-  // Use charity data from campaign
-  const charity = campaign.charity || null;
+  // Find the organization for this campaign
+  const organization = mockOrganizations.find(org => org.id === campaign.organizationId);
 
-  // Create mock donor contribution data for all donors
-  const donorContribution: DonorContribution = {
-    totalAmount: 250,
-    contributions: [
-      { id: '1', date: '2023-11-15T10:30:00', amount: 150 },
-      { id: '2', date: '2023-12-20T15:45:00', amount: 100 }
-    ],
-    percentageOfTotal: '8.5'
-  };
+  // Check if the donor has contributed to this campaign
+  const supportedCampaign = mockDonorContributions.supportedCampaigns.find(
+    (c) => c.id === campaignId
+  );
 
-  // Calculate progress percentage
-  const progress = (campaign.current_amount / campaign.target_amount) * 100;
+  // Get donor contribution details if they exist
+  const donorContribution = supportedCampaign ? {
+    totalAmount: supportedCampaign.donorContribution,
+    contributions: mockDonorContributions.contributionDetails[campaignId] || [],
+    percentageOfTotal: ((supportedCampaign.donorContribution / campaign.currentContributions) * 100).toFixed(1)
+  } : null;
 
-  // Calculate days left (if deadline exists)
-  const timeLeft = campaign.deadline
-    ? Math.max(0, Math.floor((new Date(campaign.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
-    : 0;
+  const progress = (campaign.currentContributions / campaign.goal) * 100;
+  const timeLeft = Math.max(0, Math.floor((new Date(campaign.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
 
-  // Check if campaign is active
-  const isCampaignActive = campaign.status === 'active';
+  // Add this line to define isCampaignActive
+  const isCampaignActive = timeLeft > 0 && campaign.currentContributions < campaign.goal;
 
   const handleDonationComplete = (amount: number, donationPolicy?: string) => {
     // In a real app, you would update the campaign data after a successful donation
-    console.log(`Donation of RM${amount} completed for campaign: ${campaign.title}`);
+    console.log(`Donation of RM${amount} completed for campaign: ${campaign.name}`);
     console.log(`Donation policy: ${donationPolicy || 'N/A'}`);
 
     // Add donation to campaign-specific or always-donate total based on policy
@@ -242,15 +201,15 @@ const CampaignDetail: React.FC = () => {
 
   // Handle organization click to navigate to org page
   const handleOrganizationClick = () => {
-    if (charity) {
-      navigate(`/organization/${charity.id}`);
+    if (organization) {
+      navigate(`/organization/${organization.id}`);
     }
   };
 
   // Update the tab change handler to update the URL
   const handleTabChange = (tab: 'transactions' | 'community') => {
     setActiveMainTab(tab);
-    navigate(`/charity/${id}?tab=${tab}`, { replace: true });
+    navigate(`/charity/${campaignId}?tab=${tab}`, { replace: true });
   };
 
   return (
@@ -267,41 +226,133 @@ const CampaignDetail: React.FC = () => {
 
         {/* Main campaign header - full width */}
         <div className="bg-gradient-to-r from-[var(--highlight)] to-[var(--secondary)] p-8 text-white rounded-t-xl shadow-lg mb-6">
-          <h1 className="text-3xl font-bold mb-2">{campaign.title}</h1>
+          <h1 className="text-3xl font-bold mb-2">{campaign.name}</h1>
           <p className="text-white text-opacity-90 mb-4">{campaign.description}</p>
 
           {/* Progress bar */}
-          <div className="mb-4">
-            <div className="w-full bg-white bg-opacity-30 rounded-full h-4 mb-2">
-              <div
-                className="h-full rounded-full bg-white"
-                style={{ width: `${progress}%` }}
-              ></div>
-            </div>
-            <div className="flex justify-between items-center text-sm text-white">
-              <span>RM{campaign.current_amount} raised</span>
-              <span>RM{campaign.target_amount} goal</span>
-            </div>
+          <div className="mb-6">
+            {/* Get campaign tracker data */}
+            {(() => {
+              // Find campaign tracker or create a placeholder if not found
+              const tracker = mockDonationTrackers.find(t =>
+                t.recipientId === campaignId &&
+                t.recipientType === 'campaign'
+              ) || {
+                id: 9999,
+                recipientId: campaignId,
+                recipientType: 'campaign',
+                donations: {
+                  total: campaign.currentContributions,
+                  count: 45,
+                  campaignSpecificTotal: Math.round(campaign.currentContributions * 0.6), // 60% is campaign-specific
+                  alwaysDonateTotal: Math.round(campaign.currentContributions * 0.4), // 40% is always-donate
+                  timeline: { daily: [], weekly: [], monthly: [] },
+                  topDonors: []
+                }
+              };
+
+              // Calculate progress percentages
+              const campaignSpecificTotal = tracker.donations.campaignSpecificTotal || 0;
+              const alwaysDonateTotal = tracker.donations.alwaysDonateTotal || 0;
+              const campaignSpecificPercent = (campaignSpecificTotal / campaign.goal) * 100;
+              const alwaysDonatePercent = (alwaysDonateTotal / campaign.goal) * 100;
+
+              return (
+                <>
+                  {/* Top row with legend and goal */}
+                  <div className="flex justify-between items-center mb-3">
+                    {/* Legend */}
+                    <div className="flex gap-4 text-sm text-white">
+                      {/* Campaign-specific */}
+                      <div className="flex items-center gap-2 bg-white bg-opacity-10 px-2 py-1 rounded-lg">
+                        <div className="w-3 h-3 rounded-sm bg-gradient-to-r from-green-600 to-green-400 shadow-sm"></div>
+                        <div className="font-medium flex items-center gap-1">
+                          <FaLock className="text-green-300" size={10} />
+                          <span>Campaign-Specific</span>
+                        </div>
+                      </div>
+
+                      {/* Always-donate */}
+                      <div className="flex items-center gap-2 bg-white bg-opacity-10 px-2 py-1 rounded-lg">
+                        <div className="w-3 h-3 rounded-sm bg-gradient-to-r from-blue-500 to-indigo-500 shadow-sm"></div>
+                        <div className="font-medium flex items-center gap-1">
+                          <FaHandHoldingHeart className="text-blue-300" size={10} />
+                          <span>Always-Donate</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Goal indicator */}
+                    <div className="bg-white bg-opacity-20 px-3 py-1 rounded-full text-sm text-white flex items-center gap-1">
+                      <span className="text-white text-opacity-80">Goal:</span>
+                      <span className="font-bold">RM{campaign.goal.toLocaleString()}</span>
+                    </div>
+                  </div>
+
+                  {/* Enhanced progress bar with shadow and glass effect */}
+                  <div className="w-full bg-white bg-opacity-20 backdrop-blur-sm rounded-xl h-12 overflow-hidden flex p-1 shadow-inner relative">
+                    {/* Campaign-specific portion with gradient */}
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${campaignSpecificPercent}%` }}
+                      transition={{ duration: 1, ease: "easeOut" }}
+                      className="h-full rounded-l-lg bg-gradient-to-r from-green-600 to-green-400 shadow-lg flex items-center justify-center"
+                      style={{
+                        width: `${campaignSpecificPercent}%`,
+                        maxWidth: "100%"
+                      }}
+                    >
+                      {campaignSpecificPercent > 15 && (
+                        <span className="text-sm font-bold text-white drop-shadow-md px-2">
+                          RM{campaignSpecificTotal.toLocaleString()}
+                        </span>
+                      )}
+                    </motion.div>
+
+                    {/* Always-donate portion with gradient */}
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${alwaysDonatePercent}%` }}
+                      transition={{ duration: 1, ease: "easeOut", delay: 0.3 }}
+                      className={`h-full ${campaignSpecificPercent > 0 ? "" : "rounded-l-lg"} rounded-r-lg bg-gradient-to-r from-blue-500 to-indigo-500 shadow-lg flex items-center justify-center`}
+                      style={{
+                        width: `${alwaysDonatePercent}%`,
+                        maxWidth: `${100 - campaignSpecificPercent}%`
+                      }}
+                    >
+                      {alwaysDonatePercent > 15 && (
+                        <span className="text-sm font-bold text-white drop-shadow-md px-2">
+                          RM{alwaysDonateTotal.toLocaleString()}
+                        </span>
+                      )}
+                    </motion.div>
+
+                    {/* Subtle grid overlay for texture */}
+                    <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTAgMCBMIDEwIDEwIE0gMTAgMCBMIDAgMTAiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxIiBmaWxsPSJub25lIiAvPjwvc3ZnPg==')]"></div>
+                  </div>
+                </>
+              );
+            })()}
           </div>
 
           {/* Campaign stats */}
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-white bg-opacity-20 p-3 rounded-lg text-center">
-              <div className="text-2xl font-bold">RM{campaign.current_amount}</div>
+              <div className="text-2xl font-bold">RM{campaign.currentContributions}</div>
               <div className="text-sm">Raised</div>
             </div>
             <div className="bg-white bg-opacity-20 p-3 rounded-lg text-center">
-              <div className="text-2xl font-bold">{campaign.deadline ? timeLeft : 'No'}</div>
+              <div className="text-2xl font-bold">{timeLeft}</div>
               <div className="text-sm">Days Left</div>
             </div>
             <div className="bg-white bg-opacity-20 p-3 rounded-lg text-center">
-              <div className="text-2xl font-bold">-</div>
+              <div className="text-2xl font-bold">42</div>
               <div className="text-sm">Donors</div>
             </div>
           </div>
 
-          {/* User's donation - show for all donors */}
-          {userRole === 'donor' && (
+          {/* User's donation - only show if donor has contributed */}
+          {userRole === 'donor' && donorContribution && (
             <div className="mt-4 bg-white bg-opacity-20 p-4 rounded-lg flex justify-between items-center">
               <div className="flex items-center">
                 {/* User avatar/icon */}
@@ -335,55 +386,49 @@ const CampaignDetail: React.FC = () => {
           {/* Left column - Main campaign information - now spans 2 columns always */}
           <div className="lg:col-span-2 space-y-6">
             {/* Organization info - now clickable */}
-            {charity && (
-              <div
-                className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-lg hover:border-[var(--highlight)] group"
-                onClick={handleOrganizationClick}
-                role="button"
-                aria-label={`View ${charity?.name || "Organization"} details`}
-              >
-                <div className="p-4 border-b border-[var(--stroke)] bg-gradient-to-r from-[var(--highlight)] to-[var(--secondary)] bg-opacity-10 flex justify-between items-center">
-                  <h3 className="text-lg font-bold text-[var(--headline)]">Organized by</h3>
-                  <span className="text-sm text-[var(--highlight)] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center gap-1">
-                    View Organization
-                    <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </span>
+            <div
+              className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-lg hover:border-[var(--highlight)] group"
+              onClick={handleOrganizationClick}
+              role="button"
+              aria-label={`View ${organization?.name || "Organization"} details`}
+            >
+              <div className="p-4 border-b border-[var(--stroke)] bg-gradient-to-r from-[var(--highlight)] to-[var(--secondary)] bg-opacity-10 flex justify-between items-center">
+                <h3 className="text-lg font-bold text-[var(--headline)]">Organized by</h3>
+                <span className="text-sm text-[var(--highlight)] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center gap-1">
+                  View Organization
+                  <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </span>
+              </div>
+              <div className="p-6 group-hover:bg-[var(--background)] transition-colors duration-300">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-[var(--highlight)] bg-opacity-20 rounded-full flex items-center justify-center shadow-md group-hover:bg-opacity-30 transition-all duration-300">
+                    <FaBuilding className="text-[var(--highlight)] text-2xl" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-xl text-[var(--headline)] group-hover:text-[var(--highlight)] transition-colors duration-300">{organization?.name || "Organization"}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="bg-[var(--highlight)] bg-opacity-10 text-white text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
+                        </svg>
+                        Verified Organization
+                      </span>
+                      <span className="text-[var(--paragraph)] text-sm">Since 2020</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="p-6 group-hover:bg-[var(--background)] transition-colors duration-300">
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 bg-[var(--highlight)] bg-opacity-20 rounded-full flex items-center justify-center shadow-md group-hover:bg-opacity-30 transition-all duration-300">
-                      <FaBuilding className="text-[var(--highlight)] text-2xl" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-xl text-[var(--headline)] group-hover:text-[var(--highlight)] transition-colors duration-300">{charity?.name || "Organization"}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        {charity.verified && (
-                          <span className="bg-[var(--highlight)] bg-opacity-10 text-white text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
-                            </svg>
-                            Verified Organization
-                          </span>
-                        )}
-                        {charity.founded && (
-                          <span className="text-[var(--paragraph)] text-sm">Since {charity.founded}</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-4 border-t border-[var(--stroke)] pt-4 text-sm text-[var(--paragraph)]">
-                    <p className="line-clamp-2">
-                      {charity?.description || "This organization is dedicated to making a positive impact through various campaigns and initiatives."}
-                    </p>
-                  </div>
+                <div className="mt-4 border-t border-[var(--stroke)] pt-4 text-sm text-[var(--paragraph)]">
+                  <p className="line-clamp-2">
+                    {organization?.description || "This organization is dedicated to making a positive impact through various campaigns and initiatives."}
+                  </p>
                 </div>
               </div>
-            )}
+            </div>
 
-            {/* Tabbed section for Transactions and Community - show for all donors now */}
-            {(userRole === 'charity' || userRole === 'donor') ? (
+            {/* Tabbed section for Transactions and Community - only show for charity users or donors who have contributed */}
+            {(userRole === 'charity' || (userRole === 'donor' && donorContribution)) ? (
               <div className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] overflow-hidden">
                 <div className="border-b border-[var(--stroke)]">
                   <div className="flex">
@@ -413,17 +458,14 @@ const CampaignDetail: React.FC = () => {
                 <div className="p-6">
                   {activeMainTab === 'transactions' && (
                     <>
-                      <h2 className="text-xl font-bold text-[var(--headline)] mb-2">Campaign Transactions</h2>
-                      <p className="text-[var(--paragraph)] text-sm mb-4">
-                        Track how funds are being used in this campaign
-                      </p>
+                      {/* Use the redesigned CampaignTimeline component */}
                       <CampaignTimeline
-                        campaignName={campaign.title}
-                        currentAmount={campaign.current_amount}
-                        goalAmount={campaign.target_amount}
+                        campaignName=""
+                        currentAmount={campaign.currentContributions}
+                        goalAmount={campaign.goal}
                         deadline={campaign.deadline}
                         daysLeft={timeLeft}
-                        startDate={campaign.created_at}
+                        startDate={campaign.startDate || `${new Date(Date.now() - 30 * 86400000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`}
                       />
                     </>
                   )}
@@ -460,7 +502,7 @@ const CampaignDetail: React.FC = () => {
                       </div>
 
                       {/* Community Content Based on Selected View */}
-                      {activeSection === 'feed' && <PostFeed communityId={campaign.id} communityType="campaign" />}
+                      {activeSection === 'feed' && <PostFeed communityId={Number(id)} communityType="campaign" />}
                     </>
                   )}
                 </div>
@@ -494,43 +536,36 @@ const CampaignDetail: React.FC = () => {
 
           {/* Right column - Supplementary information */}
           <div className="space-y-6">
-            {/* Campaign details - removed */}
-
-            {/* Donor Leaderboard - show for all donors */}
-            {(userRole === 'charity' || userRole === 'donor') ? (
+            {/* Combined Donor Leaderboard and Donation Tracker - only show for charity users or donors who have contributed */}
+            {(userRole === 'charity' || (userRole === 'donor' && donorContribution)) ? (
               <div className="mb-8">
-                {/* We'll create a mock tracker based on campaign data for now */}
                 <DonorLeaderboardAndTracker
-                  tracker={{
-                    id: parseInt(campaign.id),
-                    recipientId: parseInt(campaign.id),
-                    recipientType: 'campaign',
-                    donations: {
-                      total: campaign.current_amount,
-                      count: 45, // This would come from a real donor count
-                      campaignSpecificTotal: Math.round(campaign.current_amount * 0.6), // 60% is campaign-specific - this is a placeholder
-                      alwaysDonateTotal: Math.round(campaign.current_amount * 0.4), // 40% is always-donate - this is a placeholder
-                      timeline: {
-                        daily: [
-                          // Mock donation history for display
-                          { date: new Date().toISOString().split('T')[0], amount: Math.round(campaign.current_amount * 0.2), donationPolicy: 'campaign-specific' },
-                          { date: new Date(Date.now() - 86400000).toISOString().split('T')[0], amount: Math.round(campaign.current_amount * 0.1), donationPolicy: 'always-donate' },
-                          { date: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0], amount: Math.round(campaign.current_amount * 0.15), donationPolicy: 'campaign-specific', isRecurring: true }
-                        ],
-                        weekly: [{ week: new Date().toISOString().split('T')[0].slice(0, 7) + '-W' + Math.ceil(new Date().getDate() / 7), amount: Math.round(campaign.current_amount * 0.5) }],
-                        monthly: [{ month: new Date().toISOString().split('T')[0].slice(0, 7), amount: campaign.current_amount }]
-                      },
-                      topDonors: [
-                        // Mock top donors for demonstration
-                        { donorId: 1, name: "Sarah Johnson", amount: Math.round(campaign.current_amount * 0.25), lastDonation: new Date(Date.now() - 2 * 86400000).toISOString() },
-                        { donorId: 2, name: "Michael Chen", amount: Math.round(campaign.current_amount * 0.18), lastDonation: new Date(Date.now() - 3 * 86400000).toISOString() },
-                        { donorId: 3, name: "Priya Sharma", amount: Math.round(campaign.current_amount * 0.15), lastDonation: new Date(Date.now() - 5 * 86400000).toISOString() },
-                        { donorId: 4, name: "David Brown", amount: Math.round(campaign.current_amount * 0.10), lastDonation: new Date(Date.now() - 6 * 86400000).toISOString() },
-                        { donorId: 5, name: "Emma Wilson", amount: Math.round(campaign.current_amount * 0.05), lastDonation: new Date(Date.now() - 7 * 86400000).toISOString() }
-                      ]
+                  tracker={
+                    mockDonationTrackers.find(t =>
+                      t.recipientId === campaignId &&
+                      t.recipientType === 'campaign'
+                    ) || {
+                      id: 0,
+                      recipientId: campaignId,
+                      recipientType: 'campaign',
+                      donations: {
+                        total: campaign.currentContributions,
+                        count: 45,
+                        campaignSpecificTotal: Math.round(campaign.currentContributions * 0.6),
+                        alwaysDonateTotal: Math.round(campaign.currentContributions * 0.4),
+                        timeline: {
+                          daily: [
+                            { date: new Date().toISOString().split('T')[0], amount: 500, donationPolicy: 'campaign-specific' },
+                            { date: new Date(Date.now() - 86400000).toISOString().split('T')[0], amount: 300, donationPolicy: 'always-donate' }
+                          ],
+                          weekly: [{ week: '2025-W12', amount: 1500 }],
+                          monthly: [{ month: '2025-03', amount: 4500 }]
+                        },
+                        topDonors: []
+                      }
                     }
-                  }}
-                  userDonorId={userRole === 'donor' ? 1 : undefined} // In a real app, this would be the actual donor ID
+                  }
+                  userDonorId={userRole === 'donor' ? 1 : undefined}
                 />
               </div>
             ) : (
@@ -554,30 +589,44 @@ const CampaignDetail: React.FC = () => {
                 </div>
               </div>
             )}
-
-            {/* Donation Tracker - temporarily disabled until real data is available */}
-            {false && (userRole === 'charity' || (userRole === 'donor' && donorContribution)) && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="mb-8"
-              >
-                <h3 className="text-xl font-bold text-[var(--headline)] mb-4 flex items-center gap-2">
-                  <FaChartLine className="text-[var(--highlight)]" />
-                  Donation Breakdown
-                </h3>
-
-                <div className="max-w-full overflow-hidden">
-                  <p className="text-[var(--paragraph)]">
-                    Donation tracking data will be available soon.
-                  </p>
-                </div>
-              </motion.div>
-            )}
           </div>
         </div>
       </div>
+
+      {/* Donation Modal */}
+      <DonationModal
+        isOpen={isDonationModalOpen}
+        onClose={() => setIsDonationModalOpen(false)}
+        campaignId={campaignId}
+        campaignName={campaign.name}
+        organizationId={campaign.organizationId}
+        organizationName={organization?.name}
+        onDonationComplete={handleDonationComplete}
+      />
+
+      {/* Leaderboard Modal */}
+      <LeaderboardModal
+        isOpen={showFullLeaderboard}
+        onClose={() => setShowFullLeaderboard(false)}
+        campaignId={campaignId}
+        campaignName={campaign.name}
+      />
+
+      {/* My Contributions Popup */}
+      {userRole === 'donor' && donorContribution && (
+        <MyContributionPopup
+          isOpen={isContributionPopupOpen}
+          onClose={() => setIsContributionPopupOpen(false)}
+          totalContributed={donorContribution.totalAmount}
+          donationsCount={donorContribution.contributions.length}
+          percentageOfTotal={parseFloat(donorContribution.percentageOfTotal)}
+          contributions={donorContribution.contributions.map(contribution => ({
+            date: contribution.date,
+            amount: contribution.amount,
+            id: `donation-${contribution.date}-${contribution.amount}` // Generate a unique ID
+          }))}
+        />
+      )}
 
       {/* Floating Donate Now button - only show for active campaigns */}
       {userRole === 'donor' && isCampaignActive && (
@@ -611,37 +660,8 @@ const CampaignDetail: React.FC = () => {
           </button>
         </motion.div>
       )}
-
-      {/* Donation Modal */}
-      <DonationModal
-        isOpen={isDonationModalOpen}
-        onClose={() => setIsDonationModalOpen(false)}
-        campaignId={campaign.id}
-        campaignName={campaign.title}
-        organizationId={campaign.charity_id}
-        organizationName={charity?.name}
-        onDonationComplete={handleDonationComplete}
-      />
-
-      {/* Leaderboard Modal */}
-      <LeaderboardModal
-        isOpen={showFullLeaderboard}
-        onClose={() => setShowFullLeaderboard(false)}
-        campaignId={campaign.id}
-        campaignName={campaign.title}
-      />
-
-      {/* MyContributionPopup modal */}
-      <MyContributionPopup
-        isOpen={isContributionPopupOpen}
-        onClose={() => setIsContributionPopupOpen(false)}
-        contributions={donorContribution.contributions}
-        totalContributed={donorContribution.totalAmount}
-        donationsCount={donorContribution.contributions.length}
-        percentageOfTotal={parseFloat(donorContribution.percentageOfTotal)}
-      />
     </div>
   );
 };
 
-export default CampaignDetail; 
+export default CampaignDetailCopy; 

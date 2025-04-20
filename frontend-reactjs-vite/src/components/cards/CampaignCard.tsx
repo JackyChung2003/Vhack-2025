@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { FaCalendarAlt, FaMoneyBillWave, FaTag } from "react-icons/fa";
 
 interface CampaignCardProps {
-  id: number;
+  id: string | number;
   name: string;
   description: string;
   goal: number;

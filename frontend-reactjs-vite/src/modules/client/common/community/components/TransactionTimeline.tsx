@@ -9,7 +9,7 @@ import {
 } from "react-icons/fa";
 
 interface TransactionTimelineProps {
-  communityId: number;
+  communityId: string | number;
   communityType: string;
 }
 

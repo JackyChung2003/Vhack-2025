@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { 
   FaHandHoldingHeart, 
   FaPlus, 
@@ -16,7 +16,24 @@ import {
   FaChartPie,
   FaInfoCircle,
   FaExchangeAlt,
-  FaArrowRight
+  FaArrowRight,
+  FaUsers,
+  FaComments,
+  FaBuilding,
+  FaHistory,
+  FaChartLine,
+  FaTrophy,
+  FaMapMarkerAlt,
+  FaArrowUp,
+  FaUserFriends,
+  FaShoppingCart,
+  FaBoxOpen,
+  FaEnvelope,
+  FaPhone,
+  FaLink,
+  FaTag,
+  FaPercentage,
+  FaArrowLeft
 } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { mockCampaigns, mockOrganizations, Campaign, mockDonationTrackers } from "../../../../utils/mockData";
@@ -28,14 +45,27 @@ const CURRENT_CHARITY_ORG_ID = 1;
 
 const CharityManagementPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddCampaignModal, setShowAddCampaignModal] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'completed' | 'expired'>('all');
+  const [filterStatus, setFilterStatus] = useState<string>("all");
   const [sortBy, setSortBy] = useState<'deadline' | 'goal' | 'progress'>('deadline');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [showFilters, setShowFilters] = useState(false);
   const [showFundDetails, setShowFundDetails] = useState(true);
+  const [activeTab, setActiveTab] = useState<'campaigns' | 'funds' | 'vendors'>('campaigns');
+  
+  // Handle URL parameters for active tab
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tabParam = params.get('tab');
+    if (tabParam && ['campaigns', 'funds', 'vendors'].includes(tabParam)) {
+      setActiveTab(tabParam as 'campaigns' | 'funds' | 'vendors');
+      // Scroll to top of the page
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [location]);
   
   // Get the current organization
   const currentOrganization = mockOrganizations.find(org => org.id === CURRENT_CHARITY_ORG_ID);
@@ -73,63 +103,16 @@ const CharityManagementPage: React.FC = () => {
     percentage: Math.round((campaign.currentContributions / campaignFundsRaised) * 100) || 0
   })).sort((a, b) => b.amount - a.amount);
 
-  // Mock fund usage data
-  const fundUsageData = [
-    { category: "Program Services", percentage: 75, color: "bg-blue-500" },
-    { category: "Administrative", percentage: 15, color: "bg-green-500" },
-    { category: "Fundraising", percentage: 10, color: "bg-yellow-500" }
-  ];
-
-  // Mock recent fund activities
-  const recentFundActivities = [
-    { id: 1, type: "Donation", amount: 5000, date: "2025-03-20", description: "Major donor contribution" },
-    { id: 2, type: "Withdrawal", amount: 2500, date: "2025-03-18", description: "Clean Water Initiative expenses" },
-    { id: 3, type: "Transfer", amount: 1500, date: "2025-03-15", description: "Funds allocated to Disaster Relief" }
-  ];
-  
-  // Apply filters and search
-  const filteredCampaigns = organizationCampaigns
-    .filter(campaign => {
-      // Search filter
-      const matchesSearch = campaign.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        campaign.description.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      // Status filter
-      if (filterStatus === 'all') return matchesSearch;
-      if (filterStatus === 'active') return matchesSearch && new Date(campaign.deadline) > new Date() && campaign.currentContributions < campaign.goal;
-      if (filterStatus === 'completed') return matchesSearch && campaign.currentContributions >= campaign.goal;
-      if (filterStatus === 'expired') return matchesSearch && new Date(campaign.deadline) <= new Date() && campaign.currentContributions < campaign.goal;
-      
-      return matchesSearch;
-    })
-    .sort((a, b) => {
-      // Apply sorting
-      if (sortBy === 'deadline') {
-        return sortOrder === 'asc' 
-          ? new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
-          : new Date(b.deadline).getTime() - new Date(a.deadline).getTime();
-      }
-      if (sortBy === 'goal') {
-        return sortOrder === 'asc' ? a.goal - b.goal : b.goal - a.goal;
-      }
-      if (sortBy === 'progress') {
-        const progressA = (a.currentContributions / a.goal) * 100;
-        const progressB = (b.currentContributions / b.goal) * 100;
-        return sortOrder === 'asc' ? progressA - progressB : progressB - progressA;
-      }
-      return 0;
-    });
-
-  // Handle adding a new campaign
-  const handleAddCampaign = async (campaignData: FormData) => {
+  // Handle creating a new campaign
+  const handleSaveCampaign = async (campaignData: FormData) => {
     try {
       setLoading(true);
-      // Instead of calling the service, just log the data
-      console.log("Campaign Created:", Object.fromEntries(campaignData.entries()));
-      
-      // Mock a successful creation
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      toast.success("Campaign created successfully!");
       setShowAddCampaignModal(false);
-      toast.success("Campaign created successfully! (Mock data)");
+      // Refresh campaigns
+      window.dispatchEvent(new CustomEvent('refreshCampaigns'));
     } catch (err: any) {
       console.error("Error creating campaign:", err);
       toast.error(err.message || "Failed to create campaign. Please try again.");
@@ -138,35 +121,32 @@ const CharityManagementPage: React.FC = () => {
     }
   };
 
-  // Calculate campaign status
-  const getCampaignStatus = (campaign: Campaign) => {
-    if (campaign.currentContributions >= campaign.goal) return 'completed';
-    if (new Date(campaign.deadline) > new Date()) return 'active';
-    return 'expired';
-  };
-
-  // Get status color
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed': return 'bg-blue-100 text-blue-800';
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'expired': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
+  // Handle sorting campaigns
+  const handleSort = (field: 'deadline' | 'goal' | 'progress') => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('asc');
     }
   };
 
-  // Calculate days left
-  const getDaysLeft = (deadline: string) => {
-    const today = new Date();
-    const deadlineDate = new Date(deadline);
-    const timeLeft = deadlineDate.getTime() - today.getTime();
-    const daysLeft = Math.ceil(timeLeft / (1000 * 3600 * 24));
-    return daysLeft > 0 ? `${daysLeft} days left` : 'Expired';
+  // Get sort icon
+  const getSortIcon = (field: 'deadline' | 'goal' | 'progress') => {
+    if (sortBy !== field) return <FaSort className="opacity-50" />;
+    return sortOrder === 'asc' ? <FaChevronUp /> : <FaChevronDown />;
+  };
+
+  // Handle tab changes
+  const handleTabChange = (tab: 'campaigns' | 'funds' | 'vendors') => {
+    setActiveTab(tab);
+    // Scroll to top of the page
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
-    <div className="p-6 bg-[var(--background)] text-[var(--paragraph)]">
-      {/* Header with organization info */}
+    <div className="p-6 bg-[var(--background)] text-[var(--paragraph)] max-w-7xl mx-auto min-h-screen">
+      {/* Header */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -192,539 +172,464 @@ const CharityManagementPage: React.FC = () => {
         </div>
       </motion.div>
 
-      {/* Stats Overview */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
-        className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8"
-      >
-        <div className="bg-white p-6 rounded-xl border border-[var(--stroke)] shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[var(--paragraph)] mb-1">Total Campaigns</p>
-              <h3 className="text-2xl font-bold text-[var(--headline)]">{organizationCampaigns.length}</h3>
+      {/* Tab Navigation */}
+      <div className="relative mb-8">
+        <div className="flex items-center justify-between border-b border-gray-200">
+          <button
+            onClick={() => handleTabChange('campaigns')}
+            className={`py-4 px-6 relative font-medium text-base transition-all flex-1 text-center ${
+              activeTab === 'campaigns'
+                ? 'text-[#004D40]'
+                : 'text-gray-500 hover:text-[#004D40]'
+            }`}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <FaHandHoldingHeart className={activeTab === 'campaigns' ? 'text-[#004D40]' : 'text-gray-500'} />
+              <span className="font-bold">Campaigns</span>
             </div>
-            <div className="p-3 bg-blue-100 text-blue-600 rounded-full">
-              <FaHandHoldingHeart size={24} />
+            {activeTab === 'campaigns' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FFA726]"></div>
+            )}
+          </button>
+          <button
+            onClick={() => handleTabChange('funds')}
+            className={`py-4 px-6 relative font-medium text-base transition-all flex-1 text-center ${
+              activeTab === 'funds'
+                ? 'text-[#004D40]'
+                : 'text-gray-500 hover:text-[#004D40]'
+            }`}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <FaMoneyBillWave className={activeTab === 'funds' ? 'text-[#004D40]' : 'text-gray-500'} />
+              <span className="font-bold">Funds</span>
             </div>
+            {activeTab === 'funds' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FFA726]"></div>
+            )}
+          </button>
+          <button
+            onClick={() => handleTabChange('vendors')}
+            className={`py-4 px-6 relative font-medium text-base transition-all flex-1 text-center ${
+              activeTab === 'vendors'
+                ? 'text-[#004D40]'
+                : 'text-gray-500 hover:text-[#004D40]'
+            }`}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <FaBuilding className={activeTab === 'vendors' ? 'text-[#004D40]' : 'text-gray-500'} />
+              <span className="font-bold">Vendors</span>
+            </div>
+            {activeTab === 'vendors' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FFA726]"></div>
+            )}
+          </button>
           </div>
         </div>
         
-        <div className="bg-white p-6 rounded-xl border border-[var(--stroke)] shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[var(--paragraph)] mb-1">Campaign Funds</p>
-              <h3 className="text-2xl font-bold text-[var(--headline)]">
-                RM{campaignFundsRaised.toLocaleString()}
-              </h3>
+      {/* Content Area */}
+      <AnimatePresence mode="wait">
+        {activeTab === 'campaigns' && (
+          <motion.div
+            key="campaigns"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            {/* Campaign Management Section */}
+            <div className="bg-white rounded-xl shadow-md border border-[var(--stroke)] overflow-hidden">
+              <div className="p-4 border-b border-[var(--stroke)] flex justify-between items-center">
+                <div className="flex items-center gap-4">
+                  <h2 className="text-xl font-bold text-[var(--headline)]">Campaign Management</h2>
+                  <button
+                    onClick={() => setShowAddCampaignModal(true)}
+                    className="px-4 py-2 bg-[var(--highlight)] text-white rounded-lg hover:bg-opacity-90 transition-all flex items-center gap-2"
+                  >
+                    <FaPlus /> New Campaign
+                  </button>
             </div>
-            <div className="p-3 bg-green-100 text-green-600 rounded-full">
-              <FaMoneyBillWave size={24} />
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search campaigns..."
+                      className="pl-10 pr-4 py-2 border border-[var(--stroke)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--highlight)]"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                    <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             </div>
+                  <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className="p-2 border border-[var(--stroke)] rounded-lg hover:bg-[var(--highlight)] hover:bg-opacity-10 transition-all"
+                  >
+                    <FaFilter />
+                  </button>
           </div>
         </div>
         
-        <div className="bg-white p-6 rounded-xl border border-[var(--stroke)] shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[var(--paragraph)] mb-1">General Fund</p>
-              <h3 className="text-2xl font-bold text-[var(--headline)]">
-                RM{generalFundBalance.toLocaleString()}
-              </h3>
+              {/* Filters */}
+              {showFilters && (
+                <div className="p-4 border-b border-[var(--stroke)] bg-gray-50">
+                  <div className="flex flex-wrap gap-4">
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm font-medium">Status:</label>
+                      <select
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value)}
+                        className="border border-[var(--stroke)] rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-[var(--highlight)]"
+                      >
+                        <option value="all">All</option>
+                        <option value="active">Active</option>
+                        <option value="completed">Completed</option>
+                        <option value="draft">Draft</option>
+                      </select>
             </div>
-            <div className="p-3 bg-purple-100 text-purple-600 rounded-full">
-              <FaWallet size={24} />
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm font-medium">Sort by:</label>
+                      <button
+                        onClick={() => handleSort('deadline')}
+                        className="flex items-center gap-1 px-3 py-1 border border-[var(--stroke)] rounded-lg hover:bg-[var(--highlight)] hover:bg-opacity-10 transition-all"
+                      >
+                        Deadline {getSortIcon('deadline')}
+                      </button>
+                      <button
+                        onClick={() => handleSort('goal')}
+                        className="flex items-center gap-1 px-3 py-1 border border-[var(--stroke)] rounded-lg hover:bg-[var(--highlight)] hover:bg-opacity-10 transition-all"
+                      >
+                        Goal {getSortIcon('goal')}
+                      </button>
+                      <button
+                        onClick={() => handleSort('progress')}
+                        className="flex items-center gap-1 px-3 py-1 border border-[var(--stroke)] rounded-lg hover:bg-[var(--highlight)] hover:bg-opacity-10 transition-all"
+                      >
+                        Progress {getSortIcon('progress')}
+                      </button>
             </div>
           </div>
         </div>
-        
-        <div className="bg-white p-6 rounded-xl border border-[var(--stroke)] shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[var(--paragraph)] mb-1">Total Funds</p>
-              <h3 className="text-2xl font-bold text-[var(--headline)]">
-                RM{totalFunds.toLocaleString()}
-              </h3>
-            </div>
-            <div className="p-3 bg-yellow-100 text-yellow-600 rounded-full">
-              <FaChartPie size={24} />
-            </div>
-          </div>
-        </div>
-      </motion.div>
-      
-      {/* Fund Details Section (Expandable) */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-        className="mb-8"
-      >
-        <div 
-          className="bg-white p-4 rounded-xl border border-[var(--stroke)] shadow-sm cursor-pointer"
-          onClick={() => setShowFundDetails(!showFundDetails)}
-        >
-          <div className="flex justify-between items-center">
+              )}
+
+              {/* Campaign List */}
+              <div className="p-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {organizationCampaigns.map((campaign) => {
+                    const progress = Math.min(100, (campaign.currentContributions / campaign.goal) * 100);
+                    return (
+                      <div
+                        key={campaign.id}
+                        className="bg-gradient-to-br from-white to-gray-50 p-4 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer"
+                        onClick={() => navigate(`/campaign/${campaign.id}`)}
+                      >
+                        <div className="flex justify-between items-start mb-3">
             <div className="flex items-center">
-              <FaWallet className="text-[var(--highlight)] mr-2" />
-              <h2 className="text-lg font-bold text-[var(--headline)]">Fund Details</h2>
+                            {progress >= 75 ? (
+                              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                                <FaTrophy className="text-green-600" />
+                              </div>
+                            ) : progress >= 50 ? (
+                              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                                <FaChartLine className="text-blue-600" />
+                              </div>
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center mr-3">
+                                <FaHandHoldingHeart className="text-yellow-600" />
             </div>
+                            )}
             <div>
-              {showFundDetails ? <FaChevronUp /> : <FaChevronDown />}
+                              <h3 className="font-medium text-[var(--headline)]">{campaign.name}</h3>
+                              <div className="flex items-center text-xs text-[var(--paragraph)] mt-1">
+                                <FaCalendarAlt className="mr-1" />
+                                <span>Ends: {new Date(campaign.deadline).toLocaleDateString()}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold text-[var(--headline)]">
+                              RM{campaign.currentContributions.toLocaleString()}
+                            </p>
+                            <p className="text-xs text-[var(--paragraph)]">
+                              of RM{campaign.goal.toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className={`h-2 rounded-full ${
+                              progress >= 75 ? 'bg-green-500' : 
+                              progress >= 50 ? 'bg-blue-500' : 
+                              'bg-yellow-500'
+                            }`}
+                            style={{ width: `${progress}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    );
+                  })}
             </div>
           </div>
         </div>
+          </motion.div>
+        )}
         
-        <AnimatePresence>
-          {showFundDetails && (
+        {activeTab === 'funds' && (
             <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
+            key="funds"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
-              className="overflow-hidden"
-            >
-              <div className="bg-white p-6 border-x border-b border-[var(--stroke)] rounded-b-xl shadow-sm">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* General Fund Details */}
-                  <div className="bg-[var(--background)] p-4 rounded-lg border border-[var(--stroke)]">
+          >
+            {/* Fund Management Section */}
+            <div className="bg-white rounded-xl shadow-md border border-[var(--stroke)] overflow-hidden">
+              <div className="p-4 border-b border-[var(--stroke)]">
+                <h2 className="text-xl font-bold text-[var(--headline)]">Fund Management</h2>
+              </div>
+
+              {/* Fund Summary */}
+              <div className="p-4 border-b border-[var(--stroke)]">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-gradient-to-br from-white to-blue-50 p-4 rounded-lg shadow-sm">
                     <div className="flex justify-between items-center mb-2">
                       <h3 className="font-medium text-[var(--headline)]">General Fund</h3>
                       <span className="text-sm px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
                         Unrestricted
                       </span>
                     </div>
-                    <p className="text-2xl font-bold text-[var(--headline)] mb-1">
+                    <p className="text-2xl font-bold text-[var(--headline)]">
                       RM{generalFundBalance.toLocaleString()}
                     </p>
-                    <p className="text-xs text-[var(--paragraph)]">
+                    <p className="text-sm text-[var(--paragraph)] mt-2">
                       Available for any charitable purpose
                     </p>
-                    <div className="mt-4 flex justify-end">
-                      <button className="px-3 py-1 bg-[var(--highlight)] text-white rounded-lg text-sm hover:bg-opacity-90 transition-all">
-                        Manage Fund
-                      </button>
-                    </div>
                   </div>
-                  
-                  {/* Campaign Funds Details */}
-                  <div className="bg-[var(--background)] p-4 rounded-lg border border-[var(--stroke)]">
+                  <div className="bg-gradient-to-br from-white to-green-50 p-4 rounded-lg shadow-sm">
                     <div className="flex justify-between items-center mb-2">
                       <h3 className="font-medium text-[var(--headline)]">Campaign Funds</h3>
                       <span className="text-sm px-2 py-1 bg-green-100 text-green-800 rounded-full">
                         Restricted
                       </span>
                     </div>
-                    <p className="text-2xl font-bold text-[var(--headline)] mb-1">
+                    <p className="text-2xl font-bold text-[var(--headline)]">
                       RM{campaignFundsRaised.toLocaleString()}
                     </p>
-                    <p className="text-xs text-[var(--paragraph)] mb-3">
+                    <p className="text-sm text-[var(--paragraph)] mt-2">
                       Designated for specific campaigns
                     </p>
-                    
-                    {/* Donation Policy Breakdown */}
-                    <div className="mt-2 border-t border-[var(--stroke)] pt-3">
-                      <h4 className="text-xs font-medium text-[var(--paragraph)] mb-2">Donation Policy Breakdown</h4>
-                      
-                      {/* Calculate estimated policy breakdowns based on typical distributions */}
-                      <div className="grid grid-cols-2 gap-3">
-                        {/* Campaign-specific donations */}
-                        <div className="bg-white p-2 rounded-lg border border-[var(--stroke)]">
-                          <div className="flex items-center gap-1 mb-1">
-                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                            <span className="text-xs font-medium">Campaign-Specific</span>
-                          </div>
-                          <p className="text-sm font-bold text-[var(--headline)]">
-                            RM{Math.round(campaignFundsRaised * 0.6).toLocaleString()}
-                          </p>
-                          <p className="text-xs text-[var(--paragraph)]">Refundable if goal not met</p>
-                        </div>
-                        
-                        {/* Always-donate */}
-                        <div className="bg-white p-2 rounded-lg border border-[var(--stroke)]">
-                          <div className="flex items-center gap-1 mb-1">
-                            <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                            <span className="text-xs font-medium">Always Donate</span>
-                          </div>
-                          <p className="text-sm font-bold text-[var(--headline)]">
-                            RM{Math.round(campaignFundsRaised * 0.4).toLocaleString()}
-                          </p>
-                          <p className="text-xs text-[var(--paragraph)]">Moves to general fund if needed</p>
                         </div>
                       </div>
                     </div>
                     
-                    <div className="mt-4 flex justify-end">
-                      <button className="px-3 py-1 bg-[var(--highlight)] text-white rounded-lg text-sm hover:bg-opacity-90 transition-all">
-                        View Breakdown
-                      </button>
+              {/* Fund Allocation Chart */}
+              <div className="p-4 border-b border-[var(--stroke)]">
+                <h3 className="text-lg font-medium text-[var(--headline)] mb-4">Fund Allocation</h3>
+                <div className="flex items-center justify-center">
+                  <div className="relative w-48 h-48">
+                    {(() => {
+                      const total = generalFundBalance + campaignFundsRaised;
+                      const generalPercentage = (generalFundBalance / total) * 100 || 0;
+                      
+                      // Calculate the circumference of the circle
+                      const radius = 40;
+                      const circumference = 2 * Math.PI * radius;
+                      
+                      // Calculate the stroke dasharray and offset
+                      const generalStrokeDasharray = `${(generalPercentage * circumference) / 100} ${circumference}`;
+                      const campaignStrokeDasharray = `${((100 - generalPercentage) * circumference) / 100} ${circumference}`;
+                      
+                      return (
+                        <svg viewBox="0 0 100 100" className="transform -rotate-90">
+                          {/* Background circle */}
+                          <circle
+                            cx="50"
+                            cy="50"
+                            r={radius}
+                            fill="none"
+                            stroke="#e5e7eb"
+                            strokeWidth="10"
+                          />
+                          {/* General Fund (Blue) */}
+                          <circle
+                            cx="50"
+                            cy="50"
+                            r={radius}
+                            fill="none"
+                            stroke="#3b82f6"
+                            strokeWidth="10"
+                            strokeDasharray={generalStrokeDasharray}
+                            strokeDashoffset="0"
+                            className="transition-all duration-500"
+                          />
+                          {/* Campaign Fund (Green) */}
+                          <circle
+                            cx="50"
+                            cy="50"
+                            r={radius}
+                            fill="none"
+                            stroke="#10b981"
+                            strokeWidth="10"
+                            strokeDasharray={campaignStrokeDasharray}
+                            strokeDashoffset={`${-(generalPercentage * circumference) / 100}`}
+                            className="transition-all duration-500"
+                          />
+                        </svg>
+                      );
+                    })()}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-2xl font-bold">RM{totalFunds.toLocaleString()}</span>
+                      <span className="text-sm text-[var(--paragraph)]">Total Funds</span>
                     </div>
                   </div>
-                </div>
-                
-                {/* Fund Allocation Chart */}
-                <div className="mt-6 p-4 bg-[var(--background)] rounded-lg border border-[var(--stroke)]">
-                  <h3 className="font-medium text-[var(--headline)] mb-4">Fund Allocation</h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Main Fund Distribution */}
-                    <div>
-                      <h4 className="text-sm font-medium text-[var(--paragraph)] mb-2">Main Fund Distribution</h4>
-                      <div className="h-8 bg-gray-200 rounded-full overflow-hidden mb-2">
-                        <div 
-                          className="h-full bg-purple-500 flex items-center justify-center text-xs text-white"
-                          style={{ width: `${generalFundPercentage}%` }}
-                        >
-                          {generalFundPercentage}%
-                        </div>
-                        <div 
-                          className="h-full bg-green-500 flex items-center justify-center text-xs text-white"
-                          style={{ width: `${campaignFundPercentage}%`, marginTop: '-2rem' }}
-                        >
-                          {campaignFundPercentage}%
-                        </div>
-                      </div>
-                      <div className="flex justify-between text-xs text-[var(--paragraph)]">
+                  {/* Legend */}
+                  <div className="flex flex-col gap-2 ml-4">
                         <div className="flex items-center">
-                          <div className="w-3 h-3 bg-purple-500 rounded-full mr-1"></div>
-                          General Fund
-                        </div>
-                        <div className="flex items-center">
-                          <div className="w-3 h-3 bg-green-500 rounded-full mr-1"></div>
-                          Campaign Funds
-                        </div>
-                      </div>
+                      <div className="w-3 h-3 rounded-full bg-[#3b82f6] mr-2"></div>
+                      <span className="text-sm">General Fund ({Math.round(generalFundPercentage)}%)</span>
                     </div>
-                    
-                    {/* Fund Usage */}
-                    <div>
-                      <h4 className="text-sm font-medium text-[var(--paragraph)] mb-2">Fund Usage</h4>
-                      <div className="space-y-2">
-                        {fundUsageData.map((item, index) => (
-                          <div key={index}>
-                            <div className="flex justify-between text-xs mb-1">
-                              <span>{item.category}</span>
-                              <span>{item.percentage}%</span>
-                            </div>
-                            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                              <div 
-                                className={`h-full ${item.color}`}
-                                style={{ width: `${item.percentage}%` }}
-                              ></div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 rounded-full bg-[#10b981] mr-2"></div>
+                      <span className="text-sm">Campaign Fund ({Math.round(campaignFundPercentage)}%)</span>
+                    </div>
+                  </div>
                     </div>
                   </div>
                   
                   {/* Campaign Fund Breakdown */}
-                  <div className="mt-6">
-                    <h4 className="text-sm font-medium text-[var(--paragraph)] mb-3">Campaign Fund Breakdown</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {campaignPercentages.map(campaign => (
-                        <div key={campaign.id} className="bg-white p-3 rounded-lg border border-[var(--stroke)]">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm font-medium truncate" style={{ maxWidth: '70%' }}>
-                              {campaign.name}
-                            </span>
-                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
-                              {campaign.percentage}%
-                            </span>
+              <div className="p-4">
+                <h3 className="text-lg font-medium text-[var(--headline)] mb-4">Campaign Fund Breakdown</h3>
+                <div className="space-y-4">
+                  {campaignPercentages.map((campaign) => (
+                    <div key={campaign.id} className="bg-gradient-to-br from-white to-gray-50 p-4 rounded-lg shadow-sm">
+                      <div className="flex justify-between items-center mb-2">
+                        <h4 className="font-medium text-[var(--headline)]">{campaign.name}</h4>
+                        <span className="text-sm font-medium">{campaign.percentage}%</span>
                           </div>
-                          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div className="w-full bg-gray-200 rounded-full h-2">
                             <div 
-                              className="h-full bg-blue-500"
+                          className="h-2 rounded-full bg-green-500"
                               style={{ width: `${campaign.percentage}%` }}
                             ></div>
                           </div>
-                          <p className="text-xs text-[var(--paragraph)] mt-1">
+                      <p className="text-sm text-[var(--paragraph)] mt-2">
                             RM{campaign.amount.toLocaleString()}
                           </p>
                         </div>
                       ))}
                     </div>
                   </div>
-                  
-                  {/* Recent Fund Activities */}
-                  <div className="mt-6">
-                    <h4 className="text-sm font-medium text-[var(--paragraph)] mb-3">Recent Fund Activities</h4>
-                    <div className="overflow-hidden rounded-lg border border-[var(--stroke)]">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {recentFundActivities.map(activity => (
-                            <tr key={activity.id}>
-                              <td className="px-4 py-3 whitespace-nowrap">
-                                <div className="flex items-center">
-                                  {activity.type === "Donation" && <FaMoneyBillWave className="text-green-500 mr-2" />}
-                                  {activity.type === "Withdrawal" && <FaArrowRight className="text-red-500 mr-2" />}
-                                  {activity.type === "Transfer" && <FaExchangeAlt className="text-blue-500 mr-2" />}
-                                  <span className="text-sm text-gray-900">{activity.type}</span>
-                                </div>
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                                RM{activity.amount.toLocaleString()}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                                {activity.date}
-                              </td>
-                              <td className="px-4 py-3 text-sm text-gray-500">
-                                {activity.description}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                  
-                  {/* Monthly Donation Trends */}
-                  {donationTracker && (
-                    <div className="mt-6">
-                      <h4 className="text-sm font-medium text-[var(--headline)] mb-3">Monthly Donation Trends</h4>
-                      <div className="bg-white p-4 rounded-lg border border-[var(--stroke)]">
-                        <div className="flex items-end h-40 space-x-2">
-                          {donationTracker.donations.timeline.monthly.map((month, index) => {
-                            // Calculate the maximum amount for proper scaling
-                            const maxAmount = Math.max(...donationTracker.donations.timeline.monthly.map(m => m.amount));
-                            // Calculate height percentage (minimum 5% for visibility)
-                            const heightPercentage = maxAmount > 0 
-                              ? Math.max(5, (month.amount / maxAmount) * 100) 
-                              : 5;
-                              
-                            return (
-                              <div key={index} className="flex flex-col items-center flex-1">
-                                <div className="text-xs text-center mb-1 text-[var(--paragraph)]">
-                                  RM{month.amount.toLocaleString()}
-                                </div>
-                                <div 
-                                  className="w-full bg-blue-500 rounded-t-sm" 
-                                  style={{ 
-                                    height: `${heightPercentage*1.2}px`,
-                                    width: '250px'
-                                  }}
-                                ></div>
-                                <span className="text-xs mt-1 text-[var(--paragraph)]">{month.month}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                        <div className="mt-4 text-sm text-center text-[var(--headline)] font-medium">
-                          Total donations: RM{donationTracker.donations.total.toLocaleString()}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
+            </div>
+          </motion.div>
+        )}
 
-      {/* Campaign Management */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.3 }}
-        className="bg-white rounded-xl border border-[var(--stroke)] overflow-hidden mb-8"
-      >
-        <div className="p-6 border-b border-[var(--stroke)] flex justify-between items-center">
-          <div>
-            <h2 className="text-xl font-bold text-[var(--headline)]">Your Campaigns</h2>
-            <p className="text-[var(--paragraph)] text-sm mt-1">
-              Manage your fundraising campaigns
-            </p>
-          </div>
-          <button
-            onClick={() => setShowAddCampaignModal(true)}
-            className="px-4 py-2 rounded-lg bg-[var(--highlight)] text-white hover:bg-opacity-90 flex items-center gap-2 transition-colors"
-            disabled={loading}
+        {activeTab === 'vendors' && (
+          <motion.div
+            key="vendors"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
           >
-            <FaPlus /> Add Campaign
-          </button>
-        </div>
-        
-        {/* Search and filters */}
-        <div className="p-4 border-b border-[var(--stroke)] bg-[var(--background)] bg-opacity-50">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative flex-grow">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaSearch className="text-[var(--paragraph)] text-opacity-50" />
-              </div>
-              <input
-                type="text"
-                className="block w-full pl-10 pr-3 py-2 border border-[var(--stroke)] rounded-lg bg-white focus:ring-2 focus:ring-[var(--highlight)] focus:border-transparent"
-                placeholder="Search campaigns..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              {searchTerm && (
-                <button
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setSearchTerm("")}
-                >
-                  <FaTimes className="text-[var(--paragraph)] text-opacity-50 hover:text-opacity-100" />
-                </button>
-              )}
-            </div>
-            
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="px-4 py-2 border border-[var(--stroke)] rounded-lg bg-white hover:bg-[var(--background)] transition-colors flex items-center gap-2"
-              >
-                <FaFilter />
-                Filters
-                {showFilters ? <FaChevronUp /> : <FaChevronDown />}
-              </button>
-              
-              <button
-                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                className="px-4 py-2 border border-[var(--stroke)] rounded-lg bg-white hover:bg-[var(--background)] transition-colors flex items-center gap-2"
-              >
-                <FaSort />
-                {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
-              </button>
-            </div>
-          </div>
-          
-          {/* Expanded filters */}
-          <AnimatePresence>
-            {showFilters && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="overflow-hidden"
-              >
-                <div className="pt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-[var(--paragraph)] mb-1">Status</label>
-                    <select
-                      className="w-full p-2 border border-[var(--stroke)] rounded-lg"
-                      value={filterStatus}
-                      onChange={(e) => setFilterStatus(e.target.value as any)}
-                    >
-                      <option value="all">All Campaigns</option>
-                      <option value="active">Active</option>
-                      <option value="completed">Completed</option>
-                      <option value="expired">Expired</option>
-                    </select>
+            {/* Vendor Management Section */}
+            <div className="bg-white rounded-xl shadow-md border border-[var(--stroke)] overflow-hidden">
+              <div className="p-4 border-b border-[var(--stroke)]">
+                <h2 className="text-xl font-bold text-[var(--headline)]">Vendor Management</h2>
+                                </div>
+
+              {/* Vendor Search */}
+              <div className="p-4 border-b border-[var(--stroke)]">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search vendors..."
+                    className="w-full pl-10 pr-4 py-2 border border-[var(--stroke)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--highlight)]"
+                  />
+                  <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    </div>
                   </div>
                   
-                  <div>
-                    <label className="block text-sm font-medium text-[var(--paragraph)] mb-1">Sort By</label>
-                    <select
-                      className="w-full p-2 border border-[var(--stroke)] rounded-lg"
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value as any)}
-                    >
-                      <option value="deadline">Deadline</option>
-                      <option value="goal">Goal Amount</option>
-                      <option value="progress">Progress</option>
-                    </select>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-        
-        {/* Campaign cards */}
-        <div className="p-6">
-          <AnimatePresence>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredCampaigns.map((campaign) => {
-                const status = getCampaignStatus(campaign);
-                const statusColor = getStatusColor(status);
-                const progress = Math.min(100, (campaign.currentContributions / campaign.goal) * 100);
-                
-                return (
-                  <motion.div 
-                    key={campaign.id}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    whileHover={{ y: -5, boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }}
-                    className="bg-white rounded-lg border border-[var(--stroke)] overflow-hidden cursor-pointer"
-                    onClick={() => navigate(`/charity/${campaign.id}`)}
-                  >
-                    <div className="p-5">
-                      <div className="flex justify-between items-start mb-3">
-                        <h3 className="font-bold text-[var(--headline)] text-lg">{campaign.name}</h3>
-                        <span className={`px-2 py-1 rounded-full text-xs ${statusColor}`}>
-                          {status.charAt(0).toUpperCase() + status.slice(1)}
-                        </span>
-                      </div>
-                      
-                      <p className="text-[var(--paragraph)] mb-4 line-clamp-2">{campaign.description}</p>
-                      
-                      <div className="flex flex-col gap-2 mb-4">
-                        <div className="flex items-center gap-1 text-sm text-[var(--paragraph)]">
-                          <FaCalendarAlt />
-                          <span>{getDaysLeft(campaign.deadline)}</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-sm text-[var(--paragraph)]">
-                          <FaMoneyBillWave />
-                          <span>RM{campaign.currentContributions.toLocaleString()} of RM{campaign.goal.toLocaleString()}</span>
-                        </div>
-                      </div>
-                      
-                      {/* Progress bar */}
-                      <div className="w-full bg-gray-200 rounded-full h-2.5 mb-1">
-                        <motion.div 
-                          className="bg-[var(--highlight)] h-2.5 rounded-full"
-                          initial={{ width: 0 }}
-                          animate={{ width: `${progress}%` }}
-                          transition={{ duration: 0.5, delay: 0.2 }}
-                        />
-                      </div>
-                      <div className="text-xs text-right text-[var(--paragraph)]">
-                        {Math.round(progress)}% funded
+              {/* Vendor List */}
+              <div className="p-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* Mock vendor data */}
+                  <div className="bg-gradient-to-br from-white to-blue-50 p-4 rounded-lg shadow-sm">
+                    <div className="flex items-center mb-3">
+                      <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium mr-3">
+                        MS
+                                </div>
+                      <div>
+                        <h3 className="font-medium text-[var(--headline)]">Medical Supplies Co.</h3>
+                        <p className="text-sm text-[var(--paragraph)]">Medical Equipment</p>
                       </div>
                     </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </AnimatePresence>
-          
-          {filteredCampaigns.length === 0 && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-10"
-            >
-              <p className="text-lg text-[var(--paragraph)]">No campaigns found matching your criteria.</p>
-              <button
-                onClick={() => {
-                  setSearchTerm("");
-                  setFilterStatus('all');
-                }}
-                className="mt-2 text-[var(--highlight)] hover:underline"
-              >
-                Clear filters
+                    <div className="flex items-center gap-2 text-sm text-[var(--paragraph)]">
+                      <FaEnvelope className="text-gray-400" />
+                      <span>contact@medicalsupplies.com</span>
+                </div>
+                    <div className="flex items-center gap-2 text-sm text-[var(--paragraph)] mt-1">
+                      <FaPhone className="text-gray-400" />
+                      <span>+60 12-345-6789</span>
+              </div>
+                    <div className="flex items-center gap-2 text-sm text-[var(--paragraph)] mt-1">
+                      <FaMapMarkerAlt className="text-gray-400" />
+                      <span>Kuala Lumpur, Malaysia</span>
+          </div>
+                    <div className="mt-3 flex gap-2">
+                      <button className="px-3 py-1 bg-[var(--highlight)] text-white rounded-lg text-sm hover:bg-opacity-90 transition-all">
+                        Message
+          </button>
+                      <button className="px-3 py-1 border border-[var(--stroke)] rounded-lg text-sm hover:bg-[var(--highlight)] hover:bg-opacity-10 transition-all">
+                        View Profile
               </button>
+            </div>
+                  </div>
+                  
+                  <div className="bg-gradient-to-br from-white to-green-50 p-4 rounded-lg shadow-sm">
+                    <div className="flex items-center mb-3">
+                      <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-600 font-medium mr-3">
+                        FD
+                                </div>
+                  <div>
+                        <h3 className="font-medium text-[var(--headline)]">Food Distribution Inc.</h3>
+                        <p className="text-sm text-[var(--paragraph)]">Food Supplies</p>
+                      </div>
+                        </div>
+                    <div className="flex items-center gap-2 text-sm text-[var(--paragraph)]">
+                      <FaEnvelope className="text-gray-400" />
+                      <span>info@fooddist.com</span>
+                        </div>
+                    <div className="flex items-center gap-2 text-sm text-[var(--paragraph)] mt-1">
+                      <FaPhone className="text-gray-400" />
+                      <span>+60 12-987-6543</span>
+                      </div>
+                    <div className="flex items-center gap-2 text-sm text-[var(--paragraph)] mt-1">
+                      <FaMapMarkerAlt className="text-gray-400" />
+                      <span>Penang, Malaysia</span>
+                      </div>
+                    <div className="mt-3 flex gap-2">
+                      <button className="px-3 py-1 bg-[var(--highlight)] text-white rounded-lg text-sm hover:bg-opacity-90 transition-all">
+                        Message
+                      </button>
+                      <button className="px-3 py-1 border border-[var(--stroke)] rounded-lg text-sm hover:bg-[var(--highlight)] hover:bg-opacity-10 transition-all">
+                        View Profile
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                </div>
+            </div>
             </motion.div>
           )}
-        </div>
-      </motion.div>
+      </AnimatePresence>
 
       {/* Add Campaign Modal */}
+      <AnimatePresence>
       {showAddCampaignModal && (
-        <AddCampaignModal onClose={() => setShowAddCampaignModal(false)} onSave={handleAddCampaign} />
+          <AddCampaignModal
+            onClose={() => setShowAddCampaignModal(false)}
+            onSave={handleSaveCampaign}
+          />
       )}
+      </AnimatePresence>
     </div>
   );
 };

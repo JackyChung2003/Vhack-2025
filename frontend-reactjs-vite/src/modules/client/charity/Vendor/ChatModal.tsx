@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { FaTimes, FaUserCircle, FaPaperPlane, FaPaperclip, FaMoneyBillWave } from "react-icons/fa";
+import { FaPaperPlane, FaTimes, FaFile, FaDownload } from "react-icons/fa";
 import { useVendorChatStore } from "../../../../services/VendorChatService";
-import TransactionProposalMessage from "./TransactionProposalMessage";
-import ChatTransactionModal from "./ChatTransactionModal";
 
 interface ChatModalProps {
   chatId: number;
@@ -18,10 +16,10 @@ const vendors = [
 ];
 
 const ChatModal: React.FC<ChatModalProps> = ({ chatId, onClose }) => {
-  const { chats, messages, sendMessage, sendTransactionProposal, acceptProposal, rejectProposal } = useVendorChatStore();
+  const { chats, messages, sendMessage, sendFileMessage } = useVendorChatStore();
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [showTransactionModal, setShowTransactionModal] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Find the current chat
   const currentChat = chats.find(chat => chat.id === chatId);
@@ -34,140 +32,129 @@ const ChatModal: React.FC<ChatModalProps> = ({ chatId, onClose }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages]);
   
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newMessage.trim() && chatId) {
-      sendMessage(chatId, newMessage);
-      setNewMessage("");
-    }
-  };
-  
-  const handleAcceptProposal = (messageId: number) => {
-    acceptProposal(chatId, messageId);
-  };
-
-  const handleRejectProposal = (messageId: number) => {
-    rejectProposal(chatId, messageId);
-  };
-  
-  const handleTransactionSubmit = (proposal: { items: Array<{ name: string; quantity: number; price: number }>; totalAmount: number }) => {
-    sendTransactionProposal(chatId, proposal);
-    setShowTransactionModal(false);
-  };
-  
   if (!currentChat) {
     return null;
   }
   
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newMessage.trim()) {
+      sendMessage(chatId, newMessage, false);
+      setNewMessage("");
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      sendFileMessage(chatId, file, false);
+    }
+    // Reset the input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleFileClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleDownload = (url: string, fileName: string) => {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
-    <>
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-[var(--main)] rounded-lg shadow-2xl border border-[var(--stroke)] w-full max-w-2xl overflow-hidden">
-          {/* Chat Header */}
-          <div className="p-4 border-b border-[var(--stroke)] flex items-center justify-between">
-            <div className="flex items-center">
-              <FaUserCircle className="text-[var(--highlight)] w-10 h-10 mr-3" />
-              <div>
-                <h2 className="text-lg font-bold text-[var(--headline)]">
-                  {vendors.find(v => v.id === currentChat.organizationId)?.name || "Unknown Vendor"}
-                </h2>
-                <p className="text-xs text-gray-500">
-                  {currentChat.online ? "Online" : "Offline"}
-                </p>
-              </div>
-            </div>
-            <button 
-              onClick={onClose}
-              className="p-2 rounded-full hover:bg-[var(--background)] transition-all"
-            >
-              <FaTimes />
-            </button>
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
+        {/* Header */}
+        <div className="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <h3 className="font-medium text-lg">Chat</h3>
+            <span className="text-sm text-green-500">●</span>
           </div>
-          
-          {/* Messages Container */}
-          <div className="h-[400px] overflow-y-auto p-4 space-y-4 bg-[var(--background)]">
-            {chatMessages.map((message, index) => (
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <FaTimes />
+          </button>
+        </div>
+
+        {/* Messages */}
+        <div className="h-[400px] overflow-y-auto p-4 space-y-4">
+          {chatMessages.map((message) => (
+            <div 
+              key={message.id} 
+              className={`flex ${message.fromVendor ? 'justify-start' : 'justify-end'}`}
+            >
               <div 
-                key={index}
-                className={`flex ${message.fromVendor ? "justify-start" : "justify-end"}`}
+                className={`max-w-[75%] rounded-lg px-4 py-2 ${
+                  message.fromVendor 
+                    ? 'bg-gray-100 text-[var(--paragraph)] rounded-bl-none' 
+                    : 'bg-[var(--highlight)] text-white rounded-br-none'
+                }`}
               >
-                <div 
-                  className={`max-w-[70%] p-3 rounded-lg ${
-                    message.fromVendor 
-                      ? "bg-[var(--card-background)] text-[var(--paragraph)] rounded-tl-none" 
-                      : "bg-[var(--highlight)] text-black rounded-tr-none"
-                  }`}
-                >
-                  {message.transactionProposal ? (
-                    <TransactionProposalMessage
-                      proposal={message.transactionProposal}
-                      isFromVendor={message.fromVendor}
-                      onAccept={() => handleAcceptProposal(message.id)}
-                      onReject={() => handleRejectProposal(message.id)}
-                    />
-                  ) : (
-                    <p>{message.text}</p>
-                  )}
-                  <p className="text-xs mt-1 opacity-70 text-right">
-                    {message.timestamp}
-                  </p>
+                {message.type === 'file' ? (
+                  <div className="flex items-center gap-2">
+                    <FaFile className="text-xl" />
+                    <span className="flex-1 truncate">{message.fileName}</span>
+                    <button
+                      onClick={() => message.fileUrl && handleDownload(message.fileUrl, message.fileName || 'download')}
+                      className="p-1 hover:bg-white hover:bg-opacity-20 rounded transition-colors"
+                    >
+                      <FaDownload />
+                    </button>
+                  </div>
+                ) : (
+                  <p>{message.text}</p>
+                )}
+                <div className="text-xs opacity-70 text-right mt-1">
+                  {message.timestamp}
                 </div>
               </div>
-            ))}
-            
-            {chatMessages.length === 0 && (
-              <div className="h-full flex items-center justify-center">
-                <p className="text-gray-500">No messages yet. Start the conversation!</p>
-              </div>
-            )}
-            
-            <div ref={messagesEndRef} />
-          </div>
-          
-          {/* Message Input */}
-          <form onSubmit={handleSendMessage} className="p-4 border-t border-[var(--stroke)] flex">
-            <button 
-              type="button"
-              onClick={() => setShowTransactionModal(true)}
-              className="p-2 text-gray-500 hover:text-[var(--highlight)] transition-all"
-            >
-              <FaMoneyBillWave />
-            </button>
-            <button 
-              type="button"
-              className="p-2 text-gray-500 hover:text-[var(--highlight)] transition-all"
-            >
-              <FaPaperclip />
-            </button>
-            <input
-              type="text"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type a message..."
-              className="flex-1 px-4 py-2 bg-[var(--background)] border border-[var(--stroke)] rounded-full mx-2 focus:outline-none focus:ring-2 focus:ring-[var(--highlight)]"
-            />
-            <button 
-              type="submit"
-              disabled={!newMessage.trim()}
-              className={`p-2 rounded-full ${
-                newMessage.trim() 
-                  ? "bg-[var(--highlight)] text-white" 
-                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
-              }`}
-            >
-              <FaPaperPlane />
-            </button>
-          </form>
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
         </div>
+        
+        {/* Input */}
+        <form onSubmit={handleSendMessage} className="p-3 border-t border-gray-200 flex gap-2">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            className="hidden"
+            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+          />
+          <button 
+            type="button"
+            onClick={handleFileClick}
+            className="p-2 rounded-full text-[var(--paragraph)] hover:bg-gray-100" 
+            title="Attach File"
+          >
+            <FaFile />
+          </button>
+          <textarea
+            className="flex-grow resize-none border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--highlight)] focus:border-transparent"
+            placeholder="Type a message..."
+            rows={1}
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+          />
+          <button
+            type="submit"
+            className="bg-[var(--highlight)] text-white rounded-full w-10 h-10 flex items-center justify-center"
+          >
+            <FaPaperPlane />
+          </button>
+        </form>
       </div>
-      {showTransactionModal && (
-        <ChatTransactionModal
-          onClose={() => setShowTransactionModal(false)}
-          onSubmit={handleTransactionSubmit}
-          chatId={chatId}
-        />
-      )}
-    </>
+    </div>
   );
 };
 
