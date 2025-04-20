@@ -5,11 +5,10 @@ import { FaArrowLeft, FaHandHoldingHeart, FaBuilding, FaUsers, FaHistory, FaChar
 import { motion } from "framer-motion";
 import CampaignCard from "../../../../components/cards/CampaignCard";
 import { useRole } from "../../../../contexts/RoleContext";
-import { mockDonorContributions, mockDonationTrackers } from "../../../../utils/mockData";
+import { mockDonorContributions } from "../../../../utils/mockData";
 import DonationModal from "../../../../components/modals/DonationModal";
 import { toast } from "react-toastify";
 import PostFeed from "../../common/community/components/PostFeed";
-import DonationTracker from "../../../../components/donation/DonationTracker";
 import { useVendorChatStore } from "../../../../services/VendorChatService";
 import ChatModal from "../../../client/vendor/VendorHomePage/ChatModal";
 import { charityService, CharityProfile as CharityProfileType } from "../../../../services/supabase/charityService";
@@ -510,23 +509,6 @@ const OrganizationDetail: React.FC = () => {
             </div>
           </div>
         </motion.section>
-
-        {/* Donation Tracker */}
-        {userRole === 'charity' && (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="mb-8"
-          >
-            <DonationTracker 
-              tracker={mockDonationTrackers.find(t => 
-                t.recipientId === orgData.id && 
-                t.recipientType === 'organization'
-              ) || mockDonationTrackers[0]} 
-            />
-          </motion.div>
-        )}
 
         {/* Campaigns Section */}
         <motion.section 
