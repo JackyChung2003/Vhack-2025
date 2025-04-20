@@ -32,7 +32,7 @@ import OrderManagement from "./modules/client/vendor/OrderManagement/OrderManage
 import SettingsPage from "./modules/client/settings/SettingsPage";
 import CharityOpenMarket from "./modules/client/charity/CharityOpenMarket/CharityOpenMarket";
 import VendorOpenMarket from "./modules/client/vendor/OpenMarket/OpenMarket";
-import CampaignTransactions from './modules/client/charity/management/CampaignTransactions/CampaignTransactions';
+import CampaignTransactions from './modules/client/charity/management/CampaignTransactions';
 
 export function App() {
 	const { user, loading: authLoading } = useAuth();
