@@ -18,7 +18,6 @@ import CharityPage from "./modules/client/common/charity/CharityPage";
 import CampaignDetail from "./modules/client/common/charity/CampaignDetail";
 import OrganizationDetail from "./modules/client/common/charity/OrganizationDetail";
 import DonorProfile from "./modules/client/donor/profile/DonorProfile";
-import CharityProfile from "./modules/client/charity/profile/CharityProfile";
 import CharityHomePage from "./modules/client/charity/CharityHomePage/CharityHomePage";
 import CharityManagementPage from "./modules/client/charity/management/CharityManagementPage";
 import VendorPage from "./modules/client/charity/Vendor/VendorPage";
@@ -120,6 +119,61 @@ export function App() {
 			<div className="stickyBottm">
 				<BottomNavBar toggle={toggle} />
 			</div>
+			<Routes>
+				{(!isConnected || !roleChecked) ? (
+					<>
+						<Route path="/login" element={<LoginPage />} />
+						<Route path="/register" element={<RegisterPage />} />
+            			<Route path="*" element={<Navigate to="/login" replace />} />
+					</>
+				) : (
+					<>
+						{/* Common Routes - Available to All Roles */}
+						<Route element={<ProtectedRoute allowedRoles={['charity', 'vendor', 'donor']} redirectPath="/" />}>
+							<Route path="/" element={<HomePage />} />
+							<Route path="/charity" element={<CharityPage />} />
+							<Route path="/charity/:id" element={<CampaignDetail />} />
+							<Route path="/organization/:id" element={<OrganizationDetail />} />
+							<Route path="/settings" element={<SettingsPage />} />
+						</Route>
+
+						{/* Charity-Specific Routes */}
+						<Route element={<ProtectedRoute allowedRoles={['charity']} redirectPath="/" />}>
+							<Route path="/Vhack-2025/charity/home" element={<CharityHomePage />} />
+							<Route path="/Vhack-2025/charity/profile" element={<OrganizationDetail />} />
+							<Route path="/Vhack-2025/charity/vendor-page" element={<VendorPage />} />
+							<Route path="/charity-management" element={<CharityManagementPage />} />
+						</Route>
+
+						{/* Vendor-Specific Routes */}
+						<Route element={<ProtectedRoute allowedRoles={['vendor']} redirectPath="/" />}>
+							<Route path="/Vhack-2025/vendor/dashboard" element={<VendorDashboard />} />
+							<Route path="/Vhack-2025/vendor/profile" element={<VendorProfile />} />
+							<Route path="/vendor/profile" element={<VendorProfile />} />
+							<Route path="/vendor/order-history/:id" element={<OrderHistoryCard />} />
+							<Route path="/vendor/order-history-details" element={<OrderHistoryDetails />} />
+							<Route path="/vendor/order-tracker" element={<OrderTracker />} />
+							<Route path="/vendor/order-tracker-details" element={<OrderTrackerDetails />} />
+							<Route path="/vendor/transaction-history-details" element={<TransactionHistoryDetails />} />
+							<Route path="/vendor/order-management" element={<OrderManagement />} />
+						</Route>
+
+						{/* Donor-Specific Routes */}
+						<Route element={<ProtectedRoute allowedRoles={['donor']} redirectPath="/" />}>
+							<Route path="/donor/profile" element={<DonorProfile />} />
+							
+						</Route>
+
+						<Route path="/register" element={<RegisterPage />} />
+						<Route path="/login" element={<LoginPage />} />
+                    </>
+                )}
+				
+                {/* Default Fallback */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+			{/* Footer */}
+
 			<footer className="footer">
 				<p>© Vhack2025 - All Rights Reserved</p>
 			</footer>

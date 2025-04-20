@@ -3,7 +3,7 @@ import { FaHeart, FaRegHeart, FaComment, FaShare, FaUserCircle, FaPaperPlane, Fa
 import { toast } from "react-toastify";
 
 interface PostFeedProps {
-  communityId: number;
+  communityId: string | number;
   communityType: string;
 }
 
@@ -131,9 +131,13 @@ const PostFeed: React.FC<PostFeedProps> = ({ communityId, communityType }) => {
   ]);
 
   // Filter posts based on communityId and communityType
-  const filteredPosts = posts.filter(post => 
-    post.campaignId === communityId && post.communityType === communityType
-  );
+  const filteredPosts = posts.filter(post => {
+    // Handle both string and number communityIds
+    const postCommunityId = post.campaignId;
+    const propsId = typeof communityId === 'string' ? parseInt(communityId) || post.campaignId : communityId;
+    
+    return postCommunityId === propsId && post.communityType === communityType;
+  });
 
   const handlePostSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,6 +147,9 @@ const PostFeed: React.FC<PostFeedProps> = ({ communityId, communityType }) => {
     
     // Simulate network delay
     setTimeout(() => {
+      // Convert communityId to number for new posts
+      const numericCommunityId = typeof communityId === 'string' ? parseInt(communityId) || 0 : communityId;
+      
       const newPost = {
         id: posts.length + 1,
         author: "You",
@@ -154,7 +161,7 @@ const PostFeed: React.FC<PostFeedProps> = ({ communityId, communityType }) => {
         likes: 0,
         comments: [],
         liked: false,
-        campaignId: communityId,
+        campaignId: numericCommunityId,
         communityType: communityType
       };
       

@@ -11,8 +11,21 @@ export interface Campaign {
   current_amount: number;
   status: string;
   created_at: string;
-  deadline?: string; // This might be missing from your schema
-  image_url?: string; // This might be missing from your schema
+  deadline: string;
+  image_url?: string;
+  category?: string; // Adding category field
+  charity?: {
+    id: string;
+    name: string;
+    description?: string;
+    logo?: string;
+    founded?: string;
+    location?: string;
+    website?: string;
+    email?: string;
+    phone?: string;
+    verified?: boolean;
+  };
 }
 
 export interface CharityProfile {
@@ -110,7 +123,7 @@ export const charityService = {
       let supporters = 0;
       if (campaignIds.length > 0) {
         const { data: donorsData, error: donorsError } = await supabase
-          .from('donations')
+          .from('campaign_donations')
           .select('user_id')
           .in('campaign_id', campaignIds)
           .not('user_id', 'is', null);
@@ -208,6 +221,63 @@ export const charityService = {
       return await charityService.getCharityProfile();
     } catch (error) {
       console.error('Error updating charity profile:', error);
+      throw error;
+    }
+  },
+  
+  // Get campaign by ID
+  getCampaignById: async (id: string): Promise<Campaign> => {
+    try {
+      // First get the campaign with basic user info
+      const { data, error } = await supabase
+        .from('campaigns')
+        .select(`
+          *,
+          users!fk_campaigns_charity (
+            id,
+            name,
+            verified,
+            wallet_address,
+            role
+          )
+        `)
+        .eq('id', id)
+        .single();
+      
+      if (error) throw error;
+      if (!data) throw new Error('Campaign not found');
+      
+      // Then get the charity profile data
+      const { data: profileData, error: profileError } = await supabase
+        .from('charity_profiles')
+        .select(`
+          description,
+          logo,
+          founded,
+          location,
+          website,
+          email,
+          phone
+        `)
+        .eq('user_id', data.users.id)
+        .maybeSingle();
+      
+      // Combine data from both tables
+      const charity = {
+        ...data.users,
+        ...(profileData || {})
+      };
+      
+      // Create the final campaign object
+      const campaign = {
+        ...data,
+        charity
+      };
+      delete campaign.users;
+      
+      return campaign;
+    } catch (error) {
+      console.error('Error fetching campaign:', error);
       throw error;
     }
   },
@@ -521,6 +591,195 @@ export const charityService = {
       return urlData.publicUrl;
     } catch (error) {
       console.error('Error uploading logo:', error);
+      throw error;
+    }
+  },
+  
+  // Get all public campaigns
+  getAllCampaigns: async (): Promise<Campaign[]> => {
+    try {
+      // Get all active campaigns with charity information
+      const { data, error } = await supabase
+        .from('campaigns')
+        .select(`
+          *,
+          users!fk_campaigns_charity (
+            id,
+            name,
+            verified,
+            wallet_address,
+            role
+          )
+        `)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      // Format campaigns with charity information
+      const formattedCampaigns = await Promise.all((data || []).map(async (campaign) => {
+        // Get charity profile data
+        const { data: profileData } = await supabase
+          .from('charity_profiles')
+          .select(`
+            description,
+            logo,
+            founded,
+            location,
+            website,
+            email,
+            phone
+          `)
+          .eq('user_id', campaign.users.id)
+          .maybeSingle();
+        
+        // Combine charity data
+        const charity = {
+          ...campaign.users,
+          ...(profileData || {})
+        };
+        
+        // Create the final campaign object
+        const formattedCampaign = {
+          ...campaign,
+          charity
+        };
+        delete formattedCampaign.users;
+        
+        return formattedCampaign;
+      }));
+      
+      return formattedCampaigns || [];
+    } catch (error) {
+      console.error('Error fetching all campaigns:', error);
+      throw error;
+    }
+  },
+  
+  // Get all public charity organizations
+  getAllCharityOrganizations: async () => {
+    try {
+      // Instead of using nested relationships which are causing ambiguity,
+      // fetch users and charity profiles separately and join them in code
+      
+      // First, get all charity users
+      const { data: usersData, error: usersError } = await supabase
+        .from('users')
+        .select('id, name, verified, wallet_address, role')
+        .eq('role', 'charity')
+        .order('name');
+      
+      if (usersError) throw usersError;
+      if (!usersData || usersData.length === 0) return [];
+      
+      // Then get charity profiles for these users
+      const userIds = usersData.map(user => user.id);
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('charity_profiles')
+        .select('user_id, description, logo, founded, location, website, email, phone')
+        .in('user_id', userIds);
+      
+      if (profilesError) throw profilesError;
+      
+      // Create a map of profiles by user_id for easier lookup
+      const profilesMap: Record<string, any> = (profilesData || []).reduce((map: Record<string, any>, profile) => {
+        map[profile.user_id] = profile;
+        return map;
+      }, {});
+      
+      // Get campaign statistics for each charity
+      const organizations = await Promise.all(usersData.map(async (user) => {
+        // Get campaign statistics
+        const { data: campaignsData, error: campaignsError } = await supabase
+          .from('campaigns')
+          .select('id, status, current_amount')
+          .eq('charity_id', user.id);
+        
+        if (campaignsError) throw campaignsError;
+        
+        // Get the profile data for this user
+        const profile = profilesMap[user.id] || {};
+        
+        const totalRaised = campaignsData?.reduce((sum, campaign) => sum + (campaign.current_amount || 0), 0) || 0;
+        const activeCampaigns = campaignsData?.filter(campaign => campaign.status === 'active').length || 0;
+        const totalCampaigns = campaignsData?.length || 0;
+        
+        // Combine the data
+        return {
+          id: user.id,
+          name: user.name,
+          verified: user.verified,
+          description: profile.description || '',
+          logo: profile.logo || null,
+          founded: profile.founded || '',
+          location: profile.location || '',
+          totalRaised,
+          campaigns: totalCampaigns,
+          activeCampaigns
+        };
+      }));
+      
+      return organizations;
+    } catch (error) {
+      console.error('Error fetching charity organizations:', error);
+      throw error;
+    }
+  },
+  
+  // Get a single charity organization by ID
+  getCharityOrganizationById: async (id: string) => {
+    try {
+      // Get the user data
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id, name, verified, wallet_address, role')
+        .eq('id', id)
+        .eq('role', 'charity')
+        .single();
+      
+      if (userError) throw userError;
+      if (!userData) throw new Error('Charity organization not found');
+      
+      // Get the charity profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('charity_profiles')
+        .select('description, logo, founded, location, website, email, phone')
+        .eq('user_id', userData.id)
+        .maybeSingle();
+      
+      if (profileError) throw profileError;
+      
+      // Get campaign statistics
+      const { data: campaignsData, error: campaignsError } = await supabase
+        .from('campaigns')
+        .select('id, status, current_amount, title, description, target_amount, deadline, image_url, category')
+        .eq('charity_id', userData.id);
+      
+      if (campaignsError) throw campaignsError;
+      
+      const totalRaised = campaignsData?.reduce((sum, campaign) => sum + (campaign.current_amount || 0), 0) || 0;
+      const activeCampaigns = campaignsData?.filter(campaign => campaign.status === 'active').length || 0;
+      const totalCampaigns = campaignsData?.length || 0;
+      
+      // Combine the data
+      return {
+        id: userData.id,
+        name: userData.name,
+        verified: userData.verified,
+        description: profileData?.description || '',
+        logo: profileData?.logo || null,
+        founded: profileData?.founded || '',
+        location: profileData?.location || '',
+        email: profileData?.email || '',
+        phone: profileData?.phone || '',
+        website: profileData?.website || '',
+        totalRaised,
+        campaigns: totalCampaigns,
+        activeCampaigns,
+        campaignsList: campaignsData || []
+      };
+    } catch (error) {
+      console.error('Error fetching charity organization by ID:', error);
       throw error;
     }
   }
