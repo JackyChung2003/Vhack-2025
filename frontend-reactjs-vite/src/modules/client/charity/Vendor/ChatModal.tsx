@@ -90,13 +90,13 @@ const ChatModal: React.FC<ChatModalProps> = ({ chatId, onClose }) => {
           {chatMessages.map((message) => (
             <div 
               key={message.id} 
-              className={`flex ${message.fromVendor ? 'justify-end' : 'justify-start'}`}
+              className={`flex ${message.fromVendor ? 'justify-start' : 'justify-end'}`}
             >
               <div 
                 className={`max-w-[75%] rounded-lg px-4 py-2 ${
                   message.fromVendor 
-                    ? 'bg-[var(--highlight)] text-white rounded-br-none' 
-                    : 'bg-gray-100 text-[var(--paragraph)] rounded-bl-none'
+                    ? 'bg-gray-100 text-[var(--paragraph)] rounded-bl-none' 
+                    : 'bg-[var(--highlight)] text-white rounded-br-none'
                 }`}
               >
                 {message.type === 'file' ? (

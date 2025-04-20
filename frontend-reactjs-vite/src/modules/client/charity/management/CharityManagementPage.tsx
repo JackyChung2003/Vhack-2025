@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { 
   FaHandHoldingHeart, 
   FaPlus, 
@@ -45,6 +45,7 @@ const CURRENT_CHARITY_ORG_ID = 1;
 
 const CharityManagementPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddCampaignModal, setShowAddCampaignModal] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -53,7 +54,18 @@ const CharityManagementPage: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [showFilters, setShowFilters] = useState(false);
   const [showFundDetails, setShowFundDetails] = useState(true);
-  const [activeTab, setActiveTab] = useState<'campaigns' | 'funds' | 'vendors' | 'supporters'>('campaigns');
+  const [activeTab, setActiveTab] = useState<'campaigns' | 'funds' | 'vendors'>('campaigns');
+  
+  // Handle URL parameters for active tab
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tabParam = params.get('tab');
+    if (tabParam && ['campaigns', 'funds', 'vendors'].includes(tabParam)) {
+      setActiveTab(tabParam as 'campaigns' | 'funds' | 'vendors');
+      // Scroll to top of the page
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [location]);
   
   // Get the current organization
   const currentOrganization = mockOrganizations.find(org => org.id === CURRENT_CHARITY_ORG_ID);
@@ -125,6 +137,13 @@ const CharityManagementPage: React.FC = () => {
     return sortOrder === 'asc' ? <FaChevronUp /> : <FaChevronDown />;
   };
 
+  // Handle tab changes
+  const handleTabChange = (tab: 'campaigns' | 'funds' | 'vendors') => {
+    setActiveTab(tab);
+    // Scroll to top of the page
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className="p-6 bg-[var(--background)] text-[var(--paragraph)] max-w-7xl mx-auto min-h-screen">
       {/* Header */}
@@ -157,7 +176,7 @@ const CharityManagementPage: React.FC = () => {
       <div className="relative mb-8">
         <div className="flex items-center justify-between border-b border-gray-200">
           <button
-            onClick={() => setActiveTab('campaigns')}
+            onClick={() => handleTabChange('campaigns')}
             className={`py-4 px-6 relative font-medium text-base transition-all flex-1 text-center ${
               activeTab === 'campaigns'
                 ? 'text-[#004D40]'
@@ -173,7 +192,7 @@ const CharityManagementPage: React.FC = () => {
             )}
           </button>
           <button
-            onClick={() => setActiveTab('funds')}
+            onClick={() => handleTabChange('funds')}
             className={`py-4 px-6 relative font-medium text-base transition-all flex-1 text-center ${
               activeTab === 'funds'
                 ? 'text-[#004D40]'
@@ -189,7 +208,7 @@ const CharityManagementPage: React.FC = () => {
             )}
           </button>
           <button
-            onClick={() => setActiveTab('vendors')}
+            onClick={() => handleTabChange('vendors')}
             className={`py-4 px-6 relative font-medium text-base transition-all flex-1 text-center ${
               activeTab === 'vendors'
                 ? 'text-[#004D40]'
@@ -201,22 +220,6 @@ const CharityManagementPage: React.FC = () => {
               <span className="font-bold">Vendors</span>
             </div>
             {activeTab === 'vendors' && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FFA726]"></div>
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab('supporters')}
-            className={`py-4 px-6 relative font-medium text-base transition-all flex-1 text-center ${
-              activeTab === 'supporters'
-                ? 'text-[#004D40]'
-                : 'text-gray-500 hover:text-[#004D40]'
-            }`}
-          >
-            <div className="flex items-center justify-center gap-2">
-              <FaUsers className={activeTab === 'supporters' ? 'text-[#004D40]' : 'text-gray-500'} />
-              <span className="font-bold">Supporters</span>
-            </div>
-            {activeTab === 'supporters' && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FFA726]"></div>
             )}
           </button>
@@ -315,7 +318,7 @@ const CharityManagementPage: React.FC = () => {
                     return (
                       <div
                         key={campaign.id}
-                        className="bg-[var(--background)] p-4 rounded-lg border border-[var(--stroke)] hover:border-[var(--highlight)] transition-all cursor-pointer"
+                        className="bg-gradient-to-br from-white to-gray-50 p-4 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer"
                         onClick={() => navigate(`/campaign/${campaign.id}`)}
                       >
                         <div className="flex justify-between items-start mb-3">
@@ -386,7 +389,7 @@ const CharityManagementPage: React.FC = () => {
               {/* Fund Summary */}
               <div className="p-4 border-b border-[var(--stroke)]">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-[var(--background)] p-4 rounded-lg">
+                  <div className="bg-gradient-to-br from-white to-blue-50 p-4 rounded-lg shadow-sm">
                     <div className="flex justify-between items-center mb-2">
                       <h3 className="font-medium text-[var(--headline)]">General Fund</h3>
                       <span className="text-sm px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
@@ -400,7 +403,7 @@ const CharityManagementPage: React.FC = () => {
                       Available for any charitable purpose
                     </p>
                   </div>
-                  <div className="bg-[var(--background)] p-4 rounded-lg">
+                  <div className="bg-gradient-to-br from-white to-green-50 p-4 rounded-lg shadow-sm">
                     <div className="flex justify-between items-center mb-2">
                       <h3 className="font-medium text-[var(--headline)]">Campaign Funds</h3>
                       <span className="text-sm px-2 py-1 bg-green-100 text-green-800 rounded-full">
@@ -420,52 +423,74 @@ const CharityManagementPage: React.FC = () => {
               {/* Fund Allocation Chart */}
               <div className="p-4 border-b border-[var(--stroke)]">
                 <h3 className="text-lg font-medium text-[var(--headline)] mb-4">Fund Allocation</h3>
-                <div className="flex items-center justify-center h-40">
-                  <div className="relative w-40 h-40">
-                    <svg viewBox="0 0 100 100" className="transform -rotate-90">
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="45"
-                        fill="none"
-                        stroke="#e5e7eb"
-                        strokeWidth="10"
-                      />
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="45"
-                        fill="none"
-                        stroke="#3b82f6"
-                        strokeWidth="10"
-                        strokeDasharray={`${generalFundPercentage} 100`}
-                      />
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="45"
-                        fill="none"
-                        stroke="#10b981"
-                        strokeWidth="10"
-                        strokeDasharray={`${campaignFundPercentage} 100`}
-                        strokeDashoffset={`-${generalFundPercentage}`}
-                      />
-                    </svg>
+                <div className="flex items-center justify-center">
+                  <div className="relative w-48 h-48">
+                    {(() => {
+                      const total = generalFundBalance + campaignFundsRaised;
+                      const generalPercentage = (generalFundBalance / total) * 100 || 0;
+                      
+                      // Calculate the circumference of the circle
+                      const radius = 40;
+                      const circumference = 2 * Math.PI * radius;
+                      
+                      // Calculate the stroke dasharray and offset
+                      const generalStrokeDasharray = `${(generalPercentage * circumference) / 100} ${circumference}`;
+                      const campaignStrokeDasharray = `${((100 - generalPercentage) * circumference) / 100} ${circumference}`;
+                      
+                      return (
+                        <svg viewBox="0 0 100 100" className="transform -rotate-90">
+                          {/* Background circle */}
+                          <circle
+                            cx="50"
+                            cy="50"
+                            r={radius}
+                            fill="none"
+                            stroke="#e5e7eb"
+                            strokeWidth="10"
+                          />
+                          {/* General Fund (Blue) */}
+                          <circle
+                            cx="50"
+                            cy="50"
+                            r={radius}
+                            fill="none"
+                            stroke="#3b82f6"
+                            strokeWidth="10"
+                            strokeDasharray={generalStrokeDasharray}
+                            strokeDashoffset="0"
+                            className="transition-all duration-500"
+                          />
+                          {/* Campaign Fund (Green) */}
+                          <circle
+                            cx="50"
+                            cy="50"
+                            r={radius}
+                            fill="none"
+                            stroke="#10b981"
+                            strokeWidth="10"
+                            strokeDasharray={campaignStrokeDasharray}
+                            strokeDashoffset={`${-(generalPercentage * circumference) / 100}`}
+                            className="transition-all duration-500"
+                          />
+                        </svg>
+                      );
+                    })()}
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-2xl font-bold">{totalFunds.toLocaleString()}</span>
+                      <span className="text-2xl font-bold">RM{totalFunds.toLocaleString()}</span>
                       <span className="text-sm text-[var(--paragraph)]">Total Funds</span>
                     </div>
                   </div>
-                  <div className="ml-8">
-                    <div className="flex items-center mb-2">
-                      <div className="w-4 h-4 bg-blue-500 rounded-full mr-2"></div>
-                      <span>General Fund ({generalFundPercentage}%)</span>
-                        </div>
+                  {/* Legend */}
+                  <div className="flex flex-col gap-2 ml-4">
                         <div className="flex items-center">
-                      <div className="w-4 h-4 bg-green-500 rounded-full mr-2"></div>
-                      <span>Campaign Funds ({campaignFundPercentage}%)</span>
+                      <div className="w-3 h-3 rounded-full bg-[#3b82f6] mr-2"></div>
+                      <span className="text-sm">General Fund ({Math.round(generalFundPercentage)}%)</span>
                     </div>
-                      </div>
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 rounded-full bg-[#10b981] mr-2"></div>
+                      <span className="text-sm">Campaign Fund ({Math.round(campaignFundPercentage)}%)</span>
+                    </div>
+                  </div>
                     </div>
                   </div>
                   
@@ -474,7 +499,7 @@ const CharityManagementPage: React.FC = () => {
                 <h3 className="text-lg font-medium text-[var(--headline)] mb-4">Campaign Fund Breakdown</h3>
                 <div className="space-y-4">
                   {campaignPercentages.map((campaign) => (
-                    <div key={campaign.id} className="bg-[var(--background)] p-4 rounded-lg">
+                    <div key={campaign.id} className="bg-gradient-to-br from-white to-gray-50 p-4 rounded-lg shadow-sm">
                       <div className="flex justify-between items-center mb-2">
                         <h4 className="font-medium text-[var(--headline)]">{campaign.name}</h4>
                         <span className="text-sm font-medium">{campaign.percentage}%</span>
@@ -508,7 +533,7 @@ const CharityManagementPage: React.FC = () => {
             <div className="bg-white rounded-xl shadow-md border border-[var(--stroke)] overflow-hidden">
               <div className="p-4 border-b border-[var(--stroke)]">
                 <h2 className="text-xl font-bold text-[var(--headline)]">Vendor Management</h2>
-              </div>
+                                </div>
 
               {/* Vendor Search */}
               <div className="p-4 border-b border-[var(--stroke)]">
@@ -526,11 +551,11 @@ const CharityManagementPage: React.FC = () => {
               <div className="p-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {/* Mock vendor data */}
-                  <div className="bg-[var(--background)] p-4 rounded-lg border border-[var(--stroke)]">
+                  <div className="bg-gradient-to-br from-white to-blue-50 p-4 rounded-lg shadow-sm">
                     <div className="flex items-center mb-3">
                       <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium mr-3">
                         MS
-                      </div>
+                                </div>
                       <div>
                         <h3 className="font-medium text-[var(--headline)]">Medical Supplies Co.</h3>
                         <p className="text-sm text-[var(--paragraph)]">Medical Equipment</p>
@@ -539,47 +564,47 @@ const CharityManagementPage: React.FC = () => {
                     <div className="flex items-center gap-2 text-sm text-[var(--paragraph)]">
                       <FaEnvelope className="text-gray-400" />
                       <span>contact@medicalsupplies.com</span>
-                    </div>
+                </div>
                     <div className="flex items-center gap-2 text-sm text-[var(--paragraph)] mt-1">
                       <FaPhone className="text-gray-400" />
                       <span>+60 12-345-6789</span>
-                    </div>
+              </div>
                     <div className="flex items-center gap-2 text-sm text-[var(--paragraph)] mt-1">
                       <FaMapMarkerAlt className="text-gray-400" />
                       <span>Kuala Lumpur, Malaysia</span>
-                                </div>
+          </div>
                     <div className="mt-3 flex gap-2">
                       <button className="px-3 py-1 bg-[var(--highlight)] text-white rounded-lg text-sm hover:bg-opacity-90 transition-all">
                         Message
-                      </button>
+          </button>
                       <button className="px-3 py-1 border border-[var(--stroke)] rounded-lg text-sm hover:bg-[var(--highlight)] hover:bg-opacity-10 transition-all">
                         View Profile
-                      </button>
-                    </div>
+              </button>
+            </div>
                   </div>
                   
-                  <div className="bg-[var(--background)] p-4 rounded-lg border border-[var(--stroke)]">
+                  <div className="bg-gradient-to-br from-white to-green-50 p-4 rounded-lg shadow-sm">
                     <div className="flex items-center mb-3">
                       <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-600 font-medium mr-3">
                         FD
                                 </div>
-                      <div>
+                  <div>
                         <h3 className="font-medium text-[var(--headline)]">Food Distribution Inc.</h3>
                         <p className="text-sm text-[var(--paragraph)]">Food Supplies</p>
                       </div>
-                    </div>
+                        </div>
                     <div className="flex items-center gap-2 text-sm text-[var(--paragraph)]">
                       <FaEnvelope className="text-gray-400" />
                       <span>info@fooddist.com</span>
-                    </div>
+                        </div>
                     <div className="flex items-center gap-2 text-sm text-[var(--paragraph)] mt-1">
                       <FaPhone className="text-gray-400" />
                       <span>+60 12-987-6543</span>
-                    </div>
+                      </div>
                     <div className="flex items-center gap-2 text-sm text-[var(--paragraph)] mt-1">
                       <FaMapMarkerAlt className="text-gray-400" />
                       <span>Penang, Malaysia</span>
-                    </div>
+                      </div>
                     <div className="mt-3 flex gap-2">
                       <button className="px-3 py-1 bg-[var(--highlight)] text-white rounded-lg text-sm hover:bg-opacity-90 transition-all">
                         Message
@@ -591,105 +616,6 @@ const CharityManagementPage: React.FC = () => {
                   </div>
                 </div>
                 </div>
-              </div>
-            </motion.div>
-          )}
-
-        {activeTab === 'supporters' && (
-      <motion.div
-            key="supporters"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            {/* Supporter Management Section */}
-            <div className="bg-white rounded-xl shadow-md border border-[var(--stroke)] overflow-hidden">
-              <div className="p-4 border-b border-[var(--stroke)]">
-                <h2 className="text-xl font-bold text-[var(--headline)]">Supporter Management</h2>
-              </div>
-
-              {/* Supporter Search */}
-              <div className="p-4 border-b border-[var(--stroke)]">
-                <div className="relative">
-              <input
-                type="text"
-                    placeholder="Search supporters..."
-                    className="w-full pl-10 pr-4 py-2 border border-[var(--stroke)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--highlight)]"
-                  />
-                  <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            </div>
-          </div>
-          
-              {/* Supporter List */}
-              <div className="p-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* Mock supporter data */}
-                  <div className="bg-[var(--background)] p-4 rounded-lg border border-[var(--stroke)]">
-                    <div className="flex items-center mb-3">
-                      <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-medium mr-3">
-                        JD
-                  </div>
-                  <div>
-                        <h3 className="font-medium text-[var(--headline)]">John Doe</h3>
-                        <p className="text-sm text-[var(--paragraph)]">Regular Donor</p>
-                  </div>
-                </div>
-                    <div className="flex items-center gap-2 text-sm text-[var(--paragraph)]">
-                      <FaEnvelope className="text-gray-400" />
-                      <span>john.doe@email.com</span>
-        </div>
-                    <div className="flex items-center gap-2 text-sm text-[var(--paragraph)] mt-1">
-                      <FaMoneyBillWave className="text-gray-400" />
-                      <span>Total Donated: RM5,000</span>
-                      </div>
-                    <div className="flex items-center gap-2 text-sm text-[var(--paragraph)] mt-1">
-                      <FaHandHoldingHeart className="text-gray-400" />
-                      <span>3 Active Campaigns</span>
-                        </div>
-                    <div className="mt-3 flex gap-2">
-                      <button className="px-3 py-1 bg-[var(--highlight)] text-white rounded-lg text-sm hover:bg-opacity-90 transition-all">
-                        Message
-                      </button>
-                      <button className="px-3 py-1 border border-[var(--stroke)] rounded-lg text-sm hover:bg-[var(--highlight)] hover:bg-opacity-10 transition-all">
-                        View Profile
-                      </button>
-                        </div>
-                      </div>
-                      
-                  <div className="bg-[var(--background)] p-4 rounded-lg border border-[var(--stroke)]">
-                    <div className="flex items-center mb-3">
-                      <div className="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center text-pink-600 font-medium mr-3">
-                        JS
-                      </div>
-                      <div>
-                        <h3 className="font-medium text-[var(--headline)]">Jane Smith</h3>
-                        <p className="text-sm text-[var(--paragraph)]">Major Donor</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-[var(--paragraph)]">
-                      <FaEnvelope className="text-gray-400" />
-                      <span>jane.smith@email.com</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-[var(--paragraph)] mt-1">
-                      <FaMoneyBillWave className="text-gray-400" />
-                      <span>Total Donated: RM15,000</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-[var(--paragraph)] mt-1">
-                      <FaHandHoldingHeart className="text-gray-400" />
-                      <span>5 Active Campaigns</span>
-                    </div>
-                    <div className="mt-3 flex gap-2">
-                      <button className="px-3 py-1 bg-[var(--highlight)] text-white rounded-lg text-sm hover:bg-opacity-90 transition-all">
-                        Message
-                      </button>
-                      <button className="px-3 py-1 border border-[var(--stroke)] rounded-lg text-sm hover:bg-[var(--highlight)] hover:bg-opacity-10 transition-all">
-                        View Profile
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
             </motion.div>
           )}

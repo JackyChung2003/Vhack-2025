@@ -183,108 +183,129 @@ const CharityHomePage: React.FC = () => {
           className="lg:col-span-5 space-y-6"
         >
           {/* Fund Summary */}
-          <div className="bg-[var(--main)] rounded-xl shadow-md border border-[var(--stroke)] overflow-hidden hover:shadow-lg transition-all">
-            <div className="p-4 border-b border-[var(--stroke)] flex justify-between items-center bg-gradient-to-r from-[var(--background)] to-[var(--main)]">
+          <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 cursor-pointer">
+            <div className="p-4 flex justify-between items-center border-b border-gray-100 bg-white hover:bg-gray-50/50 transition-colors duration-300">
               <div className="flex items-center">
-                <div className="p-2 rounded-lg bg-[var(--highlight)] bg-opacity-10 mr-3">
+                <div className="p-2 rounded-lg bg-[var(--highlight)] bg-opacity-10 mr-3 group-hover:bg-opacity-20 transition-all duration-300">
                   <FaMoneyBillWave className="text-[var(--highlight)] text-xl" />
                 </div>
                 <h2 className="text-lg font-bold text-[var(--headline)]">Fund Summary</h2>
               </div>
               <button 
-                onClick={() => handleNavigate("/charity-management")}
-                className="flex items-center gap-1 text-sm text-[var(--highlight)] hover:underline"
+                onClick={() => handleNavigate("/charity-management?tab=funds")}
+                className="flex items-center gap-1 text-sm text-[var(--highlight)] hover:underline group"
               >
-                View Details <FaArrowRight size={12} />
+                View Details <FaArrowRight size={12} className="group-hover:translate-x-1 transition-transform duration-300" />
               </button>
             </div>
-            <div className="p-5">
-              {/* Total funds overview */}
-              <div className="mb-4 p-3 bg-[var(--background)] bg-opacity-50 rounded-lg">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-sm text-[var(--paragraph)]">Total Available Funds</span>
-                  <span className="text-sm font-medium text-[var(--highlight)]">Combined Balance</span>
+            <div className="p-5 bg-gradient-to-br from-gray-50/50 via-white to-blue-50/30 hover:from-blue-50/30 hover:to-blue-100/20 transition-all duration-300">
+              {/* Legend moved to top and aligned horizontally */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center hover:scale-105 transition-transform duration-300">
+                    <div className="w-3 h-3 rounded-full bg-[#3b82f6] mr-2"></div>
+                    <span className="text-sm font-medium">General Fund</span>
+                  </div>
+                  <div className="flex items-center hover:scale-105 transition-transform duration-300">
+                    <div className="w-3 h-3 rounded-full bg-[#10b981] mr-2"></div>
+                    <span className="text-sm font-medium">Campaign Fund</span>
+                  </div>
                 </div>
-                <div className="text-3xl font-bold text-[var(--headline)] mb-1">
-                  RM{(generalFundBalance + campaignFundsRaised).toLocaleString()}
+              </div>
+              {/* Fund allocation donut chart */}
+              <div className="flex flex-col items-center">
+                <div className="relative w-48 h-48 mb-2">
+                  {(() => {
+                    const total = generalFundBalance + campaignFundsRaised;
+                    const generalPercentage = (generalFundBalance / total) * 100 || 0;
+                    
+                    // Calculate the circumference of the circle
+                    const radius = 40;
+                    const circumference = 2 * Math.PI * radius;
+                    
+                    // Calculate the stroke dasharray and offset
+                    const generalStrokeDasharray = `${(generalPercentage * circumference) / 100} ${circumference}`;
+                    const campaignStrokeDasharray = `${((100 - generalPercentage) * circumference) / 100} ${circumference}`;
+                    
+                    return (
+                      <div className="relative">
+                        <svg viewBox="0 0 100 100" className="transform -rotate-90">
+                          {/* Background circle */}
+                          <circle
+                            cx="50"
+                            cy="50"
+                            r={radius}
+                            fill="none"
+                            stroke="#e5e7eb"
+                            strokeWidth="10"
+                          />
+                          {/* General Fund (Blue) */}
+                          <circle
+                            cx="50"
+                            cy="50"
+                            r={radius}
+                            fill="none"
+                            stroke="#3b82f6"
+                            strokeWidth="10"
+                            strokeDasharray={generalStrokeDasharray}
+                            strokeDashoffset="0"
+                            className="transition-all duration-500"
+                          />
+                          {/* Campaign Fund (Green) */}
+                          <circle
+                            cx="50"
+                            cy="50"
+                            r={radius}
+                            fill="none"
+                            stroke="#10b981"
+                            strokeWidth="10"
+                            strokeDasharray={campaignStrokeDasharray}
+                            strokeDashoffset={`${-(generalPercentage * circumference) / 100}`}
+                            className="transition-all duration-500"
+                          />
+                        </svg>
+                        {/* Fund amounts */}
+                        <div className="absolute top-1/4 -left-16 transform -translate-y-1/2 text-right">
+                          <span className="text-sm font-medium text-[#10b981]">RM{campaignFundsRaised.toLocaleString()}</span>
+                        </div>
+                        <div className="absolute bottom-1/4 -right-16 transform translate-y-1/2 text-left">
+                          <span className="text-sm font-medium text-[#3b82f6]">RM{generalFundBalance.toLocaleString()}</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-2xl font-bold text-[var(--headline)]">RM{(generalFundBalance + campaignFundsRaised).toLocaleString()}</span>
+                    <span className="text-sm text-[var(--paragraph)]">Total Funds</span>
+                  </div>
                 </div>
                 <div className="flex items-center text-xs text-green-600">
                   <FaArrowUp className="mr-1" /> 12% increase from last month
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                {/* General Fund */}
-                <div className="bg-[var(--background)] p-4 rounded-lg border border-[var(--stroke)] hover:border-blue-300 transition-all">
-                  <div className="flex justify-between items-center mb-2">
-                    <div className="flex items-center">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-2">
-                        <FaWallet className="text-blue-600" />
-                      </div>
-                      <h3 className="font-medium text-[var(--headline)]">General Fund</h3>
-                    </div>
-                    <span className="text-sm px-2 py-1 bg-blue-100 text-blue-800 rounded-full flex items-center">
-                      <FaInfoCircle className="mr-1 text-xs" /> Unrestricted
-                    </span>
-                  </div>
-                  <p className="text-2xl font-bold text-[var(--headline)] mb-1">
-                    RM{generalFundBalance.toLocaleString()}
-                  </p>
-                  <div className="flex justify-between items-center">
-                    <p className="text-xs text-[var(--paragraph)]">
-                      Available for any charitable purpose
-                    </p>
-                    <button className="text-xs text-blue-600 hover:underline">Allocate Funds</button>
-                  </div>
-                </div>
-                
-                {/* Campaign Funds */}
-                <div className="bg-[var(--background)] p-4 rounded-lg border border-[var(--stroke)] hover:border-green-300 transition-all">
-                  <div className="flex justify-between items-center mb-2">
-                    <div className="flex items-center">
-                      <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mr-2">
-                        <FaHandHoldingHeart className="text-green-600" />
-                      </div>
-                      <h3 className="font-medium text-[var(--headline)]">Campaign Funds</h3>
-                    </div>
-                    <span className="text-sm px-2 py-1 bg-green-100 text-green-800 rounded-full flex items-center">
-                      <FaInfoCircle className="mr-1 text-xs" /> Restricted
-                    </span>
-                  </div>
-                  <p className="text-2xl font-bold text-[var(--headline)] mb-1">
-                    RM{campaignFundsRaised.toLocaleString()}
-                  </p>
-                  <div className="flex justify-between items-center">
-                    <p className="text-xs text-[var(--paragraph)]">
-                      Designated for specific campaigns
-                    </p>
-                    <button className="text-xs text-green-600 hover:underline">View Campaigns</button>
-                  </div>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Recent Transactions */}
-          <div className="bg-[var(--main)] rounded-xl shadow-md border border-[var(--stroke)] overflow-hidden hover:shadow-lg transition-all">
-            <div className="p-4 border-b border-[var(--stroke)] flex justify-between items-center bg-gradient-to-r from-[var(--background)] to-[var(--main)]">
+          <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+            <div className="p-4 flex justify-between items-center border-b border-gray-100 bg-white hover:bg-gray-50/50 transition-colors duration-300">
               <div className="flex items-center">
-                <div className="p-2 rounded-lg bg-[var(--highlight)] bg-opacity-10 mr-3">
+                <div className="p-2 rounded-lg bg-[var(--highlight)] bg-opacity-10 mr-3 group-hover:bg-opacity-20 transition-all duration-300">
                   <FaExchangeAlt className="text-[var(--highlight)] text-xl" />
                 </div>
                 <h2 className="text-lg font-bold text-[var(--headline)]">Recent Transactions</h2>
               </div>
               <button 
                 onClick={() => handleNavigate("/charity-management")}
-                className="flex items-center gap-1 text-sm text-[var(--highlight)] hover:underline"
+                className="flex items-center gap-1 text-sm text-[var(--highlight)] hover:underline group"
               >
-                View All <FaArrowRight size={12} />
+                View All <FaArrowRight size={12} className="group-hover:translate-x-1 transition-transform duration-300" />
               </button>
             </div>
-            <div className="p-4">
+            <div className="p-4 bg-gradient-to-br from-gray-50/50 via-white to-blue-50/30 hover:from-blue-50/30 hover:to-blue-100/20 transition-all duration-300">
               <div className="space-y-4">
                 {/* Mock recent transactions */}
-                <div className="flex items-center justify-between p-3 bg-[var(--background)] rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-gradient-to-br from-white to-blue-50 rounded-lg shadow-sm hover:shadow-md transition-all">
                   <div className="flex items-center">
                     <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
                       <FaMoneyBillWave className="text-green-600" />
@@ -299,7 +320,7 @@ const CharityHomePage: React.FC = () => {
                     <p className="text-xs text-[var(--paragraph)]">2025-03-20</p>
                   </div>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-[var(--background)] rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-gradient-to-br from-white to-red-50 rounded-lg shadow-sm hover:shadow-md transition-all">
                   <div className="flex items-center">
                     <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
                       <FaShoppingCart className="text-red-600" />
@@ -327,10 +348,10 @@ const CharityHomePage: React.FC = () => {
           className="lg:col-span-7 space-y-6"
         >
           {/* Active Campaigns */}
-          <div className="bg-[var(--main)] rounded-xl shadow-md border border-[var(--stroke)] overflow-hidden hover:shadow-lg transition-all">
-            <div className="p-4 border-b border-[var(--stroke)] flex justify-between items-center bg-gradient-to-r from-[var(--background)] to-[var(--main)]">
+          <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+            <div className="p-4 flex justify-between items-center border-b border-gray-100 bg-white hover:bg-gray-50/50 transition-colors duration-300">
               <div className="flex items-center">
-                <div className="p-2 rounded-lg bg-[var(--highlight)] bg-opacity-10 mr-3">
+                <div className="p-2 rounded-lg bg-[var(--highlight)] bg-opacity-10 mr-3 group-hover:bg-opacity-20 transition-all duration-300">
                   <FaHandHoldingHeart className="text-[var(--highlight)] text-xl" />
                 </div>
                 <h2 className="text-lg font-bold text-[var(--headline)]">Active Campaigns</h2>
@@ -338,9 +359,9 @@ const CharityHomePage: React.FC = () => {
               <div className="flex space-x-2">
                 <button 
                   onClick={() => handleNavigate("/charity-management")}
-                  className="flex items-center gap-1 text-sm text-[var(--highlight)] hover:underline"
+                  className="flex items-center gap-1 text-sm text-[var(--highlight)] hover:underline group"
                 >
-                  View All <FaArrowRight size={12} />
+                  View All <FaArrowRight size={12} className="group-hover:translate-x-1 transition-transform duration-300" />
                 </button>
                 <button
                   onClick={() => handleNavigate("/create-campaign")}
@@ -350,14 +371,14 @@ const CharityHomePage: React.FC = () => {
                 </button>
               </div>
             </div>
-            <div className="p-4">
+            <div className="p-4 bg-gradient-to-br from-gray-50/50 via-white to-blue-50/30 hover:from-blue-50/30 hover:to-blue-100/20 transition-all duration-300">
               <div className="space-y-4">
                 {organizationCampaigns.slice(0, 3).map((campaign, index) => {
                   const progress = Math.min(100, (campaign.currentContributions / campaign.goal) * 100);
                   return (
                     <div 
                       key={campaign.id}
-                      className="bg-[var(--background)] p-4 rounded-lg border border-[var(--stroke)] hover:border-[var(--highlight)] transition-all cursor-pointer"
+                      className="bg-gradient-to-br from-white to-gray-50 p-4 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer"
                       onClick={() => handleNavigate(`/campaign/${campaign.id}`)}
                     >
                       <div className="flex justify-between items-start mb-3">
@@ -410,16 +431,16 @@ const CharityHomePage: React.FC = () => {
           </div>
 
           {/* Monthly Donation Trends */}
-          <div className="bg-[var(--main)] rounded-xl shadow-md border border-[var(--stroke)] overflow-hidden hover:shadow-lg transition-all">
-            <div className="p-4 border-b border-[var(--stroke)] flex justify-between items-center bg-gradient-to-r from-[var(--background)] to-[var(--main)]">
+          <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+            <div className="p-4 flex justify-between items-center border-b border-gray-100 bg-white hover:bg-gray-50/50 transition-colors duration-300">
               <div className="flex items-center">
-                <div className="p-2 rounded-lg bg-[var(--highlight)] bg-opacity-10 mr-3">
+                <div className="p-2 rounded-lg bg-[var(--highlight)] bg-opacity-10 mr-3 group-hover:bg-opacity-20 transition-all duration-300">
                   <FaChartLine className="text-[var(--highlight)] text-xl" />
                 </div>
                 <h2 className="text-lg font-bold text-[var(--headline)]">Monthly Donation Trends</h2>
               </div>
             </div>
-            <div className="p-4">
+            <div className="p-4 bg-gradient-to-br from-gray-50/50 via-white to-blue-50/30 hover:from-blue-50/30 hover:to-blue-100/20 transition-all duration-300">
               <div className="flex justify-between items-end h-40">
                 <div className="flex flex-col items-center">
                   <div className="w-8 h-24 bg-blue-500 rounded-t-lg"></div>
