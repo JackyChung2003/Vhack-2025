@@ -14,79 +14,49 @@ interface NavbarProps {
 const HorizontalNavbar: React.FC<NavbarProps> = ({ toggle }) => {
   const { userRole } = useRole();
 
-  // Custom navigation items for charity users
+  // Custom navigation items for charity users (use root-relative paths)
   const charityNavItems = [
-    {
-      title: "Home",
-      link: "/Vhack-2025/charity/home",
-      icon: <FaHome />,
-    },
-    {
-      title: "Management",
-      link: "/charity-management",
-      icon: <FaChartLine />,
-    },
-    {
-      title: "Vendor",
-      link: "/Vhack-2025/charity/vendor-page",
-      icon: <FaComments />,
-    },
-    {
-      title: "Profile",
-      link: "/Vhack-2025/charity/profile",
-      icon: <FaUserCircle />,
-    },
+    { title: "Home", link: `/charity/home`, icon: <FaHome /> },
+    { title: "Management", link: `/charity-management`, icon: <FaChartLine /> },
+    { title: "Vendor", link: `/charity/vendor-page`, icon: <FaComments /> },
+    { title: "Open Market", link: `/charity/open-market`, icon: <FaListAlt /> },
+    { title: "Profile", link: `/charity/profile`, icon: <FaUserCircle /> },
   ];
 
-  // Custom navigation items for vendor users
+  // Custom navigation items for vendor users (use root-relative paths)
   const vendorNavItems = [
-    {
-      title: "Home",
-      link: "/Vhack-2025/vendor/dashboard",
-      icon: <FaHome />,
-    },
-      {
-        title: "Order",
-        link: "/vendor/order-management",
-        icon: <FaReceipt />,
-      },
-    {
-      title: "Profile",
-      link: "/Vhack-2025/vendor/profile",
-      icon: <FaUserCircle />,
-    },
+    { title: "Home", link: `/vendor/dashboard`, icon: <FaHome /> },
+    { title: "Open Market", link: `/vendor/open-market`, icon: <FaListAlt /> },
+    { title: "Order", link: `/vendor/order-management`, icon: <FaReceipt /> },
+    { title: "Profile", link: `/vendor/profile`, icon: <FaUserCircle /> },
   ];
 
-  // Custom navigation items for donor users
+  // Custom navigation items for donor users (use root-relative paths)
   const donorNavItems = [
-    {
-      title: "Home",
-      link: "/",
-      icon: <FaHome />,
-    },
-    {
-      title: "Charity",
-      link: "/charity",
-      icon: <FaListAlt />,
-    },
-    {
-      title: "Profile",
-      link: "/donor/profile",
-      icon: <FaUserCircle />,
-    },
+    { title: "Home", link: `/donor-homepage`, icon: <FaHome /> },
+    { title: "Charity", link: `/charity`, icon: <FaListAlt /> },
+    { title: "Profile", link: `/donor/profile`, icon: <FaUserCircle /> },
   ];
 
-  // Select which nav items to use based on role
-  let navItems = donorNavItems;
+  // Select nav items based on role
+  let navItems = donorNavItems; // Default to donor
+  // Determine logo link based on role 
+  let logoLink = `/`; // Default logo link to public landing page
+
   if (userRole === 'charity') {
     navItems = charityNavItems;
+    // logoLink remains '/'
   } else if (userRole === 'vendor') {
     navItems = vendorNavItems;
+    // logoLink remains '/'
+  } else if (userRole === 'donor') {
+    navItems = donorNavItems;
+    logoLink = `/donor-homepage`; // Donors logo links to their specific homepage
   }
 
   return (
     <nav className={styles.nav}>
-      <Link to={userRole === 'charity' ? "/Vhack-2025/charity/home" : userRole === 'vendor' ? "/Vhack-2025/vendor/dashboard" : "/"} className={styles.link}>
+      <Link to={logoLink} className={styles.link}>
         <img src={logoPNGImage} alt="DermaNow Logo" className={styles.logoIcon} />
         <span className={styles.logoName}>DermaNow</span>
       </Link>
