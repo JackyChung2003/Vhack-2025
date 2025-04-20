@@ -65,29 +65,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signIn = (data: { email: string; password: string }) => 
     supabase.auth.signInWithPassword(data);
 
-  const signInWithProvider = async (provider: 'google' | 'github' | 'facebook') => {
-    // Determine the redirect URL for OAuth
-    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const basePath = '/Vhack-2025';
-    const port = window.location.port ? `:${window.location.port}` : '';
-    const protocol = window.location.protocol;
-    const hostname = window.location.hostname;
-    
-    // Build the redirect URL - ensure it can handle OAuth tokens
-    const redirectUrl = isLocalhost
-      ? `${protocol}//${hostname}${port}${basePath}/`
-      : `${protocol}//${hostname}${basePath}/`;
-    
-    console.log(`OAuth redirect URL: ${redirectUrl}`);
-    
-    return supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: redirectUrl,
-        skipBrowserRedirect: false,
-      }
-    });
-  };
+  const signInWithProvider = (provider: 'google' | 'github' | 'facebook') =>
+    supabase.auth.signInWithOAuth({ provider });
 
   const signOut = () => supabase.auth.signOut();
 
@@ -116,7 +95,4 @@ export const useAuth = () => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
-
-// Check if file exists by adding a comment
-// This is a placeholder for checking file existence 
+}; 

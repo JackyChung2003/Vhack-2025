@@ -5,7 +5,6 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useRole } from '../../../contexts/RoleContext';
 import coverPicture from "../../../assets/images/register-page-picture.jpg";
 import './index.css';
-import { navigateWithoutHash } from '../../../utils/navigateWithoutHash';
 
 const RegisterPage: React.FC = () => {
     const [role, setRole] = useState<'vendor' | 'charity' | 'donor'>('donor');
@@ -40,17 +39,17 @@ const RegisterPage: React.FC = () => {
             console.log(`✅ Found existing role: ${userRole} - Redirecting...`);
             switch (userRole) {
                 case 'charity':
-                    navigateWithoutHash(navigate, '/charity/home', { replace: true });
+                    navigate('/charity');
                     break;
                 case 'vendor':
-                    navigateWithoutHash(navigate, '/vendor/dashboard', { replace: true });
+                    navigate('/Vhack-2025/vendor/dashboard');
                     break;
                 case 'donor':
-                    navigateWithoutHash(navigate, '/donor-homepage', { replace: true });
+                    navigate('/donor');
                     break;
                 default:
                     console.warn('❗ Unknown role found:', userRole);
-                    navigateWithoutHash(navigate, '/', { replace: true });
+                    navigate('/');
             }
         }
     }, [userRole, user, navigate]);
@@ -199,11 +198,11 @@ const RegisterPage: React.FC = () => {
         
             alert("✅ Registration successful!");
             if (role === 'charity') {
-                navigateWithoutHash(navigate, '/charity/home', { replace: true });
+                navigate('/Vhack-2025/charity/home');
             } else if (role === 'vendor') {
-                navigateWithoutHash(navigate, '/vendor/dashboard', { replace: true });
+                navigate('/Vhack-2025/vendor/home');
             } else {
-                navigateWithoutHash(navigate, '/donor-homepage', { replace: true });
+                navigate(`/${role}`);
             }
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Something went wrong';
@@ -487,12 +486,8 @@ const RegisterPage: React.FC = () => {
                         {isRegistering ? 'Registering...' : 'Register'}
                     </button>
 
-                    {/* Already have an account? Login */}
                     <p className="login-link">
-                        Already have an account? 
-                        <span onClick={() => navigateWithoutHash(navigate, '/login', { replace: true })} className="link-text">
-                            Login here
-                        </span>
+                        Already have an account? <span onClick={() => navigate('/login')}>Login</span>
                     </p>
                 </form>
             </div>

@@ -5,7 +5,6 @@ import { useRole } from "../../../contexts/RoleContext";
 import logoPNGImage from "../../../assets/images/logo-png.png";
 import profilePicture1 from "../../../assets/images/profile-picture-login-1.jpg";
 import './index.css';
-import { navigateWithoutHash } from '../../../utils/navigateWithoutHash';
 
 const LoginPage = () => {
     const navigate = useNavigate();
@@ -38,19 +37,18 @@ const LoginPage = () => {
         // If user is authenticated and has a role, redirect to appropriate dashboard
         if (user && userRole) {
             console.log("🎯 Role Found:", userRole);
-            // Redirect to root-relative paths, Vite/deployment handles the base
             switch (userRole) {
                 case 'charity':
-                    navigateWithoutHash(navigate, '/charity/home', { replace: true });
+                    navigate('/charity/home');
                     break;
                 case 'vendor':
-                    navigateWithoutHash(navigate, '/vendor/dashboard', { replace: true });
+                    navigate('/Vhack-2025/vendor/dashboard');
                     break;
                 case 'donor':
-                    navigateWithoutHash(navigate, '/donor-homepage', { replace: true });
+                    navigate('/donor');
                     break;
                 default:
-                    navigateWithoutHash(navigate, '/', { replace: true }); // Redirect unknown roles to the public landing page
+                    navigate('/');  // Unknown role - Go to home
             }
         }
     }, [user, roleChecked, userRole, isLoading, roleFetched, navigate]);
@@ -87,9 +85,6 @@ const LoginPage = () => {
         setError(null);
 
         try {
-            // Set a temporary cookie to let the app know we're coming back from OAuth redirect
-            document.cookie = "oauth_redirect=true; path=/; max-age=300";
-            
             const { error } = await signInWithProvider('google');
             if (error) {
                 throw new Error(error.message);
@@ -191,13 +186,13 @@ const LoginPage = () => {
                 </div>
 
                 <div className="support-links">
-                    <span onClick={() => navigateWithoutHash(navigate, '/faq', { replace: true })} className="link-text">❓ FAQ</span>
-                    <span onClick={() => navigateWithoutHash(navigate, '/contact', { replace: true })} className="link-text">📩 Contact Us</span>
+                    <span onClick={() => navigate('/faq')} className="link-text">❓ FAQ</span>
+                    <span onClick={() => navigate('/contact')} className="link-text">📩 Contact Us</span>
                 </div>
 
                 <p className="signup-footer">
                     Don't have an account yet? 
-                    <span onClick={() => navigateWithoutHash(navigate, '/register', { replace: true })} className="link-text"> Sign Up</span>
+                    <span onClick={() => navigate('/register')} className="link-text"> Sign Up</span>
                 </p>
             </div>
         </div>

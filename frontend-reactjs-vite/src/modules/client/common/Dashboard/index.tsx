@@ -1,18 +1,15 @@
-import React, { useEffect, useState } from 'react';
-// import { useRole } from '../../../../contexts/RoleContext'; // No longer needed for redirection
+import React, { useEffect } from 'react';
+import { useRole } from '../../../../contexts/RoleContext';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaHandHoldingHeart, FaBuilding, FaShoppingCart, FaChartLine, FaShieldAlt, FaGlobe, FaArrowRight, FaSearch, FaListAlt, FaInfoCircle, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaHandHoldingHeart, FaBuilding, FaShoppingCart, FaChartLine, FaShieldAlt, FaGlobe, FaArrowRight } from 'react-icons/fa';
 import ThemeToggle from '../../../../components/Button/ThemeToggleButton';
 import LoginButton from '../../../../components/Button/LoginButton';
-import { useAuth } from '../../../../contexts/AuthContext';
-import { navigateWithoutHash } from '../../../../utils/navigateWithoutHash';
 
 const LandingPage = () => {
-    // const { userRole, isLoading } = useRole(); // Removed role context usage 
+    const { userRole, isLoading } = useRole();  // Added `isLoading` for better role checking
     const navigate = useNavigate();
     
-    // Removed the useEffect hook that handled redirection
-    /*
+    // Redirect users to their specific home pages based on role
     useEffect(() => {
         if (!isLoading) {
             if (userRole === 'charity') {
@@ -22,12 +19,6 @@ const LandingPage = () => {
             }
         }
     }, [userRole, isLoading, navigate]);
-    */
-
-    // Function to handle navigation to REGISTER page first
-    const navigateToRegister = () => {
-        navigateWithoutHash(navigate, '/register', { replace: true });
-    };
 
     return (
         <div className="min-h-screen bg-[var(--background)]">
@@ -46,20 +37,12 @@ const LandingPage = () => {
                         A blockchain-powered platform connecting donors directly with verified charities and transparent fund management
                     </p>
                     <div className="flex flex-col sm:flex-row gap-5 justify-center animate-fadeIn animation-delay-400">
-                        {/* 1. Get Started Button -> Register */}
-                        <button 
-                            onClick={navigateToRegister} 
-                            className="px-8 py-4 bg-white text-[var(--highlight)] rounded-lg font-semibold hover:bg-opacity-90 transition-all transform hover:scale-105 shadow-lg flex items-center justify-center gap-2"
-                         >
+                        <button className="px-8 py-4 bg-white text-[var(--highlight)] rounded-lg font-semibold hover:bg-opacity-90 transition-all transform hover:scale-105 shadow-lg flex items-center justify-center gap-2">
                             Get Started <FaArrowRight />
                         </button>
-                        {/* 2. Explore Campaigns Button -> Register */}
-                        <button 
-                            onClick={navigateToRegister}
-                            className="px-8 py-4 bg-transparent border-2 border-white text-white rounded-lg font-semibold hover:bg-white hover:bg-opacity-20 transition-all transform hover:scale-105"
-                        >
+                        <Link to="/charity" className="px-8 py-4 bg-transparent border-2 border-white text-white rounded-lg font-semibold hover:bg-white hover:bg-opacity-20 transition-all transform hover:scale-105">
                             Explore Campaigns
-                        </button>
+                        </Link>
                     </div>
                 </div>
             </section>
@@ -159,8 +142,7 @@ const LandingPage = () => {
                         {[1, 2, 3].map(id => (
                             <div key={id} 
                                 className="bg-[var(--main)] p-6 rounded-xl shadow-xl border border-[var(--stroke)] hover:shadow-2xl transition-all transform hover:-translate-y-2 overflow-hidden cursor-pointer"
-                                // Campaign cards now navigate to register
-                                onClick={navigateToRegister} 
+                                onClick={() => navigate(`/charity/${id}`)}
                             >
                                 <div className="h-40 -mx-6 -mt-6 mb-6 bg-gradient-to-r from-[var(--highlight)] to-[var(--secondary)] relative overflow-hidden">
                                     <div className="absolute inset-0 bg-black bg-opacity-20"></div>
@@ -192,13 +174,9 @@ const LandingPage = () => {
                     </div>
                     
                     <div className="text-center mt-12">
-                        {/* 3. View All Campaigns Button -> Register */}
-                        <button 
-                            onClick={navigateToRegister} 
-                            className="px-8 py-4 bg-[var(--highlight)] text-white rounded-lg font-semibold hover:bg-opacity-90 transition-all inline-flex items-center gap-2"
-                        >
+                        <Link to="/charity" className="px-8 py-4 bg-[var(--highlight)] text-white rounded-lg font-semibold hover:bg-opacity-90 transition-all inline-flex items-center gap-2">
                             View All Campaigns <FaArrowRight />
-                        </button>
+                        </Link>
                     </div>
                 </div>
             </section>
@@ -215,11 +193,7 @@ const LandingPage = () => {
                         Join our platform today and be part of a transparent, impactful giving community.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-5 justify-center">
-                        {/* 4. Get Started Button (CTA section) -> Register */}
-                        <button 
-                            onClick={navigateToRegister} 
-                            className="px-8 py-4 bg-white text-[var(--highlight)] rounded-lg font-semibold hover:bg-opacity-90 transition-all transform hover:scale-105 shadow-lg flex items-center justify-center gap-2"
-                        >
+                        <button className="px-8 py-4 bg-white text-[var(--highlight)] rounded-lg font-semibold hover:bg-opacity-90 transition-all transform hover:scale-105 shadow-lg flex items-center justify-center gap-2">
                             Get Started <FaArrowRight />
                         </button>
                     </div>

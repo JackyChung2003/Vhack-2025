@@ -16,31 +16,6 @@
         var global = window;
       }
     </script>
-    <!-- Redirect script to remove hash -->
-    <script>
-      // Check if URL has hash and is not an OAuth callback
-      if (window.location.hash && !window.location.href.includes('access_token=')) {
-        // Get the path after the hash
-        var pathAfterHash = window.location.hash.substring(1);
-        var newPath = window.location.pathname;
-        
-        // If the path after hash is not empty, append it to the pathname
-        if (pathAfterHash) {
-          newPath = pathAfterHash.startsWith('/') 
-            ? pathAfterHash 
-            : '/' + pathAfterHash;
-        }
-        
-        // Redirect to the clean URL
-        window.history.replaceState(null, document.title, 
-          window.location.origin + newPath + window.location.search);
-      }
-      
-      // Special handling for OAuth callbacks
-      if (window.location.href.includes('access_token=')) {
-        console.log('OAuth callback detected, preserving token parameters');
-      }
-    </script>
   </head>
   <body>
     <div id="root"></div>

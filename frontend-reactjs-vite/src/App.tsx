@@ -29,7 +29,8 @@ import OrderTrackerDetails from "./modules/client/vendor/OrderManagement/OrderTr
 import TransactionHistoryDetails from "./modules/client/vendor/FinancialManagement/TransactionHistoryDetails";
 import OrderManagement from "./modules/client/vendor/OrderManagement/OrderManagement";
 import SettingsPage from "./modules/client/settings/SettingsPage";
-import OpenMarket from "./modules/client/vendor/OpenMarket/OpenMarket";
+import CharityOpenMarket from "./modules/client/charity/CharityOpenMarket/CharityOpenMarket";
+import VendorOpenMarket from "./modules/client/vendor/OpenMarket/OpenMarket";
 
 export function App() {
 	const { user, loading: authLoading } = useAuth();
@@ -87,6 +88,7 @@ export function App() {
 							<Route path="/Vhack-2025/charity/profile" element={<OrganizationDetail />} />
 							<Route path="/Vhack-2025/charity/vendor-page" element={<VendorPage />} />
 							<Route path="/charity-management" element={<CharityManagementPage />} />
+							<Route path="/charity/open-market" element={<CharityOpenMarket />} />
 						</Route>
 
 						{/* Vendor-Specific Routes */}
@@ -100,7 +102,7 @@ export function App() {
 							<Route path="/vendor/order-tracker-details" element={<OrderTrackerDetails />} />
 							<Route path="/vendor/transaction-history-details" element={<TransactionHistoryDetails />} />
 							<Route path="/vendor/order-management" element={<OrderManagement />} />
-							<Route path="/vendor/open-market" element={<OpenMarket />} />
+							<Route path="/vendor/open-market" element={<VendorOpenMarket />} />
 						</Route>
 
 						{/* Donor-Specific Routes */}
