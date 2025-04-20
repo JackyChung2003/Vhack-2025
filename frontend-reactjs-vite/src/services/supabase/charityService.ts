@@ -123,7 +123,7 @@ export const charityService = {
       let supporters = 0;
       if (campaignIds.length > 0) {
         const { data: donorsData, error: donorsError } = await supabase
-          .from('donations')
+          .from('campaign_donations')
           .select('user_id')
           .in('campaign_id', campaignIds)
           .not('user_id', 'is', null);
