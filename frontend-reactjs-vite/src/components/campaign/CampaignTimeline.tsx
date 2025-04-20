@@ -34,7 +34,7 @@ interface CampaignTimelineProps {
     deadline?: string;
     daysLeft?: number;
     startDate?: string;
-    todaysDonations?: number; // Amount donated today
+    todayDonations?: number; // New prop for today's donations
 }
 
 const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
@@ -46,7 +46,7 @@ const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
     deadline,
     daysLeft,
     startDate,
-    todaysDonations = 0
+    todayDonations = 0
 }) => {
     // Add custom animation style for subtle pulse and smaller ping
     const customAnimations = `
@@ -302,7 +302,7 @@ const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
             date: today,
             title: `Campaign Progress`,
             description: currentAmount && goalAmount
-                ? `Current funding: RM${currentAmount.toLocaleString()} of RM${goalAmount.toLocaleString()} goal${todaysDonations > 0 ? ` • RM${todaysDonations.toLocaleString()} donated today` : ''}`
+                ? `Current funding: RM${currentAmount.toLocaleString()} of RM${goalAmount.toLocaleString()} goal${todayDonations > 0 ? ` (RM${todayDonations.toLocaleString()} donated today)` : ''}`
                 : 'Current funding status',
             icon: <FaChartLine />,
             color: 'bg-blue-600',
@@ -570,45 +570,41 @@ const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
                                                             <span className="text-2xl font-bold text-blue-600">{progressPercentage}%</span>
                                                             <span className="text-sm">completed</span>
                                                         </div>
-                                                        {currentAmount && goalAmount && (
-                                                            <div className="text-sm text-gray-600">
-                                                                <span className="font-semibold text-blue-600">RM{currentAmount.toLocaleString()}</span>
-                                                                <span className="mx-1">of</span>
-                                                                <span>RM{goalAmount.toLocaleString()}</span>
-                                                            </div>
-                                                        )}
+                                                        <div className="text-sm text-gray-600">
+                                                            {currentAmount && goalAmount && (
+                                                                <>
+                                                                    <span className="font-semibold text-blue-600">RM{currentAmount.toLocaleString()}</span>
+                                                                    <span className="mx-1">of</span>
+                                                                    <span>RM{goalAmount.toLocaleString()}</span>
+                                                                </>
+                                                            )}
+                                                            {todayDonations > 0 && (
+                                                                <div className="text-xs font-medium text-indigo-700 mt-1">
+                                                                    <span className="bg-indigo-100 px-2 py-0.5 rounded-full">
+                                                                        +RM{todayDonations.toLocaleString()} today
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </div>
 
-                                                    {/* Today's donations */}
-                                                    {todaysDonations > 0 && (
-                                                        <div className="mb-3 bg-green-50 p-2 rounded-md border border-green-100 flex items-center justify-between">
-                                                            <div className="flex items-center text-green-700">
-                                                                <FaMoneyBillWave className="mr-2" />
-                                                                <span className="text-sm font-medium">Today's Donations</span>
-                                                            </div>
-                                                            <span className="text-sm font-bold text-green-700">
-                                                                RM{todaysDonations.toLocaleString()}
-                                                            </span>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Progress bar with animated gradient and smoother design */}
-                                                    <div className="h-3.5 w-full bg-gray-100 rounded-full overflow-hidden shadow-inner relative">
-                                                        {/* Base progress */}
+                                                    {/* Progress bar with animated gradient and today's donations highlight */}
+                                                    <div className="h-3.5 w-full bg-gray-100 rounded-full overflow-hidden shadow-inner">
+                                                        {/* Main progress bar */}
                                                         <div
                                                             className="h-full bg-gradient-to-r from-blue-500 via-blue-400 to-blue-600 rounded-full shadow-sm transition-all duration-1000 ease-in-out"
                                                             style={{ width: `${Math.min(progressPercentage, 100)}%` }}
-                                                        ></div>
+                                                        />
 
-                                                        {/* Today's progress overlay - only show if we have today's donations */}
-                                                        {todaysDonations > 0 && goalAmount && (
+                                                        {/* Today's donation indicator */}
+                                                        {todayDonations > 0 && currentAmount && goalAmount && (
                                                             <div
-                                                                className="h-full bg-gradient-to-r from-green-500 to-green-600 rounded-r-full shadow-sm absolute top-0 left-0 transition-all duration-1000 ease-in-out"
+                                                                className="h-full bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-500 rounded-r-full shadow-sm relative bottom-full transform-gpu transition-all duration-500 subtle-pulse"
                                                                 style={{
-                                                                    width: `${Math.min((todaysDonations / goalAmount) * 100, 100)}%`,
-                                                                    opacity: 0.8
+                                                                    width: `${Math.min((todayDonations / goalAmount) * 100, progressPercentage)}%`,
+                                                                    marginLeft: `${Math.max(progressPercentage - (todayDonations / goalAmount) * 100, 0)}%`
                                                                 }}
-                                                            ></div>
+                                                            />
                                                         )}
                                                     </div>
 

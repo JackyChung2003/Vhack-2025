@@ -3,6 +3,7 @@ import { FaTimes, FaHandHoldingHeart, FaCreditCard, FaRegCreditCard, FaRegCalend
 import { mockDonorAutoDonations } from "../../utils/mockData";
 import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
+import { toast } from "react-toastify";
 
 interface DonationModalProps {
   isOpen: boolean;
@@ -49,6 +50,10 @@ const DonationModal: React.FC<DonationModalProps> = ({
   const [amount, setAmount] = useState<number | ''>(predefinedAmounts[0]);
   const [customAmount, setCustomAmount] = useState<boolean>(false);
 
+  // Add new state for message
+  const [loveMessage, setLoveMessage] = useState<string>('');
+  const [showLoveMessage, setShowLoveMessage] = useState<boolean>(false);
+
   // Payment form state (placeholder for Stripe)
   const [cardName, setCardName] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -82,6 +87,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
   const handleCustomAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     if (value === '' || /^\d+(\.\d{0,2})?$/.test(value)) {
+      // Ensure minimum of RM 10 when confirming, but allow typing any value
       setAmount(value === '' ? '' : parseFloat(value));
     }
   };
@@ -92,6 +98,11 @@ const DonationModal: React.FC<DonationModalProps> = ({
 
   const handleNextStep = () => {
     if (step === 'amount' && amount) {
+      // Enforce minimum amount of RM 10 when proceeding
+      if (typeof amount === 'number' && amount < 10) {
+        toast.error("Minimum donation amount is RM 10");
+        return;
+      }
       setStep('payment');
     } else if (step === 'payment') {
       handleSubmit();
@@ -112,6 +123,8 @@ const DonationModal: React.FC<DonationModalProps> = ({
     setAmount(predefinedAmounts[1]); // Reset to first predefined amount
     setCustomAmount(false);
     setCardName('');
+    setLoveMessage('');
+    setShowLoveMessage(false);
     onClose();
   };
 
@@ -146,6 +159,8 @@ const DonationModal: React.FC<DonationModalProps> = ({
     setCardName('');
     setDonationType('one-time');
     setSelectedDonationPolicy('always-donate');
+    setLoveMessage('');
+    setShowLoveMessage(false);
   };
 
   const createAutodonationRecord = () => {
@@ -661,7 +676,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
                         value={amount}
                         onChange={handleCustomAmountChange}
                         className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#F9A826] focus:border-[#F9A826]"
-                        placeholder="Enter amount"
+                        placeholder="Enter amount (min RM10)"
                         autoFocus
                       />
                       {donationType === 'monthly' && (
@@ -669,6 +684,48 @@ const DonationModal: React.FC<DonationModalProps> = ({
                           <span className="text-gray-500 text-sm">/month</span>
                         </div>
                       )}
+                    </div>
+                    <div className="mt-1 text-xs text-gray-500">Minimum donation amount is RM10</div>
+                  </div>
+                )}
+              </div>
+
+              {/* Add Love Message */}
+              <div className="mt-6">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-md font-semibold text-[#006838]">Add a Love Message <span className="text-sm font-normal text-gray-500">(Optional)</span></h3>
+                  <button
+                    onClick={() => setShowLoveMessage(!showLoveMessage)}
+                    className={`text-sm px-3 py-1 rounded flex items-center gap-1 transition-colors ${showLoveMessage ? 'bg-[#F9A826] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                  >
+                    {showLoveMessage ? (
+                      <>
+                        <FaTimes size={12} />
+                        <span>Remove</span>
+                      </>
+                    ) : (
+                      <>
+                        <FaHeart size={12} />
+                        <span>Add</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {showLoveMessage && (
+                  <div className="mt-2">
+                    <div className="relative">
+                      <textarea
+                        value={loveMessage}
+                        onChange={(e) => setLoveMessage(e.target.value)}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#F9A826] focus:border-[#F9A826] min-h-[80px]"
+                        placeholder="Share a message of encouragement or why you're supporting this cause..."
+                        maxLength={200}
+                      />
+                      <div className="absolute bottom-2 right-2 text-xs text-gray-500">
+                        {loveMessage.length}/200
+                      </div>
                     </div>
                   </div>
                 )}
@@ -699,6 +756,15 @@ const DonationModal: React.FC<DonationModalProps> = ({
                       <span className="font-semibold">
                         {selectedDonationPolicy === 'always-donate' ? 'Always Donate' : 'Campaign Specific'}
                       </span>
+                    </div>
+                  )}
+                  {showLoveMessage && loveMessage && (
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <div className="font-semibold mb-1 flex items-center gap-1">
+                        <FaHeart className="text-red-500" size={14} />
+                        <span>Your Message:</span>
+                      </div>
+                      <p className="text-sm italic text-gray-700">"{loveMessage}"</p>
                     </div>
                   )}
                 </div>
@@ -762,6 +828,17 @@ const DonationModal: React.FC<DonationModalProps> = ({
               <p className="text-gray-700 mb-6">
                 Your donation of RM{amount} {donationType === 'monthly' ? 'per month ' : ''}to {displayName} has been processed successfully.
               </p>
+              {showLoveMessage && loveMessage && (
+                <div className="bg-pink-50 border border-pink-200 p-4 rounded-lg mb-6">
+                  <div className="flex items-start gap-2">
+                    <FaHeart className="text-pink-500 mt-1 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-left mb-1">Your Message:</p>
+                      <p className="text-gray-700 text-left italic">"{loveMessage}"</p>
+                    </div>
+                  </div>
+                </div>
+              )}
               {campaignId && (
                 <div className="bg-[#006838] p-4 rounded-lg mb-6 text-left">
                   <div className="flex items-start gap-2">

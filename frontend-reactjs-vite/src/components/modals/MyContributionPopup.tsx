@@ -172,95 +172,95 @@ const MyContributionPopup: React.FC<MyContributionPopupProps> = ({
                         </motion.div>
                     ) : (
                         // Original Side Drawer Version
-                        <motion.div
-                            initial={{ x: '100%' }}
-                            animate={{ x: 0 }}
-                            exit={{ x: '100%' }}
-                            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-                            className="fixed right-0 top-0 h-full w-full max-w-md bg-[var(--main)] shadow-xl z-50 overflow-y-auto"
-                        >
-                            {/* Header */}
-                            <div className="sticky top-0 bg-[var(--main)] border-b border-[var(--stroke)] p-6 flex justify-between items-center">
-                                <h2 className="text-2xl font-bold text-[var(--headline)] flex items-center gap-2">
-                                    <FaHistory className="text-[var(--highlight)]" />
-                                    Your Contributions
-                                </h2>
-                                <button
-                                    onClick={onClose}
-                                    className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-[var(--background)] transition-colors text-[var(--paragraph)] hover:text-[var(--headline)]"
-                                    aria-label="Close"
-                                >
-                                    <FaTimes />
-                                </button>
-                            </div>
+                    <motion.div
+                        initial={{ x: '100%' }}
+                        animate={{ x: 0 }}
+                        exit={{ x: '100%' }}
+                        transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                        className="fixed right-0 top-0 h-full w-full max-w-md bg-[var(--main)] shadow-xl z-50 overflow-y-auto"
+                    >
+                        {/* Header */}
+                        <div className="sticky top-0 bg-[var(--main)] border-b border-[var(--stroke)] p-6 flex justify-between items-center">
+                            <h2 className="text-2xl font-bold text-[var(--headline)] flex items-center gap-2">
+                                <FaHistory className="text-[var(--highlight)]" />
+                                Your Contributions
+                            </h2>
+                            <button
+                                onClick={onClose}
+                                className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-[var(--background)] transition-colors text-[var(--paragraph)] hover:text-[var(--headline)]"
+                                aria-label="Close"
+                            >
+                                <FaTimes />
+                            </button>
+                        </div>
 
-                            {/* Content */}
-                            <div className="p-6 space-y-6">
-                                {/* Summary Stats */}
-                                <div className="grid grid-cols-1 gap-4">
-                                    <div className="relative overflow-hidden rounded-lg border border-[var(--stroke)] bg-gradient-to-r from-[var(--highlight)] to-[var(--highlight)] bg-opacity-5 p-4">
-                                        <div className="absolute top-0 right-0 w-16 h-16 bg-[var(--highlight)] opacity-5 rounded-bl-full"></div>
-                                        <span className="text-3xl font-bold text-[var(--headline)]">RM{totalContributed}</span>
-                                        <p className="text-sm text-[var(--paragraph)] font-medium mt-1">Total Contributed</p>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="relative overflow-hidden rounded-lg border border-[var(--stroke)] bg-gradient-to-r from-[var(--secondary)] to-[var(--secondary)] bg-opacity-5 p-4">
-                                            <div className="absolute top-0 right-0 w-12 h-12 bg-[var(--secondary)] opacity-5 rounded-bl-full"></div>
-                                            <span className="text-2xl font-bold text-[var(--headline)]">{donationsCount}</span>
-                                            <p className="text-sm text-[var(--paragraph)] font-medium mt-1">Donations Made</p>
-                                        </div>
-
-                                        <div className="relative overflow-hidden rounded-lg border border-[var(--stroke)] bg-gradient-to-r from-[var(--tertiary)] to-[var(--tertiary)] bg-opacity-5 p-4">
-                                            <div className="absolute top-0 right-0 w-12 h-12 bg-[var(--tertiary)] opacity-5 rounded-bl-full"></div>
-                                            <span className="text-2xl font-bold text-[var(--headline)]">{percentageOfTotal}%</span>
-                                            <p className="text-sm text-[var(--paragraph)] font-medium mt-1">Of Total Raised</p>
-                                        </div>
-                                    </div>
+                        {/* Content */}
+                        <div className="p-6 space-y-6">
+                            {/* Summary Stats */}
+                            <div className="grid grid-cols-1 gap-4">
+                                <div className="relative overflow-hidden rounded-lg border border-[var(--stroke)] bg-gradient-to-r from-[var(--highlight)] to-[var(--highlight)] bg-opacity-5 p-4">
+                                    <div className="absolute top-0 right-0 w-16 h-16 bg-[var(--highlight)] opacity-5 rounded-bl-full"></div>
+                                    <span className="text-3xl font-bold text-[var(--headline)]">RM{totalContributed}</span>
+                                    <p className="text-sm text-[var(--paragraph)] font-medium mt-1">Total Contributed</p>
                                 </div>
 
-                                {/* Contribution History */}
-                                <div className="border-t border-[var(--stroke)] pt-5">
-                                    <h3 className="font-semibold mb-4 flex items-center gap-2 text-[var(--headline)]">
-                                        <FaCalendarAlt className="text-[var(--highlight)] text-sm" />
-                                        Contribution History
-                                    </h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="relative overflow-hidden rounded-lg border border-[var(--stroke)] bg-gradient-to-r from-[var(--secondary)] to-[var(--secondary)] bg-opacity-5 p-4">
+                                        <div className="absolute top-0 right-0 w-12 h-12 bg-[var(--secondary)] opacity-5 rounded-bl-full"></div>
+                                        <span className="text-2xl font-bold text-[var(--headline)]">{donationsCount}</span>
+                                        <p className="text-sm text-[var(--paragraph)] font-medium mt-1">Donations Made</p>
+                                    </div>
 
-                                    <div className="space-y-3">
-                                        {contributions.map((contribution) => (
-                                            <div
-                                                key={contribution.id}
-                                                className="flex justify-between items-center p-3 border border-[var(--stroke)] rounded-lg hover:border-[var(--highlight)] hover:shadow-sm transition-all duration-200"
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-[var(--highlight)] bg-opacity-10 flex items-center justify-center text-[var(--highlight)]">
-                                                        <FaMoneyBillWave />
-                                                    </div>
-                                                    <div>
-                                                        <span className="text-[var(--headline)] font-medium">
-                                                            {new Date(contribution.date).toLocaleDateString()}
-                                                        </span>
-                                                        <p className="text-xs text-[var(--paragraph)]">
-                                                            {new Date(contribution.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                        </p>
-                                                    </div>
+                                    <div className="relative overflow-hidden rounded-lg border border-[var(--stroke)] bg-gradient-to-r from-[var(--tertiary)] to-[var(--tertiary)] bg-opacity-5 p-4">
+                                        <div className="absolute top-0 right-0 w-12 h-12 bg-[var(--tertiary)] opacity-5 rounded-bl-full"></div>
+                                        <span className="text-2xl font-bold text-[var(--headline)]">{percentageOfTotal}%</span>
+                                        <p className="text-sm text-[var(--paragraph)] font-medium mt-1">Of Total Raised</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Contribution History */}
+                            <div className="border-t border-[var(--stroke)] pt-5">
+                                <h3 className="font-semibold mb-4 flex items-center gap-2 text-[var(--headline)]">
+                                    <FaCalendarAlt className="text-[var(--highlight)] text-sm" />
+                                    Contribution History
+                                </h3>
+
+                                <div className="space-y-3">
+                                    {contributions.map((contribution) => (
+                                        <div
+                                            key={contribution.id}
+                                            className="flex justify-between items-center p-3 border border-[var(--stroke)] rounded-lg hover:border-[var(--highlight)] hover:shadow-sm transition-all duration-200"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-[var(--highlight)] bg-opacity-10 flex items-center justify-center text-[var(--highlight)]">
+                                                    <FaMoneyBillWave />
                                                 </div>
-                                                <div className="flex items-center gap-3">
-                                                    <div className="font-bold text-[var(--highlight)]">RM{contribution.amount}</div>
-                                                    <button
-                                                        onClick={() => handleDownloadReceipt(contribution.id)}
-                                                        className="p-2 rounded-full hover:bg-[var(--background)] transition-colors text-[var(--paragraph)] hover:text-[var(--highlight)]"
-                                                        aria-label="Download receipt"
-                                                    >
-                                                        <FaDownload />
-                                                    </button>
+                                                <div>
+                                                    <span className="text-[var(--headline)] font-medium">
+                                                        {new Date(contribution.date).toLocaleDateString()}
+                                                    </span>
+                                                    <p className="text-xs text-[var(--paragraph)]">
+                                                        {new Date(contribution.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </p>
                                                 </div>
                                             </div>
-                                        ))}
-                                    </div>
+                                            <div className="flex items-center gap-3">
+                                                <div className="font-bold text-[var(--highlight)]">RM{contribution.amount}</div>
+                                                <button
+                                                    onClick={() => handleDownloadReceipt(contribution.id)}
+                                                    className="p-2 rounded-full hover:bg-[var(--background)] transition-colors text-[var(--paragraph)] hover:text-[var(--highlight)]"
+                                                    aria-label="Download receipt"
+                                                >
+                                                    <FaDownload />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
-                        </motion.div>
+                        </div>
+                    </motion.div>
                     )}
                 </>
             )}

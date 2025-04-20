@@ -130,13 +130,11 @@ const CampaignDetail: React.FC = () => {
   // Add state for selected donor ID
   const [selectedDonorId, setSelectedDonorId] = useState<number | null>(null);
 
-  // Add new state for community features
-  const [activeSection, setActiveSection] = useState<'feed'>('feed');
-
-  // Keep this declaration that initializes based on URL
-  const [activeMainTab, setActiveMainTab] = useState<'transactions' | 'community'>(() => {
+  // Update type definition to include the new tab
+  const [activeMainTab, setActiveMainTab] = useState<'transactions' | 'community' | 'community-temp'>(() => {
     const params = new URLSearchParams(location.search);
-    return params.get('tab') === 'community' ? 'community' : 'transactions';
+    return params.get('tab') === 'community' ? 'community' :
+      params.get('tab') === 'community-temp' ? 'community-temp' : 'transactions';
   });
 
   // Fetch campaign data
@@ -250,8 +248,8 @@ const CampaignDetail: React.FC = () => {
     }
   };
 
-  // Update the tab change handler to update the URL
-  const handleTabChange = (tab: 'transactions' | 'community') => {
+  // Handle tab change to update URL
+  const handleTabChange = (tab: 'transactions' | 'community' | 'community-temp') => {
     setActiveMainTab(tab);
     navigate(`/charity/${id}?tab=${tab}`, { replace: true });
   };
@@ -467,6 +465,16 @@ const CampaignDetail: React.FC = () => {
                       <FaUsers />
                       Community
                     </button>
+                    <button
+                      onClick={() => handleTabChange('community-temp')}
+                      className={`px-6 py-4 flex items-center gap-2 text-sm font-medium ${activeMainTab === 'community-temp'
+                        ? 'bg-[var(--highlight)] text-white'
+                        : 'hover:bg-[var(--background)]'
+                        }`}
+                    >
+                      <FaUsers />
+                      Community (Temp)
+                    </button>
                   </div>
                 </div>
 
@@ -505,23 +513,76 @@ const CampaignDetail: React.FC = () => {
                         </span>
                       </div>
 
-                      {/* Community Sub-Navigation */}
-                      <div className="flex mb-6 border-b border-[var(--stroke)]">
-                        <button
-                          onClick={() => setActiveSection('feed')}
-                          className={`px-4 py-2 text-sm font-medium ${activeSection === 'feed'
-                            ? 'border-b-2 border-[var(--highlight)] text-[var(--highlight)]'
-                            : 'text-[var(--paragraph)]'
-                            }`}
-                        >
-                          <FaComments className="inline mr-2" />
-                          Discussion Feed
-                        </button>
+                      {/* Post feed component */}
+                      <PostFeed communityId={campaign.id} communityType="campaign" />
+                    </>
+                  )}
+
+                  {activeMainTab === 'community-temp' && (
+                    <div className="flex flex-col items-center py-12">
+                      <div className="w-20 h-20 bg-[var(--highlight)] bg-opacity-10 rounded-full flex items-center justify-center mb-6">
+                        <FaLock className="text-[var(--highlight)] text-3xl" />
                       </div>
 
-                      {/* Community Content Based on Selected View */}
-                      {activeSection === 'feed' && <PostFeed communityId={campaign.id} communityType="campaign" />}
-                    </>
+                      <h2 className="text-2xl font-bold text-[var(--headline)] mb-3 text-center">
+                        Join the Campaign Community
+                      </h2>
+
+                      <p className="text-[var(--paragraph)] mb-8 max-w-md text-center">
+                        To access the community discussions, donor leaderboard, and campaign updates, please support this campaign with a donation first.
+                      </p>
+
+                      <div className="bg-[var(--background)] rounded-lg border border-[var(--stroke)] p-6 mb-8 max-w-md w-full">
+                        <div className="flex items-center gap-4 mb-4">
+                          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                            <FaUsers className="text-blue-600" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-[var(--headline)]">Connect with 42 supporters</h3>
+                            <p className="text-sm text-[var(--paragraph)]">
+                              Share updates and join meaningful discussions
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-4 mb-4">
+                          <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                            <FaTrophy className="text-green-600" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-[var(--headline)]">See your impact</h3>
+                            <p className="text-sm text-[var(--paragraph)]">
+                              Track your contribution rank among other donors
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                            <FaChartLine className="text-purple-600" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-[var(--headline)]">Get insider updates</h3>
+                            <p className="text-sm text-[var(--paragraph)]">
+                              Receive exclusive updates on campaign progress
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {isCampaignActive && (
+                        <button
+                          onClick={() => setIsDonationModalOpen(true)}
+                          className="px-8 py-4 rounded-lg bg-[var(--highlight)] text-white hover:bg-opacity-90 transition-colors flex items-center gap-3 shadow-md"
+                        >
+                          <FaHandHoldingHeart className="text-xl" />
+                          <div>
+                            <span className="font-semibold">Donate Now</span>
+                            <span className="block text-xs">Starting from RM10</span>
+                          </div>
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
