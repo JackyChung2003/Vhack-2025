@@ -1,5 +1,4 @@
 import supabase from './supabaseClient';
-import { toast } from 'react-toastify';
 
 // Types based on your Supabase schema
 export interface Campaign {
@@ -932,5 +931,27 @@ export const charityService = {
       console.error('Error making donation:', error);
       throw error;
     }
-  }
+  },
+  
+  // Get charity's general fund donations
+  getCharityGeneralFund: async (charityId: string): Promise<{ totalAmount: number, donationsCount: number }> => {
+    try {
+      // Get general donations (where charity_id is set but campaign_id is null)
+      const { data, error } = await supabase
+        .from('campaign_donations')
+        .select('amount')
+        .eq('charity_id', charityId)
+        .is('campaign_id', null);
+      
+      if (error) throw error;
+      
+      const totalAmount = data?.reduce((sum, donation) => sum + (donation.amount || 0), 0) || 0;
+      const donationsCount = data?.length || 0;
+      
+      return { totalAmount, donationsCount };
+    } catch (error) {
+      console.error('Error fetching charity general fund:', error);
+      throw error;
+    }
+  },
 }; 
