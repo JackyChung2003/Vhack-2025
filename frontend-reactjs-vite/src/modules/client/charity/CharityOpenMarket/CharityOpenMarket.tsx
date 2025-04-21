@@ -3,19 +3,11 @@ import { FaPlus, FaListAlt, FaSearch, FaThumbtack, FaChevronLeft, FaChevronRight
 import CreateRequestModal from "./CreateRequestModal";
 import RequestCard from "./RequestCard";
 import RequestDetail from "./RequestDetail";
+import { openMarketService, OpenMarketRequest } from "../../../../services/supabase/openMarketService";
+import { toast } from "react-toastify";
 
 // Define the request interface
-interface OpenMarketRequest {
-  id: string;
-  title: string;
-  description: string;
-  created_by: string;
-  status: string;
-  created_at: string;
-  quotation_count: number;
-  deadline?: string;
-  has_accepted_quotation?: boolean;
-}
+// Note: Interface is now imported from openMarketService
 
 // Get the current date for comparison
 const currentDate = new Date();
@@ -32,50 +24,36 @@ ongoingDate.setDate(currentDate.getDate() + 15);
 const pastDate = new Date();
 pastDate.setDate(currentDate.getDate() - 30);
 
-// Mock data - Replace with actual API calls
-const mockRequests = [
-  { 
-    id: "1", 
-    title: "Toothpaste for Community Dental Health Program",
-    description: "Need 500 tubes of toothpaste for our upcoming community dental health initiative in underserved areas.",
-    created_by: "123",
-    status: "closed",
-    created_at: "2025-03-10T08:30:00Z",
-    quotation_count: 3,
-    deadline: ongoingDate.toISOString(), // Still ongoing, not expired
-    has_accepted_quotation: false
-  },
-  { 
-    id: "2", 
-    title: "School Supplies for Education Outreach",
-    description: "Looking for notebooks, pens, and basic stationery for 100 children in our education program.",
-    created_by: "123",
-    status: "open",
-    created_at: "2025-03-08T14:15:00Z",
-    quotation_count: 5,
-    deadline: futureDate.toISOString(), // Future date (not expired)
-    has_accepted_quotation: false
-  },
-  { 
-    id: "3", 
-    title: "First Aid Kits for Medical Camp",
-    description: "Urgently need 50 first aid kits for our upcoming medical camp in rural areas.",
-    created_by: "123",
-    status: "closed",
-    created_at: "2025-03-01T10:00:00Z",
-    quotation_count: 4,
-    deadline: pastDate.toISOString(), // Past date (expired)
-    has_accepted_quotation: true
-  }
-];
-
 const CharityOpenMarket: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
-  const [requests, setRequests] = useState(mockRequests);
+  const [requests, setRequests] = useState<OpenMarketRequest[]>([]);
   const [statusFilter, setStatusFilter] = useState<"all" | "open" | "closed">("all");
   const [isInfoVisible, setIsInfoVisible] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch requests from the database when component mounts
+  useEffect(() => {
+    fetchRequests();
+  }, []);
+
+  // Function to fetch requests from the database
+  const fetchRequests = async () => {
+    try {
+      setLoading(true);
+      const data = await openMarketService.getCharityRequests();
+      setRequests(data);
+      setError(null);
+    } catch (err: any) {
+      console.error("Error fetching requests:", err);
+      setError(err.message || "Failed to load requests. Please try again.");
+      toast.error("Failed to load requests. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Check if a request is actually open (not expired and status is open)
   const isRequestOpen = (request: OpenMarketRequest) => {
@@ -104,21 +82,27 @@ const CharityOpenMarket: React.FC = () => {
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
 
-  const handleCreateRequest = (newRequest: { title: string; description: string; deadline?: string }) => {
-    // In a real app, you would call an API to create the request
-    const requestWithId = {
-      ...newRequest,
-      id: (requests.length + 1).toString(),
-      created_by: "123", // In a real app, this would be the user's ID
-      status: "open",
-      created_at: new Date().toISOString(),
-      quotation_count: 0,
-      has_accepted_quotation: false,
-      deadline: newRequest.deadline || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // Default to 30 days from now
-    };
-    
-    setRequests([requestWithId, ...requests]);
-    setShowCreateModal(false); 
+  const handleCreateRequest = async (newRequest: { 
+    title: string; 
+    description: string; 
+    deadline?: string;
+    fund_type: 'general' | 'campaign';
+    campaign_id?: string;
+  }) => {
+    try {
+      // Call the service to create the request in the database
+      const createdRequest = await openMarketService.createRequest(newRequest);
+      
+      // Add the new request to the state
+      setRequests(prevRequests => [createdRequest, ...prevRequests]);
+      
+      // Close the modal and show success message
+      setShowCreateModal(false);
+      toast.success("Request created successfully!");
+    } catch (err: any) {
+      console.error("Error creating request:", err);
+      toast.error(err.message || "Failed to create request. Please try again.");
+    }
   };
 
   const handleRequestClick = (requestId: string) => {
@@ -127,16 +111,29 @@ const CharityOpenMarket: React.FC = () => {
 
   const handleBackToList = () => {
     setSelectedRequest(null);
+    // Refresh requests when going back to list
+    fetchRequests();
   };
   
-  const handleRequestUpdated = (requestId: string, hasAcceptedQuotation: boolean) => {
-    setRequests(prevRequests => 
-      prevRequests.map(req => 
-        req.id === requestId 
-          ? { ...req, status: "closed", has_accepted_quotation: hasAcceptedQuotation } 
-          : req
-      )
-    );
+  const handleRequestUpdated = async (requestId: string, hasAcceptedQuotation: boolean) => {
+    try {
+      // Update request status in the database
+      await openMarketService.updateRequestStatus(requestId, "closed", hasAcceptedQuotation);
+      
+      // Update in local state
+      setRequests(prevRequests => 
+        prevRequests.map(req => 
+          req.id === requestId 
+            ? { ...req, status: "closed", has_accepted_quotation: hasAcceptedQuotation } 
+            : req
+        )
+      );
+      
+      toast.success("Request updated successfully!");
+    } catch (err: any) {
+      console.error("Error updating request:", err);
+      toast.error(err.message || "Failed to update request. Please try again.");
+    }
   };
 
   return (
@@ -228,7 +225,24 @@ const CharityOpenMarket: React.FC = () => {
 
                 {/* Requests List */}
                 <div className="space-y-4">
-                  {sortedRequests.length > 0 ? (
+                  {loading ? (
+                    <div className="flex justify-center py-8">
+                      <div className="flex flex-col items-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[var(--highlight)] mb-4"></div>
+                        <p className="text-[var(--paragraph)]">Loading requests...</p>
+                      </div>
+                    </div>
+                  ) : error ? (
+                    <div className="text-center py-8 bg-[var(--background)] rounded-lg">
+                      <p className="text-red-500 mb-4">{error}</p>
+                      <button
+                        onClick={fetchRequests}
+                        className="bg-[var(--highlight)] text-white px-4 py-2 rounded-lg font-medium hover:bg-opacity-90 transition-all"
+                      >
+                        Try Again
+                      </button>
+                    </div>
+                  ) : sortedRequests.length > 0 ? (
                     sortedRequests.map(request => (
                       <RequestCard
                         key={request.id}

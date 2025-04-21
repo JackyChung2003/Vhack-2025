@@ -1,5 +1,4 @@
 import supabase from './supabaseClient';
-import { toast } from 'react-toastify';
 
 // Types based on your Supabase schema
 export interface Campaign {
@@ -932,5 +931,187 @@ export const charityService = {
       console.error('Error making donation:', error);
       throw error;
     }
-  }
+  },
+  
+  // Get charity's general fund donations
+  getCharityGeneralFund: async (charityId: string): Promise<{ totalAmount: number, donationsCount: number }> => {
+    try {
+      // Get general donations (where charity_id is set but campaign_id is null)
+      const { data, error } = await supabase
+        .from('campaign_donations')
+        .select('amount')
+        .eq('charity_id', charityId)
+        .is('campaign_id', null);
+      
+      if (error) throw error;
+      
+      const totalAmount = data?.reduce((sum, donation) => sum + (donation.amount || 0), 0) || 0;
+      const donationsCount = data?.length || 0;
+      
+      return { totalAmount, donationsCount };
+    } catch (error) {
+      console.error('Error fetching charity general fund:', error);
+      throw error;
+    }
+  },
+  
+  // Get campaign donation statistics including leaderboard
+  getCampaignDonationStats: async (campaignId: string): Promise<{
+    donations: {
+      total: number;
+      count: number;
+      campaignSpecificTotal: number;
+      alwaysDonateTotal: number;
+      timeline: {
+        daily: Array<{ date: string; amount: number; donationPolicy?: string; isRecurring?: boolean }>;
+        weekly: Array<{ week: string; amount: number }>;
+        monthly: Array<{ month: string; amount: number }>;
+      };
+      topDonors: Array<{
+        donorId: number | string;
+        name: string;
+        amount: number;
+        lastDonation: string;
+      }>;
+    }
+  }> => {
+    try {
+      // Get all donations for this campaign
+      const { data: donationsData, error: donationsError } = await supabase
+        .from('campaign_donations')
+        .select(`
+          id,
+          amount,
+          donation_policy,
+          is_recurring,
+          is_anonymous,
+          created_at,
+          user_id,
+          users:user_id (
+            id,
+            name
+          )
+        `)
+        .eq('campaign_id', campaignId)
+        .order('created_at', { ascending: false });
+      
+      if (donationsError) throw donationsError;
+      
+      // Calculate total donations and counts
+      const total = donationsData?.reduce((sum, donation) => sum + (donation.amount || 0), 0) || 0;
+      const count = donationsData?.length || 0;
+      
+      // Calculate policy-specific totals
+      const campaignSpecificTotal = donationsData?.reduce((sum, donation) => 
+        sum + ((donation.donation_policy === 'campaign-specific' ? donation.amount : 0) || 0), 0) || 0;
+      const alwaysDonateTotal = donationsData?.reduce((sum, donation) => 
+        sum + ((donation.donation_policy === 'always-donate' ? donation.amount : 0) || 0), 0) || 0;
+      
+      // Generate timeline data
+      const timelineData = {
+        daily: [] as Array<{ date: string; amount: number; donationPolicy?: string; isRecurring?: boolean }>,
+        weekly: [] as Array<{ week: string; amount: number }>,
+        monthly: [] as Array<{ month: string; amount: number }>
+      };
+      
+      // Process donations for timeline
+      if (donationsData) {
+        // Group by date for daily view
+        const dailyMap = new Map<string, { amount: number; donationPolicy?: string; isRecurring?: boolean }>();
+        const weeklyMap = new Map<string, number>();
+        const monthlyMap = new Map<string, number>();
+        
+        donationsData.forEach(donation => {
+          const date = new Date(donation.created_at);
+          const dateStr = date.toISOString().split('T')[0];
+          const weekStr = `${dateStr.slice(0, 7)}-W${Math.ceil(date.getDate() / 7)}`;
+          const monthStr = dateStr.slice(0, 7);
+          
+          // Daily aggregation
+          const existing = dailyMap.get(dateStr) || { amount: 0 };
+          dailyMap.set(dateStr, {
+            amount: existing.amount + donation.amount,
+            donationPolicy: donation.donation_policy || undefined,
+            isRecurring: donation.is_recurring
+          });
+          
+          // Weekly aggregation
+          weeklyMap.set(weekStr, (weeklyMap.get(weekStr) || 0) + donation.amount);
+          
+          // Monthly aggregation
+          monthlyMap.set(monthStr, (monthlyMap.get(monthStr) || 0) + donation.amount);
+        });
+        
+        // Convert maps to arrays for timeline
+        timelineData.daily = Array.from(dailyMap.entries()).map(([date, data]) => ({
+          date,
+          ...data
+        })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 7); // Last 7 days
+        
+        timelineData.weekly = Array.from(weeklyMap.entries()).map(([week, amount]) => ({
+          week,
+          amount
+        })).sort((a, b) => b.week.localeCompare(a.week)).slice(0, 4); // Last 4 weeks
+        
+        timelineData.monthly = Array.from(monthlyMap.entries()).map(([month, amount]) => ({
+          month,
+          amount
+        })).sort((a, b) => b.month.localeCompare(a.month)).slice(0, 6); // Last 6 months
+      }
+      
+      // Generate top donors list
+      // First aggregate donations by donor
+      const donorMap = new Map<string, {
+        donorId: string;
+        name: string;
+        amount: number;
+        lastDonation: string;
+      }>();
+      
+      donationsData?.forEach(donation => {
+        if (donation.is_anonymous) return; // Skip anonymous donations for leaderboard
+        
+        const donorId = donation.user_id;
+        const name = donation.users && typeof donation.users === 'object' && 'name' in donation.users 
+          ? String(donation.users.name) 
+          : 'Anonymous Donor';
+        
+        if (donorMap.has(donorId)) {
+          const donor = donorMap.get(donorId)!;
+          donor.amount += donation.amount;
+          
+          // Update last donation date if this one is more recent
+          if (new Date(donation.created_at) > new Date(donor.lastDonation)) {
+            donor.lastDonation = donation.created_at;
+          }
+        } else {
+          donorMap.set(donorId, {
+            donorId,
+            name,
+            amount: donation.amount,
+            lastDonation: donation.created_at
+          });
+        }
+      });
+      
+      // Convert to array and sort by amount (highest first)
+      const topDonors = Array.from(donorMap.values())
+        .sort((a, b) => b.amount - a.amount)
+        .slice(0, 5); // Top 5 donors
+      
+      return {
+        donations: {
+          total,
+          count,
+          campaignSpecificTotal,
+          alwaysDonateTotal,
+          timeline: timelineData,
+          topDonors
+        }
+      };
+    } catch (error) {
+      console.error('Error fetching campaign donation stats:', error);
+      throw error;
+    }
+  },
 }; 
