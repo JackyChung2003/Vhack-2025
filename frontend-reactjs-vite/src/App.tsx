@@ -11,6 +11,8 @@ import { useRole } from "./contexts/RoleContext"; // New role context
 import RegisterPage from "./modules/authentication/Register";
 import LoginPage from "./modules/authentication/Login";
 import HomePage from "./modules/client/common/Dashboard";
+import DonorHomePage from "./modules/client/donor/DonorDashboard";
+import DonorDashboard from "./modules/client/donor/DonorDashboard";
 
 import ThemeToggle from "./components/Button/ThemeToggleButton";
 import CharityPage from "./modules/client/common/charity/CharityPage";
@@ -32,6 +34,7 @@ import OrderManagement from "./modules/client/vendor/OrderManagement/OrderManage
 import SettingsPage from "./modules/client/settings/SettingsPage";
 import CharityOpenMarket from "./modules/client/charity/CharityOpenMarket/CharityOpenMarket";
 import VendorOpenMarket from "./modules/client/vendor/OpenMarket/OpenMarket";
+import AllCampaigns from "./modules/client/donor/AllCampaigns";
 
 export function App() {
 	const { user, loading: authLoading } = useAuth();
@@ -95,24 +98,35 @@ export function App() {
 			<Routes>
 				{(!isConnected || !roleChecked) ? (
 					<>
+						<Route path="/Vhack-2025" element={<DonorHomePage />} />
 						<Route path="/login" element={<LoginPage />} />
 						<Route path="/register" element={<RegisterPage />} />
-						<Route path="*" element={<Navigate to="/login" replace />} />
+            <Route path="*" element={<Navigate to="/Vhack-2025" replace />} />
+
 					</>
 				) : (
 					<>
 						{/* Common Routes - Available to All Roles */}
-						<Route element={<ProtectedRoute allowedRoles={['charity', 'vendor', 'donor']} redirectPath="/" />}>
-							<Route path="/" element={<HomePage />} />
+						<Route element={<ProtectedRoute allowedRoles={['charity', 'vendor', 'donor']} redirectPath="/Vhack-2025" />}>
+							<Route path="/settings" element={<SettingsPage />} />
 							<Route path="/charity" element={<CharityPage />} />
 							<Route path="/charity/:id" element={<CampaignDetail />} />
 							{/* <Route path="/charity/:id" element={<CampaignDetailCopy />} /> */}
 							<Route path="/organization/:id" element={<OrganizationDetail />} />
-							<Route path="/settings" element={<SettingsPage />} />
 						</Route>
 
+						{/* Role-specific home routes */}
+						<Route path="/" element={
+							userRole === 'charity' ? <Navigate to="/Vhack-2025/charity/home" replace /> :
+							userRole === 'vendor' ? <Navigate to="/Vhack-2025/vendor/dashboard" replace /> :
+							<Navigate to="/donor/dashboard" replace />
+						} />
+						
+						{/* Make DonorHomePage accessible at /Vhack-2025 even when logged in */}
+						<Route path="/Vhack-2025" element={<DonorHomePage />} />
+
 						{/* Charity-Specific Routes */}
-						<Route element={<ProtectedRoute allowedRoles={['charity']} redirectPath="/" />}>
+						<Route element={<ProtectedRoute allowedRoles={['charity']} redirectPath="/Vhack-2025" />}>
 							<Route path="/Vhack-2025/charity/home" element={<CharityHomePage />} />
 							<Route path="/Vhack-2025/charity/profile" element={<OrganizationDetail />} />
 							<Route path="/Vhack-2025/charity/vendor-page" element={<VendorPage />} />
@@ -121,7 +135,7 @@ export function App() {
 						</Route>
 
 						{/* Vendor-Specific Routes */}
-						<Route element={<ProtectedRoute allowedRoles={['vendor']} redirectPath="/" />}>
+						<Route element={<ProtectedRoute allowedRoles={['vendor']} redirectPath="/Vhack-2025" />}>
 							<Route path="/Vhack-2025/vendor/dashboard" element={<VendorDashboard />} />
 							<Route path="/Vhack-2025/vendor/profile" element={<VendorProfile />} />
 							<Route path="/vendor/profile" element={<VendorProfile />} />
@@ -135,19 +149,22 @@ export function App() {
 						</Route>
 
 						{/* Donor-Specific Routes */}
-						<Route element={<ProtectedRoute allowedRoles={['donor']} redirectPath="/" />}>
+						<Route element={<ProtectedRoute allowedRoles={['donor']} redirectPath="/Vhack-2025" />}>
+							<Route path="/donor/dashboard" element={<DonorDashboard />} />
 							<Route path="/donor/profile" element={<DonorProfile />} />
+							<Route path="/donor/all-campaigns" element={<AllCampaigns />} />
 
 						</Route>
 
 						<Route path="/register" element={<RegisterPage />} />
 						<Route path="/login" element={<LoginPage />} />
-					</>
-				)}
+                    </>
+                )}
+				
+                {/* Default Fallback */}
+                <Route path="*" element={<Navigate to="/Vhack-2025" replace />} />
+            </Routes>
 
-				{/* Default Fallback */}
-				<Route path="*" element={<Navigate to="/" replace />} />
-			</Routes>
 			{/* Footer */}
 			<footer className="footer">
 				<p>© Vhack2025 - All Rights Reserved</p>
