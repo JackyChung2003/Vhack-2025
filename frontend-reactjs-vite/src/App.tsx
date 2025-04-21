@@ -55,8 +55,35 @@ export function App() {
 		}
 	}, [user, clearRole]);
 
+	// Handle the case where user is authenticated but has no role
+	useEffect(() => {
+		if (user && roleChecked && userRole === null && window.location.pathname !== '/register') {
+			console.log("User has no role, redirecting to registration page");
+			navigate('/register');
+		}
+	}, [user, roleChecked, userRole, navigate]);
+
 	if (authLoading || !roleChecked) {
 		return <div>Loading...</div>;
+	}
+
+	// If user is authenticated but has no role, show only registration page
+	if (user && userRole === null) {
+		return (
+			<div className="App">
+				<HorizontalNavbar toggle={toggle} />
+				<div className="stickyBottm">
+					<BottomNavBar toggle={toggle} />
+				</div>
+				<Routes>
+					<Route path="/register" element={<RegisterPage />} />
+					<Route path="*" element={<Navigate to="/register" replace />} />
+				</Routes>
+				<footer className="footer">
+					<p>© Vhack2025 - All Rights Reserved</p>
+				</footer>
+			</div>
+		);
 	}
 
 	return (
