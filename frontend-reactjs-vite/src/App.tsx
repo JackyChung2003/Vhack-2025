@@ -17,6 +17,7 @@ import DonorDashboard from "./modules/client/donor/DonorDashboard";
 import ThemeToggle from "./components/Button/ThemeToggleButton";
 import CharityPage from "./modules/client/common/charity/CharityPage";
 import CampaignDetail from "./modules/client/common/charity/CampaignDetail";
+import CampaignDetailCopy from "./modules/client/common/charity/CampaignDetailCopy";
 import OrganizationDetail from "./modules/client/common/charity/OrganizationDetail";
 import DonorProfile from "./modules/client/donor/profile/DonorProfile";
 import CharityHomePage from "./modules/client/charity/CharityHomePage/CharityHomePage";
@@ -57,8 +58,35 @@ export function App() {
 		}
 	}, [user, clearRole]);
 
+	// Handle the case where user is authenticated but has no role
+	useEffect(() => {
+		if (user && roleChecked && userRole === null && window.location.pathname !== '/register') {
+			console.log("User has no role, redirecting to registration page");
+			navigate('/register');
+		}
+	}, [user, roleChecked, userRole, navigate]);
+
 	if (authLoading || !roleChecked) {
 		return <div>Loading...</div>;
+	}
+
+	// If user is authenticated but has no role, show only registration page
+	if (user && userRole === null) {
+		return (
+			<div className="App">
+				<HorizontalNavbar toggle={toggle} />
+				<div className="stickyBottm">
+					<BottomNavBar toggle={toggle} />
+				</div>
+				<Routes>
+					<Route path="/register" element={<RegisterPage />} />
+					<Route path="*" element={<Navigate to="/register" replace />} />
+				</Routes>
+				<footer className="footer">
+					<p>© Vhack2025 - All Rights Reserved</p>
+				</footer>
+			</div>
+		);
 	}
 
 	return (
@@ -73,7 +101,8 @@ export function App() {
 						<Route path="/Vhack-2025" element={<DonorHomePage />} />
 						<Route path="/login" element={<LoginPage />} />
 						<Route path="/register" element={<RegisterPage />} />
-            			<Route path="*" element={<Navigate to="/Vhack-2025" replace />} />
+            <Route path="*" element={<Navigate to="/Vhack-2025" replace />} />
+
 					</>
 				) : (
 					<>
@@ -82,6 +111,7 @@ export function App() {
 							<Route path="/settings" element={<SettingsPage />} />
 							<Route path="/charity" element={<CharityPage />} />
 							<Route path="/charity/:id" element={<CampaignDetail />} />
+							{/* <Route path="/charity/:id" element={<CampaignDetailCopy />} /> */}
 							<Route path="/organization/:id" element={<OrganizationDetail />} />
 						</Route>
 
@@ -123,6 +153,7 @@ export function App() {
 							<Route path="/donor/dashboard" element={<DonorDashboard />} />
 							<Route path="/donor/profile" element={<DonorProfile />} />
 							<Route path="/donor/all-campaigns" element={<AllCampaigns />} />
+
 						</Route>
 
 						<Route path="/register" element={<RegisterPage />} />
@@ -133,10 +164,11 @@ export function App() {
                 {/* Default Fallback */}
                 <Route path="*" element={<Navigate to="/Vhack-2025" replace />} />
             </Routes>
+
 			{/* Footer */}
 			<footer className="footer">
 				<p>© Vhack2025 - All Rights Reserved</p>
-      		</footer>
+			</footer>
 		</div>
 	);
 }

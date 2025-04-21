@@ -39,6 +39,7 @@ import { toast } from "react-toastify";
 import { mockCampaigns, mockOrganizations, Campaign, mockDonationTrackers } from "../../../../utils/mockData";
 import AddCampaignModal from "../../../../components/modals/AddCampaignModal";
 import { motion, AnimatePresence } from "framer-motion";
+import { charityService } from "../../../../services/supabase/charityService";
 
 // Mock current charity organization ID (Global Relief)
 const CURRENT_CHARITY_ORG_ID = 1;
@@ -107,8 +108,7 @@ const CharityManagementPage: React.FC = () => {
   const handleSaveCampaign = async (campaignData: FormData) => {
     try {
       setLoading(true);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await charityService.createCampaign(campaignData);
       toast.success("Campaign created successfully!");
       setShowAddCampaignModal(false);
       // Refresh campaigns
@@ -386,6 +386,15 @@ const CharityManagementPage: React.FC = () => {
                 <h2 className="text-xl font-bold text-[var(--headline)]">Fund Management</h2>
               </div>
 
+              {/* Total Fund Display */}
+              <div className="p-4 border-b border-[var(--stroke)] bg-gradient-to-r from-[#004D99] to-[#0066CC] text-white">
+                <div className="text-center">
+                  <h3 className="text-lg font-medium mb-2 text-[#92C5F9]">Total Funds</h3>
+                  <p className="text-4xl font-bold">RM{totalFunds.toLocaleString()}</p>
+                  <p className="text-sm mt-2 text-[#92C5F9]">Combined General and Campaign Funds</p>
+                </div>
+              </div>
+
               {/* Fund Summary */}
               <div className="p-4 border-b border-[var(--stroke)]">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -423,100 +432,126 @@ const CharityManagementPage: React.FC = () => {
               {/* Fund Allocation Chart */}
               <div className="p-4 border-b border-[var(--stroke)]">
                 <h3 className="text-lg font-medium text-[var(--headline)] mb-4">Fund Allocation</h3>
-                <div className="flex items-center justify-center">
+                <div className="relative flex justify-center">
+                  {/* Legend positioned absolutely */}
+                  <div className="absolute left-12 top-0 flex flex-col gap-2">
+                    {organizationCampaigns
+                      .filter(campaign => new Date(campaign.deadline) > new Date())
+                      .map((campaign, index) => {
+                        const percentage = Math.round((campaign.currentContributions / campaignFundsRaised) * 100) || 0;
+                        const color = [
+                          '#fd7979', '#ffa77f', '#ffcc8f', '#7dc9ff'
+                        ][index % 4];
+                        
+                        return (
+                          <div key={campaign.id} className="flex items-center hover:scale-105 transition-transform duration-300">
+                            <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: color }}></div>
+                            <span className="text-sm whitespace-nowrap">{campaign.name} ({percentage}%)</span>
+                    </div>
+                        );
+                    })}
+                  </div>
                   <div className="relative w-48 h-48">
                     {(() => {
-                      const total = generalFundBalance + campaignFundsRaised;
-                      const generalPercentage = (generalFundBalance / total) * 100 || 0;
-                      
                       // Calculate the circumference of the circle
                       const radius = 40;
                       const circumference = 2 * Math.PI * radius;
                       
-                      // Calculate the stroke dasharray and offset
-                      const generalStrokeDasharray = `${(generalPercentage * circumference) / 100} ${circumference}`;
-                      const campaignStrokeDasharray = `${((100 - generalPercentage) * circumference) / 100} ${circumference}`;
+                      // Get active campaigns and their percentages
+                      const activeCampaigns = organizationCampaigns
+                        .filter(campaign => new Date(campaign.deadline) > new Date())
+                        .map(campaign => ({
+                          id: campaign.id,
+                          name: campaign.name,
+                          amount: campaign.currentContributions,
+                          percentage: Math.round((campaign.currentContributions / campaignFundsRaised) * 100) || 0
+                        }))
+                        .sort((a, b) => b.amount - a.amount);
+
+                      // Define campaign colors
+                      const campaignColors = [
+                        '#fd7979', // coral red
+                        '#ffa77f', // peach
+                        '#ffcc8f', // light orange
+                        '#7dc9ff'  // light blue
+                      ];
+
+                      // Calculate cumulative offset for positioning each segment
+                      let cumulativePercentage = 0;
                       
                       return (
-                        <svg viewBox="0 0 100 100" className="transform -rotate-90">
-                          {/* Background circle */}
-                          <circle
-                            cx="50"
-                            cy="50"
-                            r={radius}
-                            fill="none"
-                            stroke="#e5e7eb"
-                            strokeWidth="10"
-                          />
-                          {/* General Fund (Blue) */}
-                          <circle
-                            cx="50"
-                            cy="50"
-                            r={radius}
-                            fill="none"
-                            stroke="#3b82f6"
-                            strokeWidth="10"
-                            strokeDasharray={generalStrokeDasharray}
-                            strokeDashoffset="0"
-                            className="transition-all duration-500"
-                          />
-                          {/* Campaign Fund (Green) */}
-                          <circle
-                            cx="50"
-                            cy="50"
-                            r={radius}
-                            fill="none"
-                            stroke="#10b981"
-                            strokeWidth="10"
-                            strokeDasharray={campaignStrokeDasharray}
-                            strokeDashoffset={`${-(generalPercentage * circumference) / 100}`}
-                            className="transition-all duration-500"
-                          />
-                        </svg>
+                        <div className="relative">
+                          <svg viewBox="0 0 100 100" className="transform -rotate-90">
+                            {/* Background circle */}
+                            <circle
+                              cx="50"
+                              cy="50"
+                              r={radius}
+                              fill="none"
+                              stroke="#e5e7eb"
+                              strokeWidth="10"
+                            />
+                            {/* Campaign segments */}
+                            {activeCampaigns.map((campaign, index) => {
+                              const strokeDasharray = `${(campaign.percentage * circumference) / 100} ${circumference}`;
+                              const strokeDashoffset = `${-(cumulativePercentage * circumference) / 100}`;
+                              cumulativePercentage += campaign.percentage;
+                              
+                              return (
+                                <circle
+                                  key={campaign.id}
+                                  cx="50"
+                                  cy="50"
+                                  r={radius}
+                                  fill="none"
+                                  stroke={campaignColors[index % campaignColors.length]}
+                                  strokeWidth="10"
+                                  strokeDasharray={strokeDasharray}
+                                  strokeDashoffset={strokeDashoffset}
+                                  className="transition-all duration-500"
+                                />
+                              );
+                            })}
+                          </svg>
+                          {/* Fund amounts */}
+                          {activeCampaigns.map((campaign, index) => {
+                            // Calculate the angle for this segment
+                            let segmentStart = 0;
+                            // Sum up all previous segments to get the starting point
+                            for (let i = 0; i < index; i++) {
+                              segmentStart += activeCampaigns[i].percentage;
+                            }
+                            // Calculate the middle of this segment
+                            const angle = -90 + (segmentStart + campaign.percentage / 2) * 3.6;
+                            const radius = 70;
+                            const x = 50 + radius * Math.cos(angle * Math.PI / 180);
+                            const y = 50 + radius * Math.sin(angle * Math.PI / 180);
+                            
+                            return (
+                              <div
+                                key={campaign.id}
+                                className="absolute transform -translate-x-1/2 -translate-y-1/2 text-sm font-bold bg-white px-2 py-1 rounded-md shadow-sm"
+                                style={{
+                                  left: `${x}%`,
+                                  top: `${y}%`,
+                                  color: campaignColors[index % campaignColors.length]
+                                }}
+                              >
+                                RM{campaign.amount.toLocaleString()}
+                        </div>
+                            );
+                          })}
+                        </div>
                       );
                     })()}
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-2xl font-bold">RM{totalFunds.toLocaleString()}</span>
-                      <span className="text-sm text-[var(--paragraph)]">Total Funds</span>
+                      <span className="text-2xl font-bold text-[var(--headline)]">RM{campaignFundsRaised.toLocaleString()}</span>
+                      <span className="text-sm text-[var(--paragraph)]">Campaign Funds</span>
                     </div>
-                  </div>
-                  {/* Legend */}
-                  <div className="flex flex-col gap-2 ml-4">
-                        <div className="flex items-center">
-                      <div className="w-3 h-3 rounded-full bg-[#3b82f6] mr-2"></div>
-                      <span className="text-sm">General Fund ({Math.round(generalFundPercentage)}%)</span>
-                    </div>
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 rounded-full bg-[#10b981] mr-2"></div>
-                      <span className="text-sm">Campaign Fund ({Math.round(campaignFundPercentage)}%)</span>
-                    </div>
-                  </div>
+                      </div>
                     </div>
                   </div>
                   
-                  {/* Campaign Fund Breakdown */}
-              <div className="p-4">
-                <h3 className="text-lg font-medium text-[var(--headline)] mb-4">Campaign Fund Breakdown</h3>
-                <div className="space-y-4">
-                  {campaignPercentages.map((campaign) => (
-                    <div key={campaign.id} className="bg-gradient-to-br from-white to-gray-50 p-4 rounded-lg shadow-sm">
-                      <div className="flex justify-between items-center mb-2">
-                        <h4 className="font-medium text-[var(--headline)]">{campaign.name}</h4>
-                        <span className="text-sm font-medium">{campaign.percentage}%</span>
-                          </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
-                          className="h-2 rounded-full bg-green-500"
-                              style={{ width: `${campaign.percentage}%` }}
-                            ></div>
-                          </div>
-                      <p className="text-sm text-[var(--paragraph)] mt-2">
-                            RM{campaign.amount.toLocaleString()}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
             </div>
           </motion.div>
         )}
