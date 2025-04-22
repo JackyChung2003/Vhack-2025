@@ -1,466 +1,575 @@
 import React, { useState } from "react";
-import { 
-  FaMoneyBillWave, 
-  FaTags, 
-  FaCalendarAlt, 
-  FaTimes, 
+import {
+  FaMoneyBillWave,
+  FaCalendarAlt,
+  FaTimes,
   FaPlus,
-  FaCreditCard,
   FaInfoCircle,
-  FaChevronDown,
-  FaChevronUp,
-  FaBuilding,
+  FaClock,
   FaHandHoldingHeart,
-  FaExternalLinkAlt,
-  FaRegCreditCard
+  FaEdit,
+  FaTrash,
+  FaPause,
+  FaPlay,
+  FaDonate
 } from "react-icons/fa";
 import { mockDonorAutoDonations } from "../../../../utils/mockData";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { toast } from "react-hot-toast";
 
-// Define auto donation setup modal component
-const AutoDonationSetupModal: React.FC<{
+// Define simplified direct donation setup modal
+const DirectDonationSetupModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
-  onSetupComplete: (amount: number, frequency: string, categories: string[]) => void;
-}> = ({ isOpen, onClose, onSetupComplete }) => {
-  const [amount, setAmount] = useState<number>(25);
-  const [frequency, setFrequency] = useState<'monthly' | 'quarterly'>('monthly');
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  
-  const campaignCategories = [
-    "Health & Medical",
-    "Education",
-    "Environment",
-    "Disaster Relief",
-    "Poverty & Hunger",
-    "Animal Welfare",
-    "Human Rights",
-    "Community Development"
-  ];
+  onSetupComplete: (amount: number, frequency: string) => void;
+  initialValues?: {
+    amount: number;
+    frequency: 'monthly' | 'quarterly';
+  };
+  isEditing?: boolean;
+}> = ({ isOpen, onClose, onSetupComplete, initialValues, isEditing = false }) => {
+  const [amount, setAmount] = useState<number>(initialValues?.amount || 25);
+  const [frequency, setFrequency] = useState<string>(initialValues?.frequency || 'monthly');
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
-  const handleSubmit = () => {
-    if (amount > 0 && selectedCategories.length > 0) {
-      onSetupComplete(amount, frequency, selectedCategories);
-      onClose();
+  // Reset form values when modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      if (!initialValues) {
+        setAmount(25);
+        setFrequency('monthly');
+      } else {
+        setAmount(initialValues.amount);
+        setFrequency(initialValues.frequency);
+      }
+      setIsProcessing(false);
     }
+  }, [isOpen, initialValues]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Final submission
+    setIsProcessing(true);
+
+    // Simulate API call
+    setTimeout(() => {
+      onSetupComplete(amount, frequency);
+      setIsProcessing(false);
+      onClose();
+    }, 1500);
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-[var(--main)] rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[1000] p-4" onClick={(e) => {
+      // Only close if clicking directly on the backdrop
+      if (e.target === e.currentTarget) {
+        onClose();
+      }
+    }}>
+      <div className="bg-white rounded-xl shadow-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="p-6 border-b border-[var(--stroke)] flex justify-between items-center">
-          <h2 className="text-xl font-bold text-[var(--headline)]">
-            Setup Auto Donation
+        <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-white sticky top-0 z-10">
+          <h2 className="text-xl font-bold text-[#006838] flex items-center gap-2">
+            <span className="text-[#F9A826]">🔄</span>
+            {isEditing ? 'Edit Recurring Donation' : 'Setup Direct Recurring Donation'}
           </h2>
-          <button 
+          <button
             onClick={onClose}
-            className="text-[var(--paragraph)] hover:text-[var(--headline)] transition-colors"
+            className="text-gray-500 hover:text-gray-700 transition-colors p-2"
           >
             <FaTimes />
           </button>
         </div>
-        
-        {/* Content */}
-        <div className="p-6 space-y-6">
-          {/* Amount selection */}
-          <div>
-            <h3 className="text-lg font-semibold text-[var(--headline)] mb-3">Donation Amount</h3>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <span className="text-[var(--paragraph)]">RM</span>
+
+        <form onSubmit={handleSubmit}>
+          <div className="p-6 space-y-6">
+            {/* Amount */}
+            <div>
+              <h3 className="text-md font-semibold text-[#006838] mb-2 flex items-center">
+                <span className="bg-[#F9A826] text-white w-6 h-6 rounded-full inline-flex items-center justify-center mr-2 text-sm">1</span>
+                Choose Your Donation Amount
+              </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Set the amount you'd like to donate on a recurring basis.
+              </p>
+
+              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Donation Amount
+                </label>
+
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span className="text-gray-500">RM</span>
+                  </div>
+                  <input
+                    type="number"
+                    value={amount}
+                    onChange={(e) => setAmount(Number(e.target.value))}
+                    min="5"
+                    max="10000"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#F9A826] focus:border-[#F9A826] text-xl font-bold text-[#006838]"
+                  />
+                </div>
+
+                <div className="flex flex-wrap justify-center gap-2 mt-4">
+                  {[10, 25, 50, 100, 200].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setAmount(preset)}
+                      className={`py-2 px-4 rounded-lg transition-colors ${amount === preset
+                        ? 'bg-[#F9A826] text-white'
+                        : 'border border-gray-300 hover:border-[#F9A826] text-gray-700'
+                        }`}
+                    >
+                      RM{preset}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <input
-                type="number"
-                min="1"
-                className="w-full pl-8 pr-4 py-3 border border-[var(--stroke)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--highlight)]"
-                placeholder="Enter amount"
-                value={amount}
-                onChange={(e) => setAmount(Number(e.target.value))}
-              />
             </div>
-          </div>
-          
-          {/* Frequency selection */}
-          <div>
-            <h3 className="text-lg font-semibold text-[var(--headline)] mb-3">Donation Frequency</h3>
-            <div className="flex rounded-lg overflow-hidden border border-[var(--stroke)]">
-              <button
-                className={`flex-1 py-3 px-4 ${frequency === 'monthly' ? 'bg-[var(--highlight)] text-white' : 'bg-[var(--background)]'}`}
-                onClick={() => setFrequency('monthly')}
-              >
-                Monthly
-              </button>
-              <button
-                className={`flex-1 py-3 px-4 ${frequency === 'quarterly' ? 'bg-[var(--highlight)] text-white' : 'bg-[var(--background)]'}`}
-                onClick={() => setFrequency('quarterly')}
-              >
-                Quarterly
-              </button>
-            </div>
-          </div>
-          
-          {/* Category selection */}
-          <div>
-            <h3 className="text-lg font-semibold text-[var(--headline)] mb-3 flex items-center gap-2">
-              <FaTags className="text-[var(--highlight)]" />
-              Select Categories to Support
-            </h3>
-            <div className="flex flex-wrap gap-2 mb-3">
-              {campaignCategories.map((category) => (
-                <button
-                  key={category}
-                  onClick={() => {
-                    setSelectedCategories(prev => 
-                      prev.includes(category)
-                        ? prev.filter(cat => cat !== category)
-                        : [...prev, category]
-                    );
-                  }}
-                  className={`px-3 py-1.5 text-sm rounded-full transition-colors flex items-center gap-1 ${
-                    selectedCategories.includes(category)
-                      ? 'bg-[var(--highlight)] text-white'
-                      : 'bg-gray-100 text-[var(--paragraph)] hover:bg-gray-200'
-                  }`}
+
+            {/* Frequency */}
+            <div>
+              <h3 className="text-md font-semibold text-[#006838] mb-2 flex items-center">
+                <span className="bg-[#F9A826] text-white w-6 h-6 rounded-full inline-flex items-center justify-center mr-2 text-sm">2</span>
+                Choose Donation Frequency
+              </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Select how often you would like your donation to be processed.
+              </p>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div
+                  className={`p-4 rounded-lg cursor-pointer transition-all duration-200 ${frequency === 'monthly'
+                    ? 'border-2 border-[#006838] bg-[#006838]/5'
+                    : 'border border-gray-200 hover:border-[#006838]/30'
+                    }`}
+                  onClick={() => setFrequency('monthly')}
                 >
-                  {category}
-                  {selectedCategories.includes(category) && (
-                    <FaTimes size={10} className="ml-1" />
-                  )}
-                </button>
-              ))}
-            </div>
-            <div className="text-sm text-[var(--paragraph)] flex items-center gap-1">
-              <FaInfoCircle className="text-[var(--highlight)]" />
-              Select at least one category to continue
-            </div>
-          </div>
-          
-          {/* Information about auto donations */}
-          <div className="bg-[var(--background)] p-4 rounded-lg text-sm text-[var(--paragraph)]">
-            <p className="mb-2">
-              <strong>How it works:</strong> We'll distribute your donation among verified campaigns in your selected categories.
-            </p>
-            <p>
-              You can cancel your auto donation at any time. You'll receive monthly reports on how your donation was distributed.
-            </p>
-          </div>
-        </div>
-        
-        {/* Footer */}
-        <div className="p-6 border-t border-[var(--stroke)] flex justify-end">
-          <button
-            onClick={handleSubmit}
-            disabled={amount <= 0 || selectedCategories.length === 0}
-            className={`px-4 py-2 rounded-lg bg-[var(--highlight)] text-white flex items-center gap-2 ${
-              amount <= 0 || selectedCategories.length === 0 
-                ? 'opacity-50 cursor-not-allowed' 
-                : 'hover:bg-opacity-90'
-            }`}
-          >
-            <FaCreditCard />
-            Setup Auto Donation
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Component to display distribution details
-const DistributionDetails: React.FC<{
-  distribution: {
-    date: string;
-    recipients: {
-      id: number;
-      name: string;
-      type: 'campaign' | 'organization';
-      amount: number;
-      category?: string;
-    }[];
-  };
-}> = ({ distribution }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const navigate = useNavigate();
-
-  const totalAmount = distribution.recipients.reduce((sum, recipient) => sum + recipient.amount, 0);
-  
-  const handleRecipientClick = (recipient: {
-    id: number;
-    type: 'campaign' | 'organization';
-  }) => {
-    if (recipient.type === 'campaign') {
-      navigate(`/charity/${recipient.id}`);
-    } else {
-      navigate(`/charity/organization/${recipient.id}`);
-    }
-  };
-
-  return (
-    <div className="border border-[var(--stroke)] rounded-lg overflow-hidden mb-3">
-      <div 
-        className="p-4 bg-[var(--background)] flex justify-between items-center cursor-pointer hover:bg-opacity-80 transition-colors"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        <div>
-          <div className="font-medium text-[var(--headline)]">
-            Distribution on {new Date(distribution.date).toLocaleDateString()}
-          </div>
-          <div className="text-sm text-[var(--paragraph)]">
-            RM{totalAmount} distributed to {distribution.recipients.length} recipient{distribution.recipients.length !== 1 ? 's' : ''}
-          </div>
-        </div>
-        <button className="text-[var(--paragraph)] hover:text-[var(--headline)]">
-          {isExpanded ? <FaChevronUp /> : <FaChevronDown />}
-        </button>
-      </div>
-      
-      {isExpanded && (
-        <div className="p-4 bg-white">
-          <div className="space-y-3">
-            {distribution.recipients.map((recipient, index) => (
-              <div 
-                key={index} 
-                className="p-3 border border-[var(--stroke)] rounded-lg hover:bg-[var(--background)] transition-colors cursor-pointer"
-                onClick={() => handleRecipientClick(recipient)}
-              >
-                <div className="flex justify-between items-start mb-1">
-                  <div className="flex items-center gap-2">
-                    {recipient.type === 'campaign' ? (
-                      <FaHandHoldingHeart className="text-[var(--highlight)]" />
-                    ) : (
-                      <FaBuilding className="text-[var(--secondary)]" />
-                    )}
-                    <span className="font-medium text-[var(--headline)]">
-                      {recipient.name}
-                    </span>
+                  <div className="flex flex-col items-center text-center">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 ${frequency === 'monthly' ? 'bg-[#006838]/20 text-[#006838]' : 'bg-gray-100 text-gray-400'
+                      }`}>
+                      <FaCalendarAlt size={20} />
+                    </div>
+                    <h4 className={`font-bold ${frequency === 'monthly' ? 'text-[#006838]' : 'text-gray-700'}`}>
+                      Monthly
+                    </h4>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Donate RM{amount} every month
+                    </p>
                   </div>
-                  <span className="font-semibold text-[var(--highlight)]">RM{recipient.amount}</span>
                 </div>
-                <div className="flex justify-between items-center text-xs text-[var(--paragraph)]">
-                  <div>
-                    {recipient.type === 'campaign' ? 'Campaign' : 'Organization'}
-                    {recipient.category && ` • ${recipient.category}`}
-                  </div>
-                  <div className="flex items-center gap-1 text-[var(--highlight)] hover:underline">
-                    <FaExternalLinkAlt size={10} />
-                    View Details
+
+                <div
+                  className={`p-4 rounded-lg cursor-pointer transition-all duration-200 ${frequency === 'quarterly'
+                    ? 'border-2 border-[#006838] bg-[#006838]/5'
+                    : 'border border-gray-200 hover:border-[#006838]/30'
+                    }`}
+                  onClick={() => setFrequency('quarterly')}
+                >
+                  <div className="flex flex-col items-center text-center">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 ${frequency === 'quarterly' ? 'bg-[#006838]/20 text-[#006838]' : 'bg-gray-100 text-gray-400'
+                      }`}>
+                      <FaClock size={20} />
+                    </div>
+                    <h4 className={`font-bold ${frequency === 'quarterly' ? 'text-[#006838]' : 'text-gray-700'}`}>
+                      Quarterly
+                    </h4>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Donate RM{amount} every 3 months
+                    </p>
                   </div>
                 </div>
               </div>
-            ))}
+            </div>
+
+            {/* Summary */}
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <h4 className="text-sm font-semibold text-[#006838] mb-2">Summary</h4>
+              <p className="text-sm text-gray-700">
+                You will donate <strong>RM{amount}</strong> {frequency === 'monthly' ? 'every month' : 'every 3 months'} to support charity campaigns.
+              </p>
+            </div>
+
+            {/* Info note */}
+            <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
+              <div className="flex items-start">
+                <div className="text-blue-600 mr-2 mt-1 flex-shrink-0">
+                  <FaInfoCircle />
+                </div>
+                <div>
+                  <p className="text-sm text-blue-800">
+                    You can pause or cancel your recurring donation at any time from your donation management dashboard.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+
+          {/* Footer */}
+          <div className="p-4 border-t border-gray-200 flex justify-between">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isProcessing}
+              className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              disabled={isProcessing}
+              className={`px-6 py-2 rounded-lg ${isProcessing
+                ? 'bg-gray-300 cursor-not-allowed'
+                : 'bg-[#F9A826] text-white hover:bg-[#e99615]'
+                } transition-colors flex items-center justify-center min-w-[120px]`}
+            >
+              {isProcessing ? (
+                <span className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Processing
+                </span>
+              ) : (
+                isEditing ? 'Update' : 'Complete Setup'
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };
 
 const AutoDonation: React.FC = () => {
   const [isSetupModalOpen, setIsSetupModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedDonation, setSelectedDonation] = useState<any>(null);
   const navigate = useNavigate();
-  
-  // In a real app, this would come from an API or context
-  const autoDonations = mockDonorAutoDonations;
-  
-  const handleSetupComplete = (amount: number, frequency: string, categories: string[]) => {
-    console.log(`Auto donation setup: RM${amount} ${frequency} to categories:`, categories);
-    // In a real app, this would call an API to set up the auto donation
-    // For now, we'll just log it
-  };
-  
-  const handleCancelAutoDonation = (id: number) => {
-    console.log(`Cancelling auto donation with ID: ${id}`);
-    // In a real app, this would call an API to cancel the auto donation
+
+  // Modified mock data to remove categories
+  const autoDonations = mockDonorAutoDonations.map(donation => ({
+    ...donation,
+    categories: []  // Emptying categories as we're removing category-based donations
+  }));
+
+  // Calculate summary information
+  const totalActiveDonations = autoDonations.filter(d => d.status === 'active').length;
+  const totalMonthlyAmount = autoDonations
+    .filter(d => d.status === 'active')
+    .reduce((sum, donation) => {
+      // Handle quarterly donations by dividing by 3 to get monthly equivalent
+      const monthlyAmount = donation.frequency === 'quarterly' ? donation.amount / 3 : donation.amount;
+      return sum + monthlyAmount;
+    }, 0);
+
+  // Next scheduled donation date
+  const getNextDonationDate = () => {
+    if (autoDonations.length === 0) return "No upcoming donations";
+
+    const upcomingDates = autoDonations
+      .filter(d => d.status === 'active' && d.nextCharge)
+      .map(d => new Date(d.nextCharge));
+
+    if (upcomingDates.length === 0) return "No upcoming donations";
+
+    const nextDate = new Date(Math.min(...upcomingDates.map(d => d.getTime())));
+    return nextDate.toLocaleDateString();
   };
 
-  const handleViewRecipient = (recipient: {
-    id: number;
-    type: 'campaign' | 'organization';
-  }) => {
-    if (recipient.type === 'campaign') {
-      navigate(`/charity/${recipient.id}`);
-    } else {
-      navigate(`/charity/organization/${recipient.id}`);
+  const handleSetupComplete = (amount: number, frequency: string) => {
+    // Create a new recurring donation
+    const newDonation = {
+      id: `rd-${Date.now()}`,
+      amount,
+      frequency: frequency as 'monthly' | 'quarterly',
+      categories: [],
+      status: 'active',
+      startDate: new Date().toLocaleDateString(),
+      nextCharge: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString(),
+      totalContributed: 0,
+    };
+
+    // Show toast notification
+    toast({
+      title: 'Recurring Donation Set Up',
+      description: 'Your recurring donation has been set up successfully.',
+      status: 'success',
+      duration: 5000,
+      isClosable: true,
+      position: 'top-right',
+    });
+  };
+
+  const handleEditComplete = (amount: number, frequency: string) => {
+    if (!selectedDonation) return;
+
+    // Update the selected donation
+    const updatedDonations = autoDonations.map(donation =>
+      donation.id === selectedDonation.id
+        ? {
+          ...donation,
+          amount,
+          frequency: frequency as 'monthly' | 'quarterly'
+        }
+        : donation
+    );
+
+    // Show toast notification
+    toast({
+      title: 'Recurring Donation Updated',
+      description: 'Your recurring donation has been updated successfully.',
+      status: 'success',
+      duration: 5000,
+      isClosable: true,
+      position: 'top-right',
+    });
+  };
+
+  // Function to handle donation status toggle (pause/resume)
+  const handleToggleDonationStatus = (donationId: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'active' ? 'paused' : 'active';
+
+    // Show toast notification
+    toast({
+      title: `Donation ${newStatus === 'active' ? 'Resumed' : 'Paused'}`,
+      description: `Your recurring donation has been ${newStatus === 'active' ? 'resumed' : 'paused'} successfully.`,
+      status: 'success',
+      duration: 5000,
+      isClosable: true,
+      position: 'top-right',
+    });
+  };
+
+  // Function to handle donation deletion with confirmation
+  const handleDeleteDonation = (donationId: string) => {
+    // Show confirmation dialog
+    if (confirm("Are you sure you want to cancel this recurring donation? This action cannot be undone.")) {
+      // Show toast notification
+      toast({
+        title: "Donation Cancelled",
+        description: "Your recurring donation has been cancelled successfully.",
+        status: 'info',
+        duration: 5000,
+        isClosable: true,
+        position: 'top-right',
+      });
     }
   };
 
   return (
-    <div>
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-[var(--headline)]">Auto Donations</h2>
-          <p className="text-[var(--paragraph)]">
-            Manage all your recurring donations in one place.
-          </p>
+    <div className="flex flex-col">
+      {/* Summary cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* Active Plans Card */}
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+          <div className="flex items-center">
+            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#006838]/20 to-[#006838]/10 flex items-center justify-center mr-4">
+              <FaHandHoldingHeart className="text-[#006838] text-xl" />
+            </div>
+            <div>
+              <h3 className="text-sm text-gray-500 font-medium">Active Plans</h3>
+              <p className="text-2xl font-bold text-[#006838]">{totalActiveDonations}</p>
+            </div>
+          </div>
         </div>
-        <button
-          onClick={() => setIsSetupModalOpen(true)}
-          className="px-4 py-2 bg-[var(--highlight)] text-white rounded-lg shadow-md hover:bg-opacity-90 transition-all flex items-center gap-2"
-        >
-          <FaPlus />
-          Setup Auto Donation
-        </button>
+
+        {/* Monthly Impact Card */}
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+          <div className="flex items-center">
+            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#F9A826]/20 to-[#F9A826]/10 flex items-center justify-center mr-4">
+              <FaMoneyBillWave className="text-[#F9A826] text-xl" />
+            </div>
+            <div>
+              <h3 className="text-sm text-gray-500 font-medium">Monthly Impact</h3>
+              <p className="text-2xl font-bold text-[#F9A826]">
+                RM{totalMonthlyAmount.toFixed(2)}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Next Donation Card */}
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+          <div className="flex items-center">
+            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-200 to-blue-100 flex items-center justify-center mr-4">
+              <FaCalendarAlt className="text-blue-500 text-xl" />
+            </div>
+            <div>
+              <h3 className="text-sm text-gray-500 font-medium">Next Donation</h3>
+              <p className="text-2xl font-bold text-blue-500">{getNextDonationDate()}</p>
+            </div>
+          </div>
+        </div>
       </div>
-      
-      {/* Active auto donations */}
-      <div className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] overflow-hidden mb-8">
-        <div className="p-6 border-b border-[var(--stroke)]">
-          <h3 className="text-lg font-bold text-[var(--headline)] flex items-center gap-2">
-            <FaMoneyBillWave className="text-[var(--highlight)]" />
-            Your Active Recurring Donations
-          </h3>
+
+      {/* Active Donations Section */}
+      <div className="mb-8">
+        <div className="mb-6 flex justify-between items-center">
+          <h2 className="text-xl font-bold text-[#006838] flex items-center">
+            <FaDonate className="mr-2 text-[#F9A826]" />
+            Your Direct Recurring Donations
+          </h2>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setIsSetupModalOpen(true)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-[#F9A826] text-white rounded-lg shadow-md hover:bg-[#e59415] transition-colors"
+          >
+            <FaPlus size={14} />
+            <span>New Donation</span>
+          </motion.button>
         </div>
-        
-        {autoDonations.length > 0 ? (
-          <div className="divide-y divide-[var(--stroke)]">
-            {autoDonations.map((donation) => (
-              <div key={donation.id} className="p-6 hover:bg-[var(--background)] transition-colors">
-                <div className="flex justify-between items-start mb-3">
+
+        {/* Donation Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {autoDonations.map((donation) => (
+            <motion.div
+              key={donation.id}
+              className={`bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 hover:shadow-md transition-shadow`}
+              whileHover={{ scale: 1.02 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className={`h-2 ${donation.status === 'active' ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+              <div className="p-6">
+                <div className="flex justify-between items-start mb-4">
                   <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-semibold text-[var(--headline)]">
-                        RM{donation.amount} {donation.frequency}
-                      </h4>
-                      <span className={`px-2 py-0.5 text-xs rounded-full ${
-                        donation.donationType === 'direct' 
-                          ? 'bg-blue-100 text-blue-800' 
-                          : 'bg-green-100 text-green-800'
-                      }`}>
-                        {donation.donationType === 'direct' ? 'Direct Donation' : 'Category-Based'}
-                      </span>
-                    </div>
-                    <div className="text-sm text-[var(--paragraph)] flex items-center gap-2 mt-1">
-                      <FaCalendarAlt />
-                      Started on {new Date(donation.startDate).toLocaleDateString()}
-                      {donation.nextDonationDate && (
-                        <span className="ml-2">
-                          • Next donation on {new Date(donation.nextDonationDate).toLocaleDateString()}
-                        </span>
-                      )}
-                    </div>
+                    <h3 className="font-bold text-lg text-[#006838]">{donation.frequency === 'monthly' ? 'Monthly' : 'Quarterly'} Donation</h3>
+                    <p className="text-sm text-gray-500">Started {donation.startDate}</p>
                   </div>
+                  <div className={`px-3 py-1 rounded-full text-xs font-semibold
+                    ${donation.status === 'active'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-yellow-100 text-yellow-800'}`
+                  }>
+                    {donation.status === 'active' ? 'Active' : 'Paused'}
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-4 mb-5">
+                  <div className="flex justify-between mb-1">
+                    <span className="text-gray-600 text-sm">Amount:</span>
+                    <span className="font-semibold">RM{donation.amount.toFixed(2)}/{donation.frequency === 'monthly' ? 'month' : 'quarter'}</span>
+                  </div>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-gray-600 text-sm">Next charge:</span>
+                    <span className="font-semibold">{donation.nextCharge}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 text-sm">Total contributed:</span>
+                    <span className="font-semibold text-[#006838]">RM{donation.totalContributed.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                <div className="flex justify-between gap-2 mt-4">
                   <button
-                    onClick={() => handleCancelAutoDonation(donation.id)}
-                    className="text-red-500 hover:text-red-700 text-sm font-medium"
+                    onClick={() => {
+                      setSelectedDonation(donation);
+                      setIsEditModalOpen(true);
+                    }}
+                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
                   >
-                    Cancel
+                    <FaEdit size={14} />
+                    <span>Edit</span>
+                  </button>
+                  <button
+                    onClick={() => handleToggleDonationStatus(donation.id.toString(), donation.status)}
+                    className={`flex-1 flex items-center justify-center gap-1 px-3 py-2.5 rounded-lg transition-colors
+                      ${donation.status === 'active'
+                        ? 'bg-yellow-100 hover:bg-yellow-200 text-yellow-800'
+                        : 'bg-green-100 hover:bg-green-200 text-green-800'}`
+                    }
+                  >
+                    {donation.status === 'active' ? <FaPause size={14} /> : <FaPlay size={14} />}
+                    <span>{donation.status === 'active' ? 'Pause' : 'Resume'}</span>
+                  </button>
+                  <button
+                    onClick={() => handleDeleteDonation(donation.id.toString())}
+                    className="flex items-center justify-center gap-1 px-3 py-2.5 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
+                  >
+                    <FaTrash size={14} />
                   </button>
                 </div>
-                
-                {/* For category-based donations, show categories */}
-                {donation.donationType === 'category-based' && donation.categories && (
-                  <div className="mt-3">
-                    <div className="text-sm font-medium text-[var(--headline)] mb-2">Supporting categories:</div>
-                    <div className="flex flex-wrap gap-1">
-                      {donation.categories.map((category) => (
-                        <span 
-                          key={category}
-                          className="px-2 py-1 bg-[var(--highlight)] bg-opacity-10 rounded-full text-xs font-semibold text-[var(--headline)]"
-                        >
-                          {category}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {/* For direct donations, show the recipient */}
-                {donation.donationType === 'direct' && donation.directRecipient && (
-                  <div className="mt-3">
-                    <div className="text-sm font-medium text-[var(--headline)] mb-2">Supporting:</div>
-                    <div 
-                      className="p-3 border border-[var(--stroke)] rounded-lg hover:bg-[var(--background)] transition-colors cursor-pointer"
-                      onClick={() => handleViewRecipient(donation.directRecipient!)}
-                    >
-                      <div className="flex items-center gap-2">
-                        {donation.directRecipient.type === 'campaign' ? (
-                          <FaHandHoldingHeart className="text-[var(--highlight)]" />
-                        ) : (
-                          <FaBuilding className="text-[var(--secondary)]" />
-                        )}
-                        <span className="font-medium text-[var(--headline)]">
-                          {donation.directRecipient.name}
-                        </span>
-                      </div>
-                      <div className="text-xs text-[var(--paragraph)] mt-1">
-                        {donation.directRecipient.type === 'campaign' ? 'Campaign' : 'Organization'}
-                        {donation.directRecipient.category && ` • ${donation.directRecipient.category}`}
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                {donation.distributions.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-[var(--stroke)]">
-                    <div className="text-sm font-medium text-[var(--headline)] mb-3">Distribution history:</div>
-                    <div>
-                      {donation.distributions.map((distribution, index) => (
-                        <DistributionDetails key={index} distribution={distribution} />
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="p-10 text-center">
-            <FaMoneyBillWave className="mx-auto text-4xl text-[var(--paragraph)] opacity-30 mb-4" />
-            <p className="text-lg font-medium text-[var(--headline)]">No active recurring donations</p>
-            <p className="text-[var(--paragraph)]">Set up a recurring donation to support causes you care about.</p>
-          </div>
-        )}
-      </div>
-      
-      {/* How it works section */}
-      <div className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] overflow-hidden">
-        <div className="p-6 border-b border-[var(--stroke)]">
-          <h3 className="text-lg font-bold text-[var(--headline)]">How Recurring Donations Work</h3>
+            </motion.div>
+          ))}
+
+          {autoDonations.length === 0 && (
+            <div className="col-span-full bg-gray-50 rounded-xl p-8 text-center">
+              <div className="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <FaMoneyBillWave className="text-gray-400 text-2xl" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">No recurring donations yet</h3>
+              <p className="text-gray-500 mb-4">Set up your first recurring donation to start making a regular impact</p>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setIsSetupModalOpen(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-[#F9A826] text-white rounded-lg"
+              >
+                <FaPlus size={12} />
+                <span>New Donation</span>
+              </motion.button>
+            </div>
+          )}
         </div>
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-[var(--background)] p-5 rounded-lg">
-              <div className="w-10 h-10 bg-[var(--highlight)] bg-opacity-20 rounded-full flex items-center justify-center mb-3">
-                <FaMoneyBillWave className="text-[var(--highlight)]" />
-              </div>
-              <h4 className="font-semibold text-[var(--headline)] mb-2">Two ways to donate</h4>
-              <p className="text-sm text-[var(--paragraph)]">
-                Set up category-based auto donations or monthly donations to specific campaigns/organizations.
-              </p>
-            </div>
-            
-            <div className="bg-[var(--background)] p-5 rounded-lg">
-              <div className="w-10 h-10 bg-[var(--highlight)] bg-opacity-20 rounded-full flex items-center justify-center mb-3">
-                <FaRegCreditCard className="text-[var(--highlight)]" />
-              </div>
-              <h4 className="font-semibold text-[var(--headline)] mb-2">Automatic processing</h4>
-              <p className="text-sm text-[var(--paragraph)]">
-                Your donations are processed automatically on the same date each month or quarter.
-              </p>
-            </div>
-            
-            <div className="bg-[var(--background)] p-5 rounded-lg">
-              <div className="w-10 h-10 bg-[var(--highlight)] bg-opacity-20 rounded-full flex items-center justify-center mb-3">
-                <FaCalendarAlt className="text-[var(--highlight)]" />
-              </div>
-              <h4 className="font-semibold text-[var(--headline)] mb-2">Manage in one place</h4>
-              <p className="text-sm text-[var(--paragraph)]">
-                View and cancel all your recurring donations from this dashboard at any time.
-              </p>
-            </div>
+      </div>
+
+      {/* Recent Transactions Section (simplified) */}
+      <div className="mb-8">
+        <h2 className="text-xl font-bold text-[#006838] mb-4 flex items-center">
+          <FaCalendarAlt className="mr-2 text-[#F9A826]" />
+          Recent Transactions
+        </h2>
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+          <div className="space-y-2">
+            {/* Mock transactions */}
+            {Array.from({ length: 5 }).map((_, idx) => {
+              const date = new Date();
+              date.setDate(date.getDate() - (idx * 30));
+              return (
+                <div key={idx} className="flex justify-between items-center py-3 border-b border-gray-100">
+                  <div>
+                    <div className="font-medium text-[#006838]">{idx % 2 === 0 ? 'Monthly' : 'Quarterly'} Donation</div>
+                    <div className="text-sm text-gray-500">{date.toLocaleDateString()}</div>
+                  </div>
+                  <div className="font-semibold text-[#006838]">RM{(25 + idx * 5).toFixed(2)}</div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
-      
-      {/* Auto donation setup modal */}
-      <AutoDonationSetupModal 
+
+      {/* Setup Modal */}
+      <DirectDonationSetupModal
         isOpen={isSetupModalOpen}
         onClose={() => setIsSetupModalOpen(false)}
         onSetupComplete={handleSetupComplete}
       />
+
+      {/* Edit Modal */}
+      {selectedDonation && (
+        <DirectDonationSetupModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          initialValues={{
+            amount: selectedDonation.amount,
+            frequency: selectedDonation.frequency,
+          }}
+          isEditing={true}
+          onSetupComplete={handleEditComplete}
+        />
+      )}
     </div>
   );
 };
