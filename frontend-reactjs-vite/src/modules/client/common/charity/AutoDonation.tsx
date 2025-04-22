@@ -1,81 +1,107 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   FaMoneyBillWave,
-  FaCalendarAlt,
   FaTimes,
   FaPlus,
+  FaCreditCard,
   FaInfoCircle,
-  FaClock,
+  FaChevronDown,
+  FaChevronUp,
+  FaBuilding,
   FaHandHoldingHeart,
+  FaExternalLinkAlt,
+  FaRegCreditCard,
+  FaCoins,
+  FaClock,
+  FaReceipt,
+  FaHistory,
   FaEdit,
-  FaTrash,
-  FaPause,
-  FaPlay,
-  FaDonate
+  FaCalendarAlt,
+  FaChartLine,
+  FaCheckCircle,
+  FaRegCalendarAlt,
+  FaLock
 } from "react-icons/fa";
 import { mockDonorAutoDonations } from "../../../../utils/mockData";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { toast } from "react-hot-toast";
+import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "react-toastify";
 
-// Define simplified direct donation setup modal
-const DirectDonationSetupModal: React.FC<{
+// Define auto donation edit modal component
+const EditRecurringDonationModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
-  onSetupComplete: (amount: number, frequency: string) => void;
+  onEditComplete: (amount: number) => void;
   initialValues?: {
     amount: number;
-    frequency: 'monthly' | 'quarterly';
+    recipientName: string;
+    recipientType: 'campaign' | 'organization';
   };
-  isEditing?: boolean;
-}> = ({ isOpen, onClose, onSetupComplete, initialValues, isEditing = false }) => {
-  const [amount, setAmount] = useState<number>(initialValues?.amount || 25);
-  const [frequency, setFrequency] = useState<string>(initialValues?.frequency || 'monthly');
-  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+}> = ({ isOpen, onClose, onEditComplete, initialValues }) => {
+  const predefinedAmounts = [10, 25, 50, 100, 250];
+  const [amount, setAmount] = useState<number | ''>(initialValues?.amount || predefinedAmounts[0]);
+  const [customAmount, setCustomAmount] = useState<boolean>(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Reset form values when modal opens
-  React.useEffect(() => {
-    if (isOpen) {
-      if (!initialValues) {
-        setAmount(25);
-        setFrequency('monthly');
-      } else {
-        setAmount(initialValues.amount);
-        setFrequency(initialValues.frequency);
-      }
-      setIsProcessing(false);
+  // Reset form values when modal opens with initialValues
+  useEffect(() => {
+    if (isOpen && initialValues) {
+      setAmount(initialValues.amount);
+      setCustomAmount(!predefinedAmounts.includes(initialValues.amount));
     }
   }, [isOpen, initialValues]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAmountSelect = (selectedAmount: number) => {
+    setAmount(selectedAmount);
+    setCustomAmount(false);
+  };
 
-    // Final submission
-    setIsProcessing(true);
+  const handleCustomAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value === '' || /^\d+(\.\d{0,2})?$/.test(value)) {
+      // Ensure minimum of RM 10 when confirming, but allow typing any value
+      setAmount(value === '' ? '' : parseFloat(value));
+    }
+  };
 
-    // Simulate API call
-    setTimeout(() => {
-      onSetupComplete(amount, frequency);
-      setIsProcessing(false);
+  const handleSubmit = () => {
+    if (typeof amount === 'number' && amount < 10) {
+      toast.error("Minimum donation amount is RM 10");
+      return;
+    }
+
+    if (amount) {
+      setIsProcessing(true);
+
+      // Simulate API call
+      setTimeout(() => {
+        onEditComplete(typeof amount === 'number' ? amount : 10);
+        setIsProcessing(false);
+        onClose();
+      }, 1500);
+    }
+  };
+
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Only close if clicking directly on the backdrop, not its children
+    if (e.target === e.currentTarget) {
       onClose();
-    }, 1500);
+    }
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[1000] p-4" onClick={(e) => {
-      // Only close if clicking directly on the backdrop
-      if (e.target === e.currentTarget) {
-        onClose();
-      }
-    }}>
+    <div
+      className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[1000] p-4"
+      onClick={handleBackdropClick}
+    >
       <div className="bg-white rounded-xl shadow-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-white sticky top-0 z-10">
           <h2 className="text-xl font-bold text-[#006838] flex items-center gap-2">
-            <span className="text-[#F9A826]">🔄</span>
-            {isEditing ? 'Edit Recurring Donation' : 'Setup Direct Recurring Donation'}
+            <span className="text-[#F9A826]">💰</span>
+            Edit Monthly Donation
           </h2>
           <button
             onClick={onClose}
@@ -85,493 +111,522 @@ const DirectDonationSetupModal: React.FC<{
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="p-6 space-y-6">
-            {/* Amount */}
-            <div>
-              <h3 className="text-md font-semibold text-[#006838] mb-2 flex items-center">
-                <span className="bg-[#F9A826] text-white w-6 h-6 rounded-full inline-flex items-center justify-center mr-2 text-sm">1</span>
-                Choose Your Donation Amount
-              </h3>
-              <p className="text-sm text-gray-600 mb-4">
-                Set the amount you'd like to donate on a recurring basis.
-              </p>
-
-              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Donation Amount
-                </label>
-
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="text-gray-500">RM</span>
-                  </div>
-                  <input
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(Number(e.target.value))}
-                    min="5"
-                    max="10000"
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#F9A826] focus:border-[#F9A826] text-xl font-bold text-[#006838]"
-                  />
-                </div>
-
-                <div className="flex flex-wrap justify-center gap-2 mt-4">
-                  {[10, 25, 50, 100, 200].map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      onClick={() => setAmount(preset)}
-                      className={`py-2 px-4 rounded-lg transition-colors ${amount === preset
-                        ? 'bg-[#F9A826] text-white'
-                        : 'border border-gray-300 hover:border-[#F9A826] text-gray-700'
-                        }`}
-                    >
-                      RM{preset}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Frequency */}
-            <div>
-              <h3 className="text-md font-semibold text-[#006838] mb-2 flex items-center">
-                <span className="bg-[#F9A826] text-white w-6 h-6 rounded-full inline-flex items-center justify-center mr-2 text-sm">2</span>
-                Choose Donation Frequency
-              </h3>
-              <p className="text-sm text-gray-600 mb-4">
-                Select how often you would like your donation to be processed.
-              </p>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div
-                  className={`p-4 rounded-lg cursor-pointer transition-all duration-200 ${frequency === 'monthly'
-                    ? 'border-2 border-[#006838] bg-[#006838]/5'
-                    : 'border border-gray-200 hover:border-[#006838]/30'
-                    }`}
-                  onClick={() => setFrequency('monthly')}
-                >
-                  <div className="flex flex-col items-center text-center">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 ${frequency === 'monthly' ? 'bg-[#006838]/20 text-[#006838]' : 'bg-gray-100 text-gray-400'
-                      }`}>
-                      <FaCalendarAlt size={20} />
+        {/* Content */}
+        <div className="p-4">
+          <div className="space-y-6">
+            {/* Recipient Info */}
+            {initialValues && (
+              <div className="bg-[#FFFAF0] p-4 rounded-lg border border-[#F9A826] border-opacity-30">
+                <div className="flex items-center gap-3">
+                  {initialValues.recipientType === 'campaign' ? (
+                    <div className="w-10 h-10 rounded-full bg-[#F9A826] bg-opacity-20 flex items-center justify-center">
+                      <FaHandHoldingHeart className="text-[#F9A826]" />
                     </div>
-                    <h4 className={`font-bold ${frequency === 'monthly' ? 'text-[#006838]' : 'text-gray-700'}`}>
-                      Monthly
-                    </h4>
-                    <p className="text-sm text-gray-600 mt-1">
-                      Donate RM{amount} every month
-                    </p>
-                  </div>
-                </div>
-
-                <div
-                  className={`p-4 rounded-lg cursor-pointer transition-all duration-200 ${frequency === 'quarterly'
-                    ? 'border-2 border-[#006838] bg-[#006838]/5'
-                    : 'border border-gray-200 hover:border-[#006838]/30'
-                    }`}
-                  onClick={() => setFrequency('quarterly')}
-                >
-                  <div className="flex flex-col items-center text-center">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 ${frequency === 'quarterly' ? 'bg-[#006838]/20 text-[#006838]' : 'bg-gray-100 text-gray-400'
-                      }`}>
-                      <FaClock size={20} />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-[#006838] bg-opacity-20 flex items-center justify-center">
+                      <FaBuilding className="text-[#006838]" />
                     </div>
-                    <h4 className={`font-bold ${frequency === 'quarterly' ? 'text-[#006838]' : 'text-gray-700'}`}>
-                      Quarterly
-                    </h4>
-                    <p className="text-sm text-gray-600 mt-1">
-                      Donate RM{amount} every 3 months
+                  )}
+                  <div>
+                    <h3 className="font-medium text-[#006838]">
+                      {initialValues.recipientName}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Monthly donation to {initialValues.recipientType === 'campaign' ? 'campaign' : 'organization'}
                     </p>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
 
-            {/* Summary */}
-            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-              <h4 className="text-sm font-semibold text-[#006838] mb-2">Summary</h4>
-              <p className="text-sm text-gray-700">
-                You will donate <strong>RM{amount}</strong> {frequency === 'monthly' ? 'every month' : 'every 3 months'} to support charity campaigns.
-              </p>
-            </div>
-
-            {/* Info note */}
-            <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
-              <div className="flex items-start">
-                <div className="text-blue-600 mr-2 mt-1 flex-shrink-0">
-                  <FaInfoCircle />
-                </div>
-                <div>
-                  <p className="text-sm text-blue-800">
-                    You can pause or cancel your recurring donation at any time from your donation management dashboard.
-                  </p>
-                </div>
+            {/* Donation Amount */}
+            <div>
+              <h3 className="text-md font-semibold text-[#006838] mb-2">Donation Amount</h3>
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                {predefinedAmounts.map((predefinedAmount) => (
+                  <motion.button
+                    key={predefinedAmount}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleAmountSelect(predefinedAmount)}
+                    className={`py-2 rounded-lg ${amount === predefinedAmount && !customAmount
+                      ? 'bg-[#F9A826] text-white'
+                      : 'border border-gray-300 hover:border-[#F9A826] text-gray-700'
+                      }`}
+                  >
+                    RM{predefinedAmount}<span className="text-xs">/month</span>
+                  </motion.button>
+                ))}
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    setCustomAmount(true);
+                    setAmount('');
+                  }}
+                  className={`py-2 rounded-lg ${customAmount
+                    ? 'bg-[#F9A826] text-white'
+                    : 'border border-gray-300 hover:border-[#F9A826] text-gray-700'
+                    }`}
+                >
+                  Custom
+                </motion.button>
               </div>
-            </div>
-          </div>
 
-          {/* Footer */}
-          <div className="p-4 border-t border-gray-200 flex justify-between">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isProcessing}
-              className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              Cancel
-            </button>
-
-            <button
-              type="submit"
-              disabled={isProcessing}
-              className={`px-6 py-2 rounded-lg ${isProcessing
-                ? 'bg-gray-300 cursor-not-allowed'
-                : 'bg-[#F9A826] text-white hover:bg-[#e99615]'
-                } transition-colors flex items-center justify-center min-w-[120px]`}
-            >
-              {isProcessing ? (
-                <span className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Processing
-                </span>
-              ) : (
-                isEditing ? 'Update' : 'Complete Setup'
+              {customAmount && (
+                <div className="mt-3">
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <span className="text-gray-500">RM</span>
+                    </div>
+                    <input
+                      type="text"
+                      value={amount}
+                      onChange={handleCustomAmountChange}
+                      className="w-full pl-10 pr-16 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#F9A826] focus:border-[#F9A826]"
+                      placeholder="Enter amount (min RM10)"
+                      autoFocus
+                    />
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                      <span className="text-gray-500 text-sm">/month</span>
+                    </div>
+                  </div>
+                  <div className="mt-1 text-xs text-gray-500">Minimum donation amount is RM10</div>
+                </div>
               )}
-            </button>
+            </div>
+
+            {/* Information section */}
+            <div className="bg-blue-50 p-4 rounded-lg flex items-start gap-2 text-sm">
+              <FaInfoCircle className="text-blue-500 mt-1 flex-shrink-0" />
+              <div>
+                <p className="text-blue-700 font-medium mb-1">About Monthly Donations</p>
+                <p className="text-blue-600">
+                  Your recurring donation provides reliable support to causes you care about.
+                  You can cancel at any time from the Donation Management dashboard.
+                </p>
+              </div>
+            </div>
           </div>
-        </form>
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-gray-200 flex justify-end">
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={handleSubmit}
+            disabled={!amount || isProcessing}
+            className={`px-6 py-2 rounded-lg ${!amount
+              ? 'bg-gray-300 cursor-not-allowed'
+              : 'bg-[#F9A826] text-white hover:bg-[#e99615]'
+              } transition-colors flex items-center justify-center min-w-[120px]`}
+          >
+            {isProcessing ? (
+              <span className="flex items-center">
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Processing
+              </span>
+            ) : (
+              'Update Donation'
+            )}
+          </motion.button>
+        </div>
       </div>
     </div>
   );
 };
 
-const AutoDonation: React.FC = () => {
+// Simplified distribution detail component for inline display
+const InlineDistributionItem: React.FC<{
+  date: string;
+  amount: number;
+  recipientName: string;
+  onViewTransaction: () => void;
+}> = ({ date, amount, recipientName, onViewTransaction }) => {
+  return (
+    <div className="flex items-center justify-between py-3 px-4 hover:bg-gray-50">
+      <div className="flex items-center gap-2">
+        <div className="w-3 h-3 rounded-full bg-[#F9A826]"></div>
+        <span className="text-sm text-[var(--paragraph)]">
+          {new Date(date).toLocaleDateString()}
+        </span>
+      </div>
+      <div className="flex items-center gap-3">
+        <span className="font-medium text-[#F9A826]">
+          RM{amount}
+        </span>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onViewTransaction();
+          }}
+          className="p-1.5 bg-[var(--background)] rounded border border-[var(--stroke)] text-[var(--paragraph)] hover:text-[#F9A826] hover:border-[#F9A826] transition-colors"
+          title="View Receipt"
+        >
+          <FaReceipt size={12} />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const RecurringDonations: React.FC = () => {
   const [isSetupModalOpen, setIsSetupModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedDonation, setSelectedDonation] = useState<any>(null);
+  const [expandedHistoryIds, setExpandedHistoryIds] = useState<number[]>([]);
   const navigate = useNavigate();
 
-  // Modified mock data to remove categories
-  const autoDonations = mockDonorAutoDonations.map(donation => ({
-    ...donation,
-    categories: []  // Emptying categories as we're removing category-based donations
-  }));
+  // Filter out category-based donations
+  const autoDonations = mockDonorAutoDonations.filter(donation =>
+    donation.donationType === 'direct'
+  );
 
   // Calculate summary information
-  const totalActiveDonations = autoDonations.filter(d => d.status === 'active').length;
-  const totalMonthlyAmount = autoDonations
-    .filter(d => d.status === 'active')
-    .reduce((sum, donation) => {
-      // Handle quarterly donations by dividing by 3 to get monthly equivalent
-      const monthlyAmount = donation.frequency === 'quarterly' ? donation.amount / 3 : donation.amount;
-      return sum + monthlyAmount;
-    }, 0);
+  const totalActiveDonations = autoDonations.length;
+  const totalMonthlyAmount = autoDonations.reduce((sum, donation) => {
+    // All donations are now monthly, so no need to divide quarterly
+    return sum + donation.amount;
+  }, 0);
 
-  // Next scheduled donation date
+  // Total donated so far (mock calculation)
+  const totalDonatedSoFar = autoDonations.reduce((sum, donation) => {
+    // Count 3 months of donations for demo purposes
+    const monthsActive = 3;
+    return sum + (donation.amount * monthsActive);
+  }, 0);
+
+  // Find the closest upcoming donation date
   const getNextDonationDate = () => {
-    if (autoDonations.length === 0) return "No upcoming donations";
+    if (autoDonations.length === 0) return null;
 
     const upcomingDates = autoDonations
-      .filter(d => d.status === 'active' && d.nextCharge)
-      .map(d => new Date(d.nextCharge));
+      .filter(d => d.nextDonationDate)
+      .map(d => new Date(d.nextDonationDate))
+      .sort((a, b) => a.getTime() - b.getTime())
+      .filter(date => date > new Date());
 
-    if (upcomingDates.length === 0) return "No upcoming donations";
-
-    const nextDate = new Date(Math.min(...upcomingDates.map(d => d.getTime())));
-    return nextDate.toLocaleDateString();
+    return upcomingDates.length > 0 ? upcomingDates[0] : null;
   };
 
-  const handleSetupComplete = (amount: number, frequency: string) => {
-    // Create a new recurring donation
-    const newDonation = {
-      id: `rd-${Date.now()}`,
-      amount,
-      frequency: frequency as 'monthly' | 'quarterly',
-      categories: [],
-      status: 'active',
-      startDate: new Date().toLocaleDateString(),
-      nextCharge: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString(),
-      totalContributed: 0,
-    };
+  const nextDonationDate = getNextDonationDate();
 
-    // Show toast notification
-    toast({
-      title: 'Recurring Donation Set Up',
-      description: 'Your recurring donation has been set up successfully.',
-      status: 'success',
-      duration: 5000,
-      isClosable: true,
-      position: 'top-right',
-    });
+  const handleSetupComplete = (amount: number) => {
+    console.log(`Recurring donation setup: RM${amount} monthly`);
+    // In a real app, this would call an API to set up the auto donation
+    // Potentially trigger a fetch/update of the autoDonations list
   };
 
-  const handleEditComplete = (amount: number, frequency: string) => {
-    if (!selectedDonation) return;
+  const handleEditDonation = (donation: any, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent row click from toggling history
+    setSelectedDonation(donation);
+    setIsEditModalOpen(true);
+  };
 
-    // Update the selected donation
-    const updatedDonations = autoDonations.map(donation =>
-      donation.id === selectedDonation.id
-        ? {
-          ...donation,
-          amount,
-          frequency: frequency as 'monthly' | 'quarterly'
-        }
-        : donation
+  const handleCancelDonation = (id: number, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent row click from toggling history
+    console.log(`Cancelling recurring donation with ID: ${id}`);
+    // In a real app, this would call an API to cancel the donation
+  };
+
+  const handleToggleHistory = (donationId: number, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation(); // If triggered by button instead of row click
+
+    setExpandedHistoryIds(prev =>
+      prev.includes(donationId)
+        ? prev.filter(id => id !== donationId)
+        : [...prev, donationId]
     );
-
-    // Show toast notification
-    toast({
-      title: 'Recurring Donation Updated',
-      description: 'Your recurring donation has been updated successfully.',
-      status: 'success',
-      duration: 5000,
-      isClosable: true,
-      position: 'top-right',
-    });
   };
 
-  // Function to handle donation status toggle (pause/resume)
-  const handleToggleDonationStatus = (donationId: string, currentStatus: string) => {
-    const newStatus = currentStatus === 'active' ? 'paused' : 'active';
-
-    // Show toast notification
-    toast({
-      title: `Donation ${newStatus === 'active' ? 'Resumed' : 'Paused'}`,
-      description: `Your recurring donation has been ${newStatus === 'active' ? 'resumed' : 'paused'} successfully.`,
-      status: 'success',
-      duration: 5000,
-      isClosable: true,
-      position: 'top-right',
-    });
-  };
-
-  // Function to handle donation deletion with confirmation
-  const handleDeleteDonation = (donationId: string) => {
-    // Show confirmation dialog
-    if (confirm("Are you sure you want to cancel this recurring donation? This action cannot be undone.")) {
-      // Show toast notification
-      toast({
-        title: "Donation Cancelled",
-        description: "Your recurring donation has been cancelled successfully.",
-        status: 'info',
-        duration: 5000,
-        isClosable: true,
-        position: 'top-right',
-      });
+  const handleViewRecipient = (recipient: {
+    id: number;
+    type: 'campaign' | 'organization';
+  }, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent row click from toggling history
+    if (recipient.type === 'campaign') {
+      navigate(`/charity/${recipient.id}`);
+    } else {
+      navigate(`/charity/organization/${recipient.id}`);
     }
   };
 
+  const handleEditComplete = (amount: number) => {
+    console.log(`Updating donation ID ${selectedDonation?.id} to: RM${amount} monthly`);
+    toast.success(`Donation amount updated to RM${amount}/month`);
+    // In a real app, this would call an API to update the donation
+  };
+
+  const handleViewTransaction = (distributionId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    // In a real app, this would navigate to a detailed receipt view or open a modal
+    toast.info(`Viewing receipt for transaction from ${new Date(distributionId).toLocaleDateString()}`);
+  };
+
   return (
-    <div className="flex flex-col">
-      {/* Summary cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {/* Active Plans Card */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-          <div className="flex items-center">
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#006838]/20 to-[#006838]/10 flex items-center justify-center mr-4">
-              <FaHandHoldingHeart className="text-[#006838] text-xl" />
-            </div>
-            <div>
-              <h3 className="text-sm text-gray-500 font-medium">Active Plans</h3>
-              <p className="text-2xl font-bold text-[#006838]">{totalActiveDonations}</p>
-            </div>
+    <div className="bg-[var(--background)] rounded-xl">
+      {/* Dashboard Header */}
+      <div className="bg-gradient-to-r from-orange-400 to-pink-500 p-8 rounded-t-xl">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+          <div>
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">Donation Management</h2>
+            <p className="text-white text-opacity-90 max-w-xl">
+              Manage your recurring donations and track your charitable impact over time.
+            </p>
           </div>
         </div>
 
-        {/* Monthly Impact Card */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-          <div className="flex items-center">
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#F9A826]/20 to-[#F9A826]/10 flex items-center justify-center mr-4">
-              <FaMoneyBillWave className="text-[#F9A826] text-xl" />
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white bg-opacity-10 rounded-xl p-4 backdrop-blur-sm border border-white border-opacity-20">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-full bg-white bg-opacity-20 flex items-center justify-center">
+                <FaMoneyBillWave className="text-white" />
+              </div>
+              <h3 className="text-white font-medium">Active Donations</h3>
             </div>
-            <div>
-              <h3 className="text-sm text-gray-500 font-medium">Monthly Impact</h3>
-              <p className="text-2xl font-bold text-[#F9A826]">
-                RM{totalMonthlyAmount.toFixed(2)}
-              </p>
+            <div className="flex items-baseline gap-1">
+              <span className="text-3xl font-bold text-white">{totalActiveDonations}</span>
+              <span className="text-white text-sm opacity-80">active</span>
             </div>
           </div>
-        </div>
 
-        {/* Next Donation Card */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-          <div className="flex items-center">
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-200 to-blue-100 flex items-center justify-center mr-4">
-              <FaCalendarAlt className="text-blue-500 text-xl" />
+          <div className="bg-white bg-opacity-10 rounded-xl p-4 backdrop-blur-sm border border-white border-opacity-20">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-full bg-white bg-opacity-20 flex items-center justify-center">
+                <FaCoins className="text-white" />
+              </div>
+              <h3 className="text-white font-medium">Monthly Contribution</h3>
             </div>
-            <div>
-              <h3 className="text-sm text-gray-500 font-medium">Next Donation</h3>
-              <p className="text-2xl font-bold text-blue-500">{getNextDonationDate()}</p>
+            <div className="flex items-baseline gap-1">
+              <span className="text-3xl font-bold text-white">RM{totalMonthlyAmount.toFixed(2)}</span>
+              <span className="text-white text-sm opacity-80">/month</span>
+            </div>
+          </div>
+
+          <div className="bg-white bg-opacity-10 rounded-xl p-4 backdrop-blur-sm border border-white border-opacity-20">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-full bg-white bg-opacity-20 flex items-center justify-center">
+                <FaChartLine className="text-white" />
+              </div>
+              <h3 className="text-white font-medium">Total Impact</h3>
+            </div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-3xl font-bold text-white">RM{totalDonatedSoFar.toFixed(2)}</span>
+              <span className="text-white text-sm opacity-80">donated</span>
+            </div>
+          </div>
+
+          <div className="bg-white bg-opacity-10 rounded-xl p-4 backdrop-blur-sm border border-white border-opacity-20">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-full bg-white bg-opacity-20 flex items-center justify-center">
+                <FaClock className="text-white" />
+              </div>
+              <h3 className="text-white font-medium">Next Donation</h3>
+            </div>
+            <div className="flex items-baseline gap-1">
+              {nextDonationDate ? (
+                <span className="text-3xl font-bold text-white">{nextDonationDate.toLocaleDateString()}</span>
+              ) : (
+                <span className="text-xl text-white opacity-80">No upcoming</span>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Active Donations Section */}
-      <div className="mb-8">
-        <div className="mb-6 flex justify-between items-center">
-          <h2 className="text-xl font-bold text-[#006838] flex items-center">
-            <FaDonate className="mr-2 text-[#F9A826]" />
-            Your Direct Recurring Donations
-          </h2>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setIsSetupModalOpen(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[#F9A826] text-white rounded-lg shadow-md hover:bg-[#e59415] transition-colors"
-          >
-            <FaPlus size={14} />
-            <span>New Donation</span>
-          </motion.button>
-        </div>
+      {/* Main Content */}
+      <div className="p-6">
+        {/* Active donations section */}
+        <div className="bg-white rounded-xl border border-[var(--stroke)] overflow-hidden mb-8 shadow-sm">
+          <div className="p-6 border-b border-[var(--stroke)] flex justify-between items-center">
+            <h3 className="text-lg font-bold text-[var(--headline)] flex items-center gap-2">
+              <FaMoneyBillWave className="text-[#F9A826]" />
+              Active Recurring Donations
+            </h3>
+          </div>
 
-        {/* Donation Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {autoDonations.map((donation) => (
-            <motion.div
-              key={donation.id}
-              className={`bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 hover:shadow-md transition-shadow`}
-              whileHover={{ scale: 1.02 }}
-              transition={{ duration: 0.2 }}
-            >
-              <div className={`h-2 ${donation.status === 'active' ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="font-bold text-lg text-[#006838]">{donation.frequency === 'monthly' ? 'Monthly' : 'Quarterly'} Donation</h3>
-                    <p className="text-sm text-gray-500">Started {donation.startDate}</p>
-                  </div>
-                  <div className={`px-3 py-1 rounded-full text-xs font-semibold
-                    ${donation.status === 'active'
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-yellow-100 text-yellow-800'}`
-                  }>
-                    {donation.status === 'active' ? 'Active' : 'Paused'}
-                  </div>
-                </div>
+          {autoDonations.length > 0 ? (
+            <div className="p-6">
+              <div className="overflow-hidden border border-[var(--stroke)] rounded-xl">
+                <table className="min-w-full divide-y divide-[var(--stroke)]">
+                  <thead className="bg-[var(--background)]">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[var(--paragraph)] uppercase tracking-wider">
+                        Recipient
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[var(--paragraph)] uppercase tracking-wider">
+                        Amount
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[var(--paragraph)] uppercase tracking-wider">
+                        Next Date
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[var(--paragraph)] uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-[var(--paragraph)] uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-[var(--stroke)]">
+                    {autoDonations.map((donation) => (
+                      <React.Fragment key={donation.id}>
+                        <tr
+                          className={`hover:bg-[var(--background)] transition-colors cursor-pointer ${expandedHistoryIds.includes(donation.id) ? 'bg-[var(--background)]' : ''
+                            }`}
+                          onClick={() => handleToggleHistory(donation.id)}
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {donation.directRecipient && (
+                              <div className="flex items-center gap-3" onClick={(e) => handleViewRecipient(donation.directRecipient!, e)} style={{ cursor: 'pointer' }}>
+                                {donation.directRecipient.type === 'campaign' ? (
+                                  <div className="w-8 h-8 rounded-full bg-[#F9A826] bg-opacity-10 flex items-center justify-center">
+                                    <FaHandHoldingHeart className="text-[#F9A826]" />
+                                  </div>
+                                ) : (
+                                  <div className="w-8 h-8 rounded-full bg-[var(--secondary)] bg-opacity-10 flex items-center justify-center">
+                                    <FaBuilding className="text-[var(--secondary)]" />
+                                  </div>
+                                )}
+                                <div>
+                                  <div className="font-medium text-[var(--headline)]">{donation.directRecipient.name}</div>
+                                  <div className="text-xs text-[var(--paragraph)]">
+                                    {donation.directRecipient.type === 'campaign' ? 'Campaign' : 'Organization'}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="font-semibold text-[#F9A826]">RM{donation.amount}</span>
+                            <span className="text-xs text-[var(--paragraph)]">/month</span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <FaCalendarAlt className="text-[var(--paragraph)] text-opacity-50" size={12} />
+                              <span className="text-sm">{new Date(donation.nextDonationDate).toLocaleDateString()}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-1">
+                              <FaCheckCircle className="text-green-500" size={12} />
+                              <span className="text-xs font-medium text-green-500">Active</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                            <div className="flex justify-end gap-2">
+                              <button
+                                onClick={(e) => handleToggleHistory(donation.id, e)}
+                                className={`p-1.5 rounded border text-[var(--paragraph)] hover:text-[var(--headline)] transition-colors ${expandedHistoryIds.includes(donation.id)
+                                  ? 'bg-[#F9A826] bg-opacity-10 border-[#F9A826] text-[#F9A826]'
+                                  : 'bg-[var(--background)] border-[var(--stroke)]'
+                                  }`}
+                                title={expandedHistoryIds.includes(donation.id) ? 'Hide History' : 'View History'}
+                              >
+                                <FaHistory size={14} />
+                              </button>
+                              <button
+                                onClick={(e) => handleEditDonation(donation, e)}
+                                className="p-1.5 bg-[var(--background)] rounded border border-[var(--stroke)] text-[var(--paragraph)] hover:text-[var(--headline)] transition-colors"
+                                title="Edit Donation"
+                              >
+                                <FaEdit size={14} />
+                              </button>
+                              <button
+                                onClick={(e) => handleCancelDonation(donation.id, e)}
+                                className="p-1.5 bg-[var(--background)] rounded border border-red-200 text-red-500 hover:bg-red-50 transition-colors"
+                                title="Cancel Donation"
+                              >
+                                <FaTimes size={14} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
 
-                <div className="bg-gray-50 rounded-lg p-4 mb-5">
-                  <div className="flex justify-between mb-1">
-                    <span className="text-gray-600 text-sm">Amount:</span>
-                    <span className="font-semibold">RM{donation.amount.toFixed(2)}/{donation.frequency === 'monthly' ? 'month' : 'quarter'}</span>
-                  </div>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-gray-600 text-sm">Next charge:</span>
-                    <span className="font-semibold">{donation.nextCharge}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 text-sm">Total contributed:</span>
-                    <span className="font-semibold text-[#006838]">RM{donation.totalContributed.toFixed(2)}</span>
-                  </div>
-                </div>
+                        {/* Expanded history row - appears directly below the donation row */}
+                        {expandedHistoryIds.includes(donation.id) && donation.distributions.length > 0 && (
+                          <tr className="bg-[var(--background)] bg-opacity-50">
+                            <td colSpan={5} className="px-0 animate-fadeIn">
+                              <div className="border-t border-[var(--stroke)] border-dashed">
+                                <div className="px-6 py-3">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <h5 className="text-sm font-semibold text-[var(--headline)] flex items-center gap-2">
+                                      <FaReceipt className="text-[#F9A826]" />
+                                      Donation History
+                                    </h5>
+                                    <div className="text-xs text-[var(--paragraph)]">
+                                      {donation.distributions.length} past donation{donation.distributions.length !== 1 ? 's' : ''}
+                                    </div>
+                                  </div>
 
-                <div className="flex justify-between gap-2 mt-4">
-                  <button
-                    onClick={() => {
-                      setSelectedDonation(donation);
-                      setIsEditModalOpen(true);
-                    }}
-                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
-                  >
-                    <FaEdit size={14} />
-                    <span>Edit</span>
-                  </button>
-                  <button
-                    onClick={() => handleToggleDonationStatus(donation.id.toString(), donation.status)}
-                    className={`flex-1 flex items-center justify-center gap-1 px-3 py-2.5 rounded-lg transition-colors
-                      ${donation.status === 'active'
-                        ? 'bg-yellow-100 hover:bg-yellow-200 text-yellow-800'
-                        : 'bg-green-100 hover:bg-green-200 text-green-800'}`
-                    }
-                  >
-                    {donation.status === 'active' ? <FaPause size={14} /> : <FaPlay size={14} />}
-                    <span>{donation.status === 'active' ? 'Pause' : 'Resume'}</span>
-                  </button>
-                  <button
-                    onClick={() => handleDeleteDonation(donation.id.toString())}
-                    className="flex items-center justify-center gap-1 px-3 py-2.5 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
-                  >
-                    <FaTrash size={14} />
-                  </button>
-                </div>
+                                  <div className="bg-white rounded-lg border border-[var(--stroke)] divide-y divide-[var(--stroke)] overflow-hidden">
+                                    {donation.distributions.map((distribution, index) => (
+                                      <InlineDistributionItem
+                                        key={index}
+                                        date={distribution.date}
+                                        amount={distribution.recipients[0].amount}
+                                        recipientName={distribution.recipients[0].name}
+                                        onViewTransaction={() => handleViewTransaction(distribution.date, event as React.MouseEvent)}
+                                      />
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            </motion.div>
-          ))}
-
-          {autoDonations.length === 0 && (
-            <div className="col-span-full bg-gray-50 rounded-xl p-8 text-center">
-              <div className="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                <FaMoneyBillWave className="text-gray-400 text-2xl" />
+            </div>
+          ) : (
+            <div className="p-10 text-center">
+              <div className="w-20 h-20 mx-auto bg-[var(--background)] rounded-full flex items-center justify-center mb-4">
+                <FaMoneyBillWave className="text-4xl text-[var(--paragraph)] opacity-50" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-700 mb-2">No recurring donations yet</h3>
-              <p className="text-gray-500 mb-4">Set up your first recurring donation to start making a regular impact</p>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setIsSetupModalOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-[#F9A826] text-white rounded-lg"
-              >
-                <FaPlus size={12} />
-                <span>New Donation</span>
-              </motion.button>
+              <p className="text-lg font-medium text-[var(--headline)]">No active recurring donations</p>
+              <p className="text-[var(--paragraph)] mb-6">You can set up recurring donations from a campaign or organization page.</p>
             </div>
           )}
         </div>
       </div>
 
-      {/* Recent Transactions Section (simplified) */}
-      <div className="mb-8">
-        <h2 className="text-xl font-bold text-[#006838] mb-4 flex items-center">
-          <FaCalendarAlt className="mr-2 text-[#F9A826]" />
-          Recent Transactions
-        </h2>
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-          <div className="space-y-2">
-            {/* Mock transactions */}
-            {Array.from({ length: 5 }).map((_, idx) => {
-              const date = new Date();
-              date.setDate(date.getDate() - (idx * 30));
-              return (
-                <div key={idx} className="flex justify-between items-center py-3 border-b border-gray-100">
-                  <div>
-                    <div className="font-medium text-[#006838]">{idx % 2 === 0 ? 'Monthly' : 'Quarterly'} Donation</div>
-                    <div className="text-sm text-gray-500">{date.toLocaleDateString()}</div>
-                  </div>
-                  <div className="font-semibold text-[#006838]">RM{(25 + idx * 5).toFixed(2)}</div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Setup Modal */}
-      <DirectDonationSetupModal
-        isOpen={isSetupModalOpen}
-        onClose={() => setIsSetupModalOpen(false)}
-        onSetupComplete={handleSetupComplete}
-      />
-
-      {/* Edit Modal */}
+      {/* Edit donation modal */}
       {selectedDonation && (
-        <DirectDonationSetupModal
+        <EditRecurringDonationModal
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
+          onEditComplete={handleEditComplete}
           initialValues={{
             amount: selectedDonation.amount,
-            frequency: selectedDonation.frequency,
+            recipientName: selectedDonation.directRecipient?.name || "Recipient",
+            recipientType: selectedDonation.directRecipient?.type || "organization"
           }}
-          isEditing={true}
-          onSetupComplete={handleEditComplete}
         />
       )}
     </div>
   );
 };
 
-export default AutoDonation; 
+export default RecurringDonations;
+
+// Add this to your CSS or styles file
+const styles = `
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  .animate-fadeIn {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+`;
+
+// Inject the styles
+const styleElement = document.createElement('style');
+styleElement.innerHTML = styles;
+document.head.appendChild(styleElement);

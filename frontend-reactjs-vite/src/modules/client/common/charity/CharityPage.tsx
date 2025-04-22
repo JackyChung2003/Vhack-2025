@@ -12,17 +12,14 @@ import {
   FaChevronUp,
   FaTimes,
   FaListUl,
-  FaMoneyBillWave,
-  FaHeart,
-  FaGlobe
+  FaMoneyBillWave
 } from "react-icons/fa";
 import OrganizationCard from "../../../../components/cards/OrganizationCard";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useRole } from "../../../../contexts/RoleContext";
 import DonorSupportedCampaigns from "./DonorSupportedCampaigns";
-import AutoDonation from "./AutoDonation";
+import RecurringDonations from "./AutoDonation";
 import { charityService, Campaign } from "../../../../services/supabase/charityService";
-import { motion } from "framer-motion";
 
 // Define available campaign categories
 const campaignCategories = [
@@ -52,13 +49,13 @@ const sortOptions = [
 
 const CharityPage: React.FC = () => {
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState<'campaigns' | 'organizations' | 'supported' | 'autoDonate'>(() => {
+  const [activeTab, setActiveTab] = useState<'campaigns' | 'organizations' | 'supported' | 'recurring'>(() => {
     // Check if there's a tab parameter in the URL
     const params = new URLSearchParams(location.search);
     const tabParam = params.get('tab');
 
-    if (tabParam === 'autoDonate' && userRole === 'donor') {
-      return 'autoDonate';
+    if (tabParam === 'recurring' && userRole === 'donor') {
+      return 'recurring';
     }
 
     return 'campaigns';
@@ -174,206 +171,137 @@ const CharityPage: React.FC = () => {
 
   return (
     <div className="p-6 bg-[var(--background)] text-[var(--paragraph)] max-w-7xl mx-auto">
-      {/* Enhanced Header with animation and more visual appeal */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="relative bg-gradient-to-r from-[var(--highlight)] to-[var(--secondary)] rounded-2xl mb-8 overflow-hidden shadow-lg"
-      >
-        <div className="absolute inset-0 bg-opacity-20 bg-[var(--stroke)] backdrop-blur-sm"></div>
-        <div className="absolute top-0 right-0 opacity-10">
-          <svg className="w-64 h-64" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-            <path fill="#FFFFFF" d="M42.7,-57.1C55.8,-45.2,67.2,-32.1,71.1,-16.7C75,-1.4,71.5,16.1,63.3,30.2C55.1,44.2,42.2,54.8,27.5,62.7C12.8,70.6,-3.7,75.8,-17.9,70.9C-32.1,66,-44,51.1,-54.8,35.5C-65.6,19.9,-75.3,3.6,-73,-11.7C-70.7,-27,-56.4,-41.3,-41.6,-53.3C-26.8,-65.3,-11.4,-75.1,2.4,-78.2C16.3,-81.2,29.6,-69,42.7,-57.1Z" transform="translate(100 100)" />
-          </svg>
+      {/* Header with decorative element */}
+      <div className="relative bg-gradient-to-r from-[var(--highlight)] to-[var(--secondary)] rounded-lg mb-6 overflow-hidden">
+        <div className="absolute inset-0 bg-opacity-30 bg-[var(--stroke)]"></div>
+        <div className="relative z-10 p-8">
+          <h1 className="text-3xl font-bold text-white mb-2">Charity Hub</h1>
+          <p className="text-white text-opacity-90 max-w-2xl">Support causes you care about and make a difference in the world through our verified charity campaigns and organizations.</p>
         </div>
+      </div>
 
-        <div className="relative z-10 p-10">
-          <div className="flex items-center mb-3">
-            <span className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center mr-3 backdrop-blur-sm">
-              <FaHeart className="text-white text-xl" />
-            </span>
-            <h1 className="text-4xl font-bold text-white">Charity Hub</h1>
-          </div>
-          <p className="text-white text-opacity-90 max-w-2xl text-lg">
-            Support causes you care about and make a difference in the world through our verified charity campaigns and organizations.
-          </p>
-          <div className="flex gap-3 mt-6">
-            <button className="bg-white/20 hover:bg-white/30 transition-colors text-white backdrop-blur-sm px-4 py-2 rounded-lg flex items-center">
-              <FaGlobe className="mr-2" /> Explore Causes
-            </button>
-            <button className="bg-white text-[var(--highlight)] px-4 py-2 rounded-lg font-medium flex items-center shadow-md hover:bg-opacity-90 transition-colors">
-              <FaHandHoldingHeart className="mr-2" /> Start Donating
-            </button>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Enhanced Search bar */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.2 }}
-        className="mb-8 relative"
-      >
-        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+      {/* Search bar */}
+      <div className="mb-6 relative">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
           <FaSearch className="text-gray-400" />
         </div>
         <input
           type="text"
           placeholder="Search campaigns or organizations..."
-          className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--highlight)] bg-white shadow-sm text-lg"
+          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--highlight)] bg-white"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
-      </motion.div>
+      </div>
 
-      {/* Enhanced Tab navigation */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.3 }}
-        className="flex border-b-2 border-gray-200 mb-8 overflow-x-auto hide-scrollbar"
-      >
-        <motion.button
-          whileHover={{ y: -2 }}
-          whileTap={{ y: 0 }}
-          className={`px-8 py-4 font-semibold flex items-center gap-2 transition-colors ${activeTab === 'campaigns'
-            ? 'text-[var(--highlight)] border-b-3 border-[var(--highlight)]'
+      {/* Tab navigation */}
+      <div className="flex border-b border-gray-300 mb-6">
+        <button
+          className={`px-6 py-3 font-semibold flex items-center gap-2 transition-colors ${activeTab === 'campaigns'
+            ? 'text-[var(--highlight)] border-b-2 border-[var(--highlight)]'
             : 'text-[var(--paragraph)] hover:text-[var(--headline)]'
             }`}
           onClick={() => setActiveTab('campaigns')}
         >
-          <FaHandHoldingHeart className={activeTab === 'campaigns' ? 'text-[var(--highlight)]' : 'text-gray-400'} />
-          <span>Campaigns</span>
-        </motion.button>
-
-        <motion.button
-          whileHover={{ y: -2 }}
-          whileTap={{ y: 0 }}
-          className={`px-8 py-4 font-semibold flex items-center gap-2 transition-colors ${activeTab === 'organizations'
-            ? 'text-[var(--highlight)] border-b-3 border-[var(--highlight)]'
+          <FaHandHoldingHeart />
+          Campaigns
+        </button>
+        <button
+          className={`px-6 py-3 font-semibold flex items-center gap-2 transition-colors ${activeTab === 'organizations'
+            ? 'text-[var(--highlight)] border-b-2 border-[var(--highlight)]'
             : 'text-[var(--paragraph)] hover:text-[var(--headline)]'
             }`}
           onClick={() => setActiveTab('organizations')}
         >
-          <FaBuilding className={activeTab === 'organizations' ? 'text-[var(--highlight)]' : 'text-gray-400'} />
-          <span>Organizations</span>
-        </motion.button>
+          <FaBuilding />
+          Organizations
+        </button>
 
         {userRole === 'donor' && (
-          <motion.button
-            whileHover={{ y: -2 }}
-            whileTap={{ y: 0 }}
-            className={`px-8 py-4 font-semibold flex items-center gap-2 transition-colors ${activeTab === 'supported'
-              ? 'text-[var(--highlight)] border-b-3 border-[var(--highlight)]'
+          <button
+            className={`px-6 py-3 font-semibold flex items-center gap-2 transition-colors ${activeTab === 'supported'
+              ? 'text-[var(--highlight)] border-b-2 border-[var(--highlight)]'
               : 'text-[var(--paragraph)] hover:text-[var(--headline)]'
               }`}
             onClick={() => setActiveTab('supported')}
           >
-            <FaHistory className={activeTab === 'supported' ? 'text-[var(--highlight)]' : 'text-gray-400'} />
-            <span>My Supported</span>
-          </motion.button>
+            <FaHistory />
+            My Supported
+          </button>
         )}
 
         {userRole === 'donor' && (
-          <motion.button
-            whileHover={{ y: -2 }}
-            whileTap={{ y: 0 }}
-            className={`px-8 py-4 font-semibold flex items-center gap-2 transition-colors ${activeTab === 'autoDonate'
-              ? 'text-[var(--highlight)] border-b-3 border-[var(--highlight)]'
+          <button
+            className={`px-6 py-3 font-semibold flex items-center gap-2 transition-colors ${activeTab === 'recurring'
+              ? 'text-[var(--highlight)] border-b-2 border-[var(--highlight)]'
               : 'text-[var(--paragraph)] hover:text-[var(--headline)]'
               }`}
-            onClick={() => setActiveTab('autoDonate')}
+            onClick={() => setActiveTab('recurring')}
           >
-            <FaMoneyBillWave className={activeTab === 'autoDonate' ? 'text-[var(--highlight)]' : 'text-gray-400'} />
-            <span>Auto Donation</span>
-          </motion.button>
+            <FaMoneyBillWave />
+            Recurring Donations
+          </button>
         )}
-      </motion.div>
+      </div>
 
       {/* Content based on active tab */}
       {activeTab === 'campaigns' ? (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3 }}
-        >
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-[var(--headline)] flex items-center">
-              <span className="bg-[var(--highlight)]/10 p-2 rounded-lg mr-3">
-                <FaHandHoldingHeart className="text-[var(--highlight)]" />
-              </span>
-              Active Campaigns
-            </h2>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+        <>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-bold text-[var(--headline)]">Active Campaigns</h2>
+            <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all shadow-sm ${showFilters
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${showFilters
                 ? 'bg-[var(--highlight)] text-white'
-                : 'bg-white border border-[var(--stroke)] hover:bg-gray-50'
+                : 'bg-[var(--background)] border border-[var(--stroke)] hover:bg-gray-100'
                 }`}
             >
               {showFilters ? <FaTimes /> : <FaFilter />}
               {showFilters ? 'Hide Filters' : 'Filters & Sort'}
-            </motion.button>
+            </button>
           </div>
 
           {/* Filters and sorting section with animation */}
-          <motion.div
-            initial={false}
-            animate={{
-              height: showFilters ? 'auto' : 0,
-              opacity: showFilters ? 1 : 0,
-              marginBottom: showFilters ? '1.5rem' : 0
-            }}
-            transition={{ duration: 0.3 }}
-            className="overflow-hidden"
+          <div
+            className={`overflow-hidden transition-all duration-300 ease-in-out ${showFilters ? 'max-h-96 opacity-100 mb-6' : 'max-h-0 opacity-0'
+              }`}
           >
-            <div className="bg-white border border-[var(--stroke)] rounded-xl shadow-sm p-6">
-              <div className="flex justify-between items-center mb-5">
+            <div className="bg-gradient-to-r from-[var(--main)] to-white border border-[var(--stroke)] rounded-lg shadow-sm p-5">
+              <div className="flex justify-between items-center mb-4">
                 {/* Results count */}
                 <div className="flex items-center gap-2">
-                  <div className="bg-[var(--highlight)]/10 text-[var(--highlight)] rounded-full px-3 py-1 font-medium">
-                    {sortedCampaigns.length} campaigns
-                  </div>
+                  <span className="text-sm text-[var(--paragraph)]">
+                    Showing <span className="font-semibold text-[var(--headline)]">{sortedCampaigns.length}</span> campaigns
+                    {selectedCategories.length > 0 && (
+                      <> in <span className="font-semibold text-[var(--headline)]">{selectedCategories.length}</span> categories</>
+                    )}
+                  </span>
 
-                  {selectedCategories.length > 0 && (
-                    <div className="bg-[var(--secondary)]/10 text-[var(--secondary)] rounded-full px-3 py-1 font-medium">
-                      {selectedCategories.length} categories
-                    </div>
+                  {/* Clear filters button - only show if filters are applied */}
+                  {(selectedCategories.length > 0 || sortBy !== "default" || searchTerm) && (
+                    <button
+                      onClick={clearFilters}
+                      className="text-sm text-[var(--highlight)] hover:underline flex items-center gap-1"
+                    >
+                      <FaTimes size={12} />
+                      Clear All
+                    </button>
                   )}
                 </div>
-
-                {/* Clear filters button - only show if filters are applied */}
-                {(selectedCategories.length > 0 || sortBy !== "default" || searchTerm) && (
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={clearFilters}
-                    className="text-sm text-[var(--highlight)] hover:text-[var(--highlight)]/80 flex items-center gap-1 bg-[var(--highlight)]/5 px-3 py-1.5 rounded-full"
-                  >
-                    <FaTimes size={12} />
-                    Clear All Filters
-                  </motion.button>
-                )}
               </div>
 
               {/* Category filter section */}
-              <div className="mb-6">
+              <div className="mb-5">
                 <label className="text-sm font-medium text-[var(--headline)] mb-3 flex items-center gap-2">
                   <FaTags className="text-[var(--highlight)]" />
                   Filter by Categories
                 </label>
 
                 {/* Category chips for multiple selection */}
-                <div className="flex flex-wrap gap-2 mt-3">
+                <div className="flex flex-wrap gap-2 mb-3">
                   {campaignCategories.slice(1).map((category) => ( // Skip "All Categories"
-                    <motion.button
+                    <button
                       key={category}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
                       onClick={() => {
                         setSelectedCategories(prev =>
                           prev.includes(category)
@@ -381,8 +309,8 @@ const CharityPage: React.FC = () => {
                             : [...prev, category] // Add if not selected
                         );
                       }}
-                      className={`px-4 py-2 text-sm rounded-full transition-all flex items-center gap-1 ${selectedCategories.includes(category)
-                        ? 'bg-[var(--highlight)] text-white shadow-md'
+                      className={`px-3 py-1.5 text-sm rounded-full transition-colors flex items-center gap-1 ${selectedCategories.includes(category)
+                        ? 'bg-[var(--highlight)] text-white'
                         : 'bg-gray-100 text-[var(--paragraph)] hover:bg-gray-200'
                         }`}
                     >
@@ -390,19 +318,17 @@ const CharityPage: React.FC = () => {
                       {selectedCategories.includes(category) && (
                         <FaTimes size={10} className="ml-1" />
                       )}
-                    </motion.button>
+                    </button>
                   ))}
 
                   {/* Clear categories button - only show if categories are selected */}
                   {selectedCategories.length > 0 && (
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
+                    <button
                       onClick={() => setSelectedCategories([])}
-                      className="px-4 py-2 text-sm rounded-full bg-gray-200 text-[var(--paragraph)] hover:bg-gray-300 transition-colors flex items-center gap-1"
+                      className="px-3 py-1.5 text-sm rounded-full bg-gray-200 text-[var(--paragraph)] hover:bg-gray-300 transition-colors flex items-center gap-1"
                     >
                       Clear Categories <FaTimes size={10} />
-                    </motion.button>
+                    </button>
                   )}
                 </div>
               </div>
@@ -414,11 +340,11 @@ const CharityPage: React.FC = () => {
                   Sort Results
                 </label>
 
-                <div className="relative mt-2">
+                <div className="relative">
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="w-full p-3 pl-4 pr-10 bg-white border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-[var(--highlight)] focus:border-[var(--highlight)] shadow-sm"
+                    className="w-full p-2.5 pl-4 pr-10 bg-white border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-[var(--highlight)] focus:border-[var(--highlight)]"
                   >
                     {sortOptions.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -426,7 +352,7 @@ const CharityPage: React.FC = () => {
                       </option>
                     ))}
                   </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
+                  <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
                     <FaChevronDown className="text-gray-400" />
                   </div>
                 </div>
@@ -434,26 +360,22 @@ const CharityPage: React.FC = () => {
 
               {/* Active filters summary */}
               {(selectedCategories.length > 0 || sortBy !== "default") && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-5 pt-5 border-t border-gray-200"
-                >
+                <div className="mt-4 pt-4 border-t border-gray-200">
                   <div className="text-sm text-[var(--paragraph)]">
                     <span className="font-medium">Active filters:</span>
 
                     {/* Combined flex container for all tags */}
-                    <div className="mt-3 flex flex-wrap gap-2">
+                    <div className="mt-2 flex flex-wrap gap-1">
                       {/* Category tags */}
                       {selectedCategories.map(category => (
                         <span
                           key={category}
-                          className="px-3 py-1.5 bg-[var(--highlight)] bg-opacity-10 rounded-full text-xs font-semibold text-[var(--headline)] flex items-center"
+                          className="px-2 py-1 bg-[var(--highlight)] bg-opacity-10 rounded-full text-xs font-semibold text-[var(--headline)] flex items-center"
                         >
                           Category: {category}
                           <button
                             onClick={() => setSelectedCategories(prev => prev.filter(cat => cat !== category))}
-                            className="ml-2 hover:text-[var(--highlight)]"
+                            className="ml-1 hover:text-[var(--highlight)]"
                           >
                             <FaTimes size={10} />
                           </button>
@@ -462,11 +384,11 @@ const CharityPage: React.FC = () => {
 
                       {/* Sort tag */}
                       {sortBy !== "default" && (
-                        <span className="px-3 py-1.5 bg-[var(--secondary)] bg-opacity-10 rounded-full text-xs font-semibold text-[var(--headline)] flex items-center">
+                        <span className="px-2 py-1 bg-[var(--secondary)] bg-opacity-10 rounded-full text-xs font-semibold text-[var(--headline)] flex items-center">
                           Sort: {currentSortLabel}
                           <button
                             onClick={() => setSortBy("default")}
-                            className="ml-2 hover:text-[var(--secondary)]"
+                            className="ml-1 hover:text-[var(--secondary)]"
                           >
                             <FaTimes size={10} />
                           </button>
@@ -474,228 +396,117 @@ const CharityPage: React.FC = () => {
                       )}
                     </div>
                   </div>
-                </motion.div>
+                </div>
               )}
             </div>
-          </motion.div>
+          </div>
 
           {/* Loading state */}
           {loading ? (
             <div className="flex justify-center items-center py-20">
               <div className="flex flex-col items-center">
-                <div className="w-16 h-16 relative">
-                  <div className="absolute top-0 left-0 right-0 bottom-0 animate-spin rounded-full h-16 w-16 border-4 border-t-[var(--highlight)] border-b-[var(--highlight)] border-r-transparent border-l-transparent"></div>
-                  <div className="absolute top-2 left-2 right-2 bottom-2 animate-ping rounded-full h-12 w-12 border-4 border-[var(--highlight)] opacity-30"></div>
-                </div>
-                <p className="text-[var(--paragraph)] mt-4 font-medium">Loading campaigns...</p>
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--highlight)] mb-4"></div>
+                <p className="text-[var(--paragraph)]">Loading campaigns...</p>
               </div>
             </div>
           ) : error ? (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-center py-12 bg-white rounded-xl border border-[var(--stroke)] shadow-sm"
-            >
-              <div className="w-16 h-16 mx-auto bg-red-100 rounded-full flex items-center justify-center mb-4">
-                <FaTimes className="text-3xl text-red-500" />
-              </div>
-              <p className="text-xl font-medium text-[var(--headline)] mb-2">Error loading campaigns</p>
-              <p className="text-[var(--paragraph)] max-w-md mx-auto">{error}</p>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+            <div className="text-center py-10 bg-white rounded-lg border border-[var(--stroke)] shadow-sm">
+              <FaTimes className="mx-auto text-4xl text-red-500 mb-4" />
+              <p className="text-lg font-medium text-[var(--headline)]">Error loading campaigns</p>
+              <p className="text-[var(--paragraph)]">{error}</p>
+              <button
                 onClick={fetchCampaigns}
-                className="mt-6 px-6 py-2.5 bg-[var(--highlight)] text-white rounded-lg hover:bg-opacity-90 transition-colors shadow-md"
+                className="mt-4 px-4 py-2 bg-[var(--highlight)] text-white rounded-lg hover:bg-opacity-90 transition-colors"
               >
                 Try Again
-              </motion.button>
-            </motion.div>
+              </button>
+            </div>
           ) : sortedCampaigns.length > 0 ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ staggerChildren: 0.05 }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-            >
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {sortedCampaigns.map((campaign) => {
                 // Calculate a default deadline of 30 days from now if not provided
                 const defaultDeadline = new Date();
                 defaultDeadline.setDate(defaultDeadline.getDate() + 30);
 
                 return (
-                  <motion.div
+                  <CampaignCard
                     key={campaign.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    whileHover={{ y: -5 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <CampaignCard
-                      id={campaign.id}
-                      name={campaign.title}
-                      description={campaign.description}
-                      goal={campaign.target_amount}
-                      currentContributions={campaign.current_amount}
-                      deadline={campaign.deadline || defaultDeadline.toISOString()}
-                      category={campaign.category}
-                    />
-                  </motion.div>
+                    id={campaign.id}
+                    name={campaign.title}
+                    description={campaign.description}
+                    goal={campaign.target_amount}
+                    currentContributions={campaign.current_amount}
+                    deadline={campaign.deadline || defaultDeadline.toISOString()}
+                    category={campaign.category}
+                  />
                 );
               })}
-            </motion.div>
+            </div>
           ) : (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-center py-16 bg-white rounded-xl border border-[var(--stroke)] shadow-sm"
-            >
-              <div className="w-20 h-20 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                <FaSearch className="text-4xl text-[var(--paragraph)] opacity-30" />
-              </div>
-              <p className="text-xl font-medium text-[var(--headline)] mb-2">No campaigns found</p>
-              <p className="text-[var(--paragraph)] max-w-md mx-auto mb-6">
-                Try adjusting your filters or search terms to find what you're looking for.
-              </p>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+            <div className="text-center py-10 bg-white rounded-lg border border-[var(--stroke)] shadow-sm">
+              <FaSearch className="mx-auto text-4xl text-[var(--paragraph)] opacity-30 mb-4" />
+              <p className="text-lg font-medium text-[var(--headline)]">No campaigns found</p>
+              <p className="text-[var(--paragraph)]">Try adjusting your filters or search terms</p>
+              <button
                 onClick={clearFilters}
-                className="px-6 py-2.5 bg-[var(--highlight)] text-white rounded-lg hover:bg-opacity-90 transition-colors shadow-md"
+                className="mt-4 px-4 py-2 bg-[var(--highlight)] text-white rounded-lg hover:bg-opacity-90 transition-colors"
               >
                 Clear All Filters
-              </motion.button>
-            </motion.div>
+              </button>
+            </div>
           )}
-        </motion.div>
+        </>
       ) : activeTab === 'organizations' ? (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3 }}
-        >
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-[var(--headline)] flex items-center">
-              <span className="bg-[var(--secondary)]/10 p-2 rounded-lg mr-3">
-                <FaBuilding className="text-[var(--secondary)]" />
-              </span>
-              Charity Organizations
-            </h2>
-          </div>
-
+        <>
+          <h2 className="text-2xl font-bold mb-4 text-[var(--headline)]">Charity Organizations</h2>
           {organizationsLoading ? (
             <div className="flex justify-center items-center py-20">
               <div className="flex flex-col items-center">
-                <div className="w-16 h-16 relative">
-                  <div className="absolute top-0 left-0 right-0 bottom-0 animate-spin rounded-full h-16 w-16 border-4 border-t-[var(--secondary)] border-b-[var(--secondary)] border-r-transparent border-l-transparent"></div>
-                  <div className="absolute top-2 left-2 right-2 bottom-2 animate-ping rounded-full h-12 w-12 border-4 border-[var(--secondary)] opacity-30"></div>
-                </div>
-                <p className="text-[var(--paragraph)] mt-4 font-medium">Loading organizations...</p>
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--highlight)] mb-4"></div>
+                <p className="text-[var(--paragraph)]">Loading organizations...</p>
               </div>
             </div>
           ) : organizationsError ? (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-center py-12 bg-white rounded-xl border border-[var(--stroke)] shadow-sm"
-            >
-              <div className="w-16 h-16 mx-auto bg-red-100 rounded-full flex items-center justify-center mb-4">
-                <FaTimes className="text-3xl text-red-500" />
-              </div>
-              <p className="text-xl font-medium text-[var(--headline)] mb-2">Error loading organizations</p>
-              <p className="text-[var(--paragraph)] max-w-md mx-auto">{organizationsError}</p>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+            <div className="text-center py-10 bg-white rounded-lg border border-[var(--stroke)] shadow-sm">
+              <FaTimes className="mx-auto text-4xl text-red-500 mb-4" />
+              <p className="text-lg font-medium text-[var(--headline)]">Error loading organizations</p>
+              <p className="text-[var(--paragraph)]">{organizationsError}</p>
+              <button
                 onClick={fetchOrganizations}
-                className="mt-6 px-6 py-2.5 bg-[var(--secondary)] text-white rounded-lg hover:bg-opacity-90 transition-colors shadow-md"
+                className="mt-4 px-4 py-2 bg-[var(--highlight)] text-white rounded-lg hover:bg-opacity-90 transition-colors"
               >
                 Try Again
-              </motion.button>
-            </motion.div>
+              </button>
+            </div>
           ) : filteredOrganizations.length > 0 ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ staggerChildren: 0.05 }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-            >
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredOrganizations.map((org) => (
-                <motion.div
+                <OrganizationCard
                   key={org.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  whileHover={{ y: -5 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <OrganizationCard
-                    id={org.id}
-                    name={org.name}
-                    description={org.description}
-                    logo={org.logo}
-                    campaigns={org.campaigns}
-                    totalRaised={org.totalRaised}
-                  />
-                </motion.div>
+                  id={org.id}
+                  name={org.name}
+                  description={org.description}
+                  logo={org.logo}
+                  campaigns={org.campaigns}
+                  totalRaised={org.totalRaised}
+                />
               ))}
-            </motion.div>
+            </div>
           ) : (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-center py-16 bg-white rounded-xl border border-[var(--stroke)] shadow-sm"
-            >
-              <div className="w-20 h-20 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                <FaSearch className="text-4xl text-[var(--paragraph)] opacity-30" />
-              </div>
-              <p className="text-xl font-medium text-[var(--headline)] mb-2">No organizations found</p>
-              <p className="text-[var(--paragraph)] max-w-md mx-auto mb-6">
-                Try adjusting your search terms to find what you're looking for.
-              </p>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setSearchTerm('')}
-                className="px-6 py-2.5 bg-[var(--secondary)] text-white rounded-lg hover:bg-opacity-90 transition-colors shadow-md"
-              >
-                Clear Search
-              </motion.button>
-            </motion.div>
+            <div className="text-center py-10">
+              <p className="text-lg">No organizations found matching your search.</p>
+            </div>
           )}
-        </motion.div>
-      ) : activeTab === 'autoDonate' ? (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3 }}
-        >
-          <div className="mb-6">
-            <div className="flex items-center">
-              <span className="bg-[var(--highlight)]/10 p-2 rounded-lg mr-3">
-                <FaMoneyBillWave className="text-[var(--highlight)]" />
-              </span>
-              <h2 className="text-2xl font-bold text-[var(--headline)]">Auto Donation Settings</h2>
-            </div>
-            <p className="mt-2 text-[var(--paragraph)] ml-12">Set up recurring donations to support causes that matter to you.</p>
-          </div>
-          <AutoDonation />
-        </motion.div>
+        </>
+      ) : activeTab === 'recurring' ? (
+        <>
+          <RecurringDonations />
+        </>
       ) : (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3 }}
-        >
-          <div className="mb-6">
-            <div className="flex items-center">
-              <span className="bg-[var(--secondary)]/10 p-2 rounded-lg mr-3">
-                <FaHistory className="text-[var(--secondary)]" />
-              </span>
-              <h2 className="text-2xl font-bold text-[var(--headline)]">My Supported Campaigns</h2>
-            </div>
-            <p className="mt-2 text-[var(--paragraph)] ml-12">View your donation history and track the impact of your contributions.</p>
-          </div>
+        <>
+          <h2 className="text-2xl font-bold mb-4 text-[var(--headline)]">My Supported Campaigns</h2>
           <DonorSupportedCampaigns />
-        </motion.div>
+        </>
       )}
     </div>
   );
