@@ -1,23 +1,12 @@
 import React, { useState, useEffect } from "react";
-// import axios from 'axios'; // Temporarily commented out for mock data
 import { FaSearch, FaListAlt, FaInfoCircle, FaChevronLeft, FaChevronRight, FaCalendarAlt, FaComment, FaChevronRight as FaChevronRightIcon } from "react-icons/fa";
 // Assuming RequestCard can be reused or adapted
 import RequestCard from "../../charity/CharityOpenMarket/RequestCard"; 
 // Import the detail view component
 import VendorRequestDetail from './VendorRequestDetail'; // Re-applying this import
 import { useAuth } from "../../../../contexts/AuthContext"; // To potentially get vendor info if needed
-
-// Interface matching the backend data for OpenMarketRequest
-interface OpenMarketRequest {
-  id: string;
-  title: string;
-  description: string;
-  created_by: string; // Charity ID
-  status: string;
-  created_at: string;
-  deadline: string; // Added deadline
-  quotation_count: number;
-}
+import { openMarketService, OpenMarketRequest } from "../../../../services/supabase/openMarketService";
+import { toast } from "react-toastify";
 
 // Custom request card component that shows expiration status
 const VendorRequestCard: React.FC<{
@@ -26,7 +15,7 @@ const VendorRequestCard: React.FC<{
 }> = ({ request, onClick }) => {
   // Check if the request is expired by comparing current date with deadline
   const currentDate = new Date();
-  const deadlineDate = new Date(request.deadline);
+  const deadlineDate = new Date(request.deadline || '');
   const isExpired = currentDate > deadlineDate;
   
   // Format date to be more readable
@@ -81,76 +70,36 @@ const VendorRequestCard: React.FC<{
   );
 };
 
-// --- Mock Data Start ---
-const mockVendorRequests = [
-  {
-    id: "1", 
-    title: "Toothpaste for Community Dental Health Program",
-    description: "Need 500 tubes of toothpaste for our upcoming community dental health initiative.",
-    created_by: "charity_123",
-    status: "closed",
-    created_at: "2025-03-10T08:30:00Z",
-    deadline: "2025-05-10T08:30:00Z", // Future deadline (not expired)
-    quotation_count: 3
-  },
-  {
-    id: "2", 
-    title: "School Supplies for Education Outreach",
-    description: "Looking for notebooks, pens, and basic stationery for 100 children.",
-    created_by: "charity_456",
-    status: "open",
-    created_at: "2025-03-12T14:15:00Z",
-    deadline: "2023-04-12T14:15:00Z", // Past deadline (expired)
-    quotation_count: 5
-  },
-   {
-    id: "4", 
-    title: "Winter Clothing Drive - Jackets Needed",
-    description: "Seeking 200 new or gently used winter jackets for homeless shelter residents.",
-    created_by: "charity_123",
-    status: "open",
-    created_at: "2025-03-15T09:00:00Z",
-    deadline: "2023-04-15T09:00:00Z", // Past deadline (expired)
-    quotation_count: 1
-  },
-    {
-    id: "5", 
-    title: "Office Furniture for Non-Profit HQ",
-    description: "Need 5 desks and chairs for our new office space. Used items in good condition acceptable.",
-    created_by: "charity_789",
-    status: "open",
-    created_at: "2025-03-16T11:20:00Z",
-    deadline: "2023-04-16T11:20:00Z", // Past deadline (expired)
-    quotation_count: 0
-  },
-  // Example of a closed request (shouldn't appear with current filter, but good for testing)
-  // { 
-  //   id: "3", 
-  //   title: "First Aid Kits for Medical Camp",
-  //   description: "Urgently need 50 first aid kits for our upcoming medical camp.",
-  //   created_by: "charity_456",
-  //   status: "closed",
-  //   created_at: "2025-03-01T10:00:00Z",
-  //   quotation_count: 4
-  // }
-];
-// Filter mock data to only show open requests
-const openMockRequests = mockVendorRequests.filter(req => req.status === 'open');
-// --- Mock Data End ---
-
 const VendorOpenMarket: React.FC = () => {
-  // Initialize state with mock data
-  const [requests, setRequests] = useState<OpenMarketRequest[]>(openMockRequests);
-  const [filteredRequests, setFilteredRequests] = useState<OpenMarketRequest[]>(openMockRequests);
+  // Initialize state
+  const [requests, setRequests] = useState<OpenMarketRequest[]>([]);
+  const [filteredRequests, setFilteredRequests] = useState<OpenMarketRequest[]>([]);
   const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isInfoVisible, setIsInfoVisible] = useState(true);
-  // Removed isLoading and error states as data is now hardcoded
-  // const [isLoading, setIsLoading] = useState(true);
-  // const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth(); // Keep useAuth if needed for vendor info later
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
 
+  // Fetch real data from openMarketService
+  useEffect(() => {
+    const fetchRequests = async () => {
+      try {
+        setIsLoading(true);
+        const data = await openMarketService.getAllOpenRequests();
+        setRequests(data);
+        setFilteredRequests(data);
+        setIsLoading(false);
+      } catch (err: any) {
+        console.error("Error fetching open market requests:", err);
+        setError(err.message || "Failed to load open market requests");
+        setIsLoading(false);
+        toast.error("Failed to load open market requests. Please try again later.");
+      }
+    };
 
+    fetchRequests();
+  }, []);
 
   useEffect(() => {
     const lowerSearchTerm = searchTerm.toLowerCase();
@@ -168,19 +117,31 @@ const VendorOpenMarket: React.FC = () => {
 
   const handleBackToList = () => {
     setSelectedRequest(null);
-    // When using mock data, no need to re-fetch
+    // Refresh the requests list when coming back from details
+    const refreshRequests = async () => {
+      try {
+        const data = await openMarketService.getAllOpenRequests();
+        setRequests(data);
+        setFilteredRequests(data.filter(request => 
+          request.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          request.description.toLowerCase().includes(searchTerm.toLowerCase())
+        ));
+      } catch (err) {
+        console.error("Error refreshing open market requests:", err);
+      }
+    };
+    refreshRequests();
   };
 
-  // Removed isLoading and error checks
-  /*
   if (isLoading) {
-    return <div className="p-6">Loading requests...</div>;
+    return <div className="p-6 flex justify-center items-center min-h-screen">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--highlight)]"></div>
+    </div>;
   }
 
   if (error) {
     return <div className="p-6 text-red-500">Error: {error}</div>;
   }
-  */
 
   return (
     <div className="min-h-screen bg-[var(--background)] p-6">
@@ -188,7 +149,6 @@ const VendorOpenMarket: React.FC = () => {
         <VendorRequestDetail 
           requestId={selectedRequest} 
           onBack={handleBackToList}
-          // Consider passing mock quotations to VendorRequestDetail as well if needed
         />
       ) : (
         <div className="max-w-full mx-auto relative">

@@ -117,16 +117,21 @@ const CampaignDetail: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { userRole } = useRole();
-
+  
   // State for campaign data
   const [campaign, setCampaign] = useState<CampaignType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Add state for donation stats
+  const [donationStats, setDonationStats] = useState<any>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [statsError, setStatsError] = useState<string | null>(null);
+  
   const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
   const [showFullLeaderboard, setShowFullLeaderboard] = useState(false);
   const [isContributionPopupOpen, setIsContributionPopupOpen] = useState(false);
-
+  
   // Add state for selected donor ID
   const [selectedDonorId, setSelectedDonorId] = useState<number | null>(null);
 
@@ -145,7 +150,7 @@ const CampaignDetail: React.FC = () => {
         setLoading(false);
         return;
       }
-
+      
       try {
         setLoading(true);
         const campaignData = await charityService.getCampaignById(id);
@@ -154,6 +159,9 @@ const CampaignDetail: React.FC = () => {
         console.log("Campaign charity object:", campaignData.charity);
         setCampaign(campaignData);
         setError(null);
+        
+        // Fetch donation stats after campaign data is loaded
+        fetchDonationStats(id);
       } catch (err: any) {
         console.error("Error fetching campaign:", err);
         setError(err.message || "Failed to load campaign. Please try again.");
@@ -164,6 +172,28 @@ const CampaignDetail: React.FC = () => {
 
     fetchCampaign();
   }, [id]);
+  
+  // Function to fetch donation stats
+  const fetchDonationStats = async (campaignId: string) => {
+    try {
+      setStatsLoading(true);
+      const stats = await charityService.getCampaignDonationStats(campaignId);
+      setDonationStats(stats);
+      setStatsError(null);
+    } catch (err: any) {
+      console.error("Error fetching donation stats:", err);
+      setStatsError(err.message || "Failed to load donation statistics.");
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+  // Refresh donation stats after a successful donation
+  const refreshDonationStats = () => {
+    if (id) {
+      fetchDonationStats(id);
+    }
+  };
 
   // Show loading state
   if (loading) {
@@ -197,7 +227,7 @@ const CampaignDetail: React.FC = () => {
 
   // Use charity data from campaign
   const charity = campaign.charity || null;
-
+  
   // Create mock donor contribution data for all donors
   const donorContribution: DonorContribution = {
     totalAmount: 250,
@@ -207,12 +237,12 @@ const CampaignDetail: React.FC = () => {
     ],
     percentageOfTotal: '8.5'
   };
-
+  
   // Calculate progress percentage
   const progress = (campaign.current_amount / campaign.target_amount) * 100;
-
+  
   // Calculate days left (if deadline exists)
-  const timeLeft = campaign.deadline
+  const timeLeft = campaign.deadline 
     ? Math.max(0, Math.floor((new Date(campaign.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
     : 0;
 
@@ -261,10 +291,10 @@ const CampaignDetail: React.FC = () => {
       // Show success message based on donation policy and recurring status
       let message = `Thank you for your ${isRecurring ? 'monthly' : 'one-time'} donation of RM${amount}!`;
       
-      if (donationPolicy) {
-        if (donationPolicy === 'campaign-specific') {
+    if (donationPolicy) {
+      if (donationPolicy === 'campaign-specific') {
           message += ` You can get a refund if the campaign doesn't reach its goal.`;
-        } else if (donationPolicy === 'always-donate') {
+      } else if (donationPolicy === 'always-donate') {
           message += ` Your donation will support the organization even if the campaign doesn't reach its goal.`;
         }
       }
@@ -274,6 +304,9 @@ const CampaignDetail: React.FC = () => {
       // Refresh the campaign data to reflect the new donation amount
       const updatedCampaign = await charityService.getCampaignById(campaign.id);
       setCampaign(updatedCampaign);
+      
+      // Also refresh donation stats
+      refreshDonationStats();
     } catch (error: any) {
       console.error('Error making donation:', error);
       toast.error(error.message || 'Failed to process donation. Please try again.');
@@ -297,6 +330,16 @@ const CampaignDetail: React.FC = () => {
   const handleTabChange = (tab: 'transactions' | 'community' | 'community-temp') => {
     setActiveMainTab(tab);
     navigate(`/charity/${id}?tab=${tab}`, { replace: true });
+  };
+
+  // Get the current user's donor ID (in a real app, this would come from an auth context)
+  const getCurrentUserDonorId = () => {
+    // This is a placeholder - in a real application, you'd get this from auth
+    if (userRole === 'donor') {
+      const userId = localStorage.getItem('userId');
+      return userId ? parseInt(userId) : undefined;
+    }
+    return undefined;
   };
 
   return (
@@ -328,7 +371,7 @@ const CampaignDetail: React.FC = () => {
                   <div className="font-medium flex items-center gap-1">
                     <FaLock className="text-green-300" size={10} />
                     <span>Campaign-Specific</span>
-                  </div>
+            </div>
                 </div>
 
                 {/* Always-donate */}
@@ -417,12 +460,12 @@ const CampaignDetail: React.FC = () => {
                 <div className="flex items-center gap-3.5">
                   <div className="flex items-center justify-center w-9 h-9 rounded-full bg-amber-100 border border-amber-200">
                     <span className="text-xl" role="img" aria-label="raised hands">🙌</span>
-                  </div>
+                </div>
                   <div className="text-black">
                     <div className="font-bold text-base">Thanks for your support!</div>
                     <div className="text-sm text-black/70 mt-0.5">
                       Top 3 Donor · RM{donorContribution.totalAmount} · Last on Apr 14, 2025
-                    </div>
+                  </div>
                   </div>
                 </div>
                 <svg className="w-5 h-5 text-black/50 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -627,7 +670,7 @@ const CampaignDetail: React.FC = () => {
                           </div>
                         </button>
                       )}
-                    </div>
+                      </div>
                   )}
                 </div>
               </div>
@@ -665,39 +708,50 @@ const CampaignDetail: React.FC = () => {
             {/* Donor Leaderboard - show for all donors */}
             {(userRole === 'charity' || userRole === 'donor') ? (
               <div className="mb-8">
-                {/* We'll create a mock tracker based on campaign data for now */}
-                <DonorLeaderboardAndTracker
-                  tracker={{
-                    id: parseInt(campaign.id),
-                    recipientId: parseInt(campaign.id),
-                    recipientType: 'campaign',
-                    donations: {
-                      total: campaign.current_amount,
-                      count: 45, // This would come from a real donor count
-                      campaignSpecificTotal: Math.round(campaign.current_amount * 0.6), // 60% is campaign-specific - this is a placeholder
-                      alwaysDonateTotal: Math.round(campaign.current_amount * 0.4), // 40% is always-donate - this is a placeholder
-                      timeline: {
-                        daily: [
-                          // Mock donation history for display
-                          { date: new Date().toISOString().split('T')[0], amount: Math.round(campaign.current_amount * 0.2), donationPolicy: 'campaign-specific' },
-                          { date: new Date(Date.now() - 86400000).toISOString().split('T')[0], amount: Math.round(campaign.current_amount * 0.1), donationPolicy: 'always-donate' },
-                          { date: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0], amount: Math.round(campaign.current_amount * 0.15), donationPolicy: 'campaign-specific', isRecurring: true }
-                        ],
-                        weekly: [{ week: new Date().toISOString().split('T')[0].slice(0, 7) + '-W' + Math.ceil(new Date().getDate() / 7), amount: Math.round(campaign.current_amount * 0.5) }],
-                        monthly: [{ month: new Date().toISOString().split('T')[0].slice(0, 7), amount: campaign.current_amount }]
-                      },
-                      topDonors: [
-                        // Mock top donors for demonstration
-                        { donorId: 1, name: "Sarah Johnson", amount: Math.round(campaign.current_amount * 0.25), lastDonation: new Date(Date.now() - 2 * 86400000).toISOString() },
-                        { donorId: 2, name: "Michael Chen", amount: Math.round(campaign.current_amount * 0.18), lastDonation: new Date(Date.now() - 3 * 86400000).toISOString() },
-                        { donorId: 3, name: "Priya Sharma", amount: Math.round(campaign.current_amount * 0.15), lastDonation: new Date(Date.now() - 5 * 86400000).toISOString() },
-                        { donorId: 4, name: "David Brown", amount: Math.round(campaign.current_amount * 0.10), lastDonation: new Date(Date.now() - 6 * 86400000).toISOString() },
-                        { donorId: 5, name: "Emma Wilson", amount: Math.round(campaign.current_amount * 0.05), lastDonation: new Date(Date.now() - 7 * 86400000).toISOString() }
-                      ]
-                    }
-                  }}
-                  userDonorId={userRole === 'donor' ? 1 : undefined} // In a real app, this would be the actual donor ID
-                />
+                {statsLoading ? (
+                  <div className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] p-6">
+                    <div className="flex justify-center py-8">
+                      <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[var(--highlight)]"></div>
+                    </div>
+                      </div>
+                ) : statsError ? (
+                  <div className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] p-6">
+                    <div className="text-red-500 py-2">{statsError}</div>
+                    <button 
+                      onClick={refreshDonationStats}
+                      className="mt-2 px-4 py-2 rounded-lg bg-[var(--highlight)] text-white hover:bg-opacity-90"
+                    >
+                      Try Again
+                    </button>
+                      </div>
+                ) : donationStats ? (
+                  <DonorLeaderboardAndTracker
+                    tracker={{
+                      id: parseInt(campaign.id),
+                      recipientId: parseInt(campaign.id),
+                      recipientType: 'campaign',
+                      donations: {
+                        total: donationStats.donations.total,
+                        count: donationStats.donations.count,
+                        campaignSpecificTotal: donationStats.donations.campaignSpecificTotal,
+                        alwaysDonateTotal: donationStats.donations.alwaysDonateTotal,
+                        timeline: donationStats.donations.timeline,
+                        topDonors: donationStats.donations.topDonors
+                      }
+                    }}
+                    userDonorId={getCurrentUserDonorId()} // Get actual donor ID
+                  />
+                ) : (
+                  <div className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] p-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <FaTrophy className="text-[var(--highlight)]" />
+                      <h3 className="text-lg font-bold text-[var(--headline)]">Donors & Donations</h3>
+                      </div>
+                    <p className="text-[var(--paragraph)] text-center py-4">
+                      No donation data available yet.
+                    </p>
+                    </div>
+                  )}
               </div>
             ) : (
               <div className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] p-6 mb-8">

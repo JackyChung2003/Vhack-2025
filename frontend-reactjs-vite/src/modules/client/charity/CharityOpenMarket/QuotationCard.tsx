@@ -1,19 +1,9 @@
 import React from 'react';
 import { FaStar, FaRegStar, FaStarHalfAlt, FaCheckCircle, FaTimes, FaExternalLinkAlt, FaCalendarAlt, FaComment, FaTrash } from 'react-icons/fa';
+import { Quotation } from '../../../../services/supabase/openMarketService';
 
-interface QuotationProps {
-  quotation: {
-    id: string;
-    request_id: string;
-    vendor_id: string;
-    vendor_name: string;
-    price: number;
-    details: string;
-    attachment_url: string | null;
-    is_accepted: boolean;
-    created_at: string;
-    vendor_rating: number;
-  };
+interface QuotationCardProps {
+  quotation: Quotation;
   requestDeadline?: string;
   onAccept?: () => void;
   onDelete?: () => void;
@@ -21,10 +11,10 @@ interface QuotationProps {
   isVendor?: boolean;
 }
 
-const QuotationCard: React.FC<QuotationProps> = ({ 
+const QuotationCard: React.FC<QuotationCardProps> = ({ 
   quotation, 
   requestDeadline,
-  onAccept, 
+  onAccept,
   onDelete,
   onChat,
   isVendor = false
@@ -43,7 +33,7 @@ const QuotationCard: React.FC<QuotationProps> = ({
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'MYR'
+      currency: 'USD'
     }).format(price);
   };
 
