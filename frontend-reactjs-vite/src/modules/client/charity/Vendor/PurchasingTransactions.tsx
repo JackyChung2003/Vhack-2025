@@ -1,10 +1,11 @@
-import React, { useState } from "react";
-import { FaCheckCircle, FaPlus, FaFilter, FaBuilding, FaTruck, FaMoneyBillWave } from "react-icons/fa";
+import React, { useState, useEffect } from "react";
+import { FaCheckCircle, FaPlus, FaFilter, FaBuilding, FaTruck, FaMoneyBillWave, FaBoxOpen, FaExclamationTriangle } from "react-icons/fa";
 import TransactionCard from "./TransactionCard";
 import CreateTransactionModal from "./CreateTransactionModal";
+import ReportIssueModal from "./ReportIssueModal";
 
 // Define transaction status type
-type TransactionStatus = 'pending' | 'approved' | 'payment_held' | 'shipped' | 'delivered' | 'completed' | 'rejected';
+type TransactionStatus = 'pending' | 'shipping' | 'delivered' | 'completed' | 'rejected';
 
 // Define a Transaction type
 type Transaction = {
@@ -21,15 +22,11 @@ type Transaction = {
   fundSource: string;
   createdBy: 'charity' | 'vendor';
   date: string;
+  deliveryPhoto?: string; // URL to delivery confirmation photo
 };
 
-const PurchasingTransactions: React.FC = () => {
-  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [filter, setFilter] = useState<'all' | TransactionStatus>('all');
-
-  // Mock data for transactions with expanded statuses
-  const transactions: Transaction[] = [
+// Mock data for transactions - added for component state management
+const initialTransactions: Transaction[] = [
     {
       id: 1,
       items: [
@@ -50,9 +47,9 @@ const PurchasingTransactions: React.FC = () => {
       ],
       totalPrice: 1200,
       vendor: "XYZ Traders",
-      status: 'approved',
+      status: 'shipping',
       fundSource: "Education for All",
-      createdBy: 'charity',
+      createdBy: 'vendor',
       date: "2023-05-10"
     },
     {
@@ -62,7 +59,7 @@ const PurchasingTransactions: React.FC = () => {
       ],
       totalPrice: 750,
       vendor: "Green Energy Co",
-      status: 'payment_held',
+      status: 'shipping',
       fundSource: "Renewable Energy Fund",
       createdBy: 'charity',
       date: "2023-05-08"
@@ -74,10 +71,11 @@ const PurchasingTransactions: React.FC = () => {
       ],
       totalPrice: 1200,
       vendor: "MediSupply Inc",
-      status: 'shipped',
+      status: 'delivered',
       fundSource: "Healthcare Initiative",
       createdBy: 'charity',
-      date: "2023-05-05"
+      date: "2023-05-05",
+      deliveryPhoto: "https://placehold.co/600x400?text=Delivery+Photo"
     },
     {
       id: 5,
@@ -89,7 +87,8 @@ const PurchasingTransactions: React.FC = () => {
       status: 'delivered',
       fundSource: "Hunger Relief Program",
       createdBy: 'vendor',
-      date: "2023-04-28"
+      date: "2023-04-28",
+      deliveryPhoto: "https://placehold.co/600x400?text=Delivery+Photo"
     },
     {
       id: 6,
@@ -118,19 +117,23 @@ const PurchasingTransactions: React.FC = () => {
     }
   ];
 
+const PurchasingTransactions: React.FC = () => {
+  const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [filter, setFilter] = useState<'all' | TransactionStatus>('all');
+
   // Sort transactions by status
-  const sortTransactions = (transactions: Transaction[]) => {
-    const statusOrder: Record<TransactionStatus, number> = { 
-      'pending': 0, 
-      'approved': 1, 
-      'payment_held': 2, 
-      'shipped': 3, 
-      'delivered': 4, 
-      'completed': 5,
-      'rejected': 6
+  const sortTransactions = (transactionsToSort: Transaction[]) => {
+    const statusOrder: Record<TransactionStatus, number> = {
+      'pending': 0,
+      'shipping': 1,
+      'delivered': 2,
+      'completed': 3,
+      'rejected': 4
     };
     
-    return [...transactions].sort((a, b) => {
+    return [...transactionsToSort].sort((a, b) => {
       // First sort by status
       const statusDiff = statusOrder[a.status] - statusOrder[b.status];
       if (statusDiff !== 0) return statusDiff;
@@ -141,7 +144,7 @@ const PurchasingTransactions: React.FC = () => {
   };
 
   // Filter transactions based on status
-  const filteredTransactions = filter === 'all' 
+  const filteredTransactions = filter === 'all'
     ? sortTransactions(transactions)
     : sortTransactions(transactions.filter(t => t.status === filter));
 
@@ -153,13 +156,50 @@ const PurchasingTransactions: React.FC = () => {
     setSelectedTransaction(null);
   };
 
-  const handleConfirmDelivery = () => {
-    // In a real app, this would call an API to update the transaction status
+  const handleReleasePayment = () => {
     if (selectedTransaction) {
-      // Update the transaction status to 'delivered'
-      console.log(`Confirmed delivery for transaction ${selectedTransaction.id}`);
-      // Close the modal after action
-      setSelectedTransaction(null);
+
+      setTransactions(prevTransactions =>
+        prevTransactions.map(t =>
+          t.id === selectedTransaction.id ? { ...t, status: 'completed' } : t
+        )
+      );
+      // Update the selected transaction state to reflect the change immediately in the modal
+      setSelectedTransaction(prevSelected =>
+        prevSelected ? { ...prevSelected, status: 'completed' } : null
+      );
+      console.log(`Payment released for transaction ${selectedTransaction.id}. Status set to 'completed'.`);
+
+    }
+  };
+
+  const handleShowReportIssue = () => {
+    if (selectedTransaction) {
+      setShowReportModal(true);
+    }
+  };
+
+  const handleSubmitIssueReport = (issueDetails: string) => {
+    // In a real app, this would call an API to report the issue
+    console.log(`Reported issue for transaction ${selectedTransaction?.id}: ${issueDetails}`);
+    setShowReportModal(false);
+  };
+
+  // Get status icon based on transaction status
+  const getStatusIcon = (status: TransactionStatus) => {
+    switch(status) {
+      case 'pending':
+        return <FaBoxOpen className="w-5 h-5 text-yellow-500" />;
+      case 'shipping':
+        return <FaTruck className="w-5 h-5 text-indigo-500" />;
+      case 'delivered':
+        return <FaCheckCircle className="w-5 h-5 text-teal-500" />;
+      case 'completed':
+        return <FaMoneyBillWave className="w-5 h-5 text-green-500" />; // Reverted: Completed uses MoneyBillWave
+      case 'rejected':
+        return <FaExclamationTriangle className="w-5 h-5 text-red-500" />;
+      default:
+        return <FaCheckCircle className="w-5 h-5 opacity-30 text-gray-400" />;
     }
   };
 
@@ -167,36 +207,12 @@ const PurchasingTransactions: React.FC = () => {
   const getStepValue = (status: TransactionStatus): number => {
     const stepMap: Record<TransactionStatus, number> = {
       'pending': 0,
-      'approved': 1,
-      'payment_held': 2,
-      'shipped': 3,
-      'delivered': 4,
-      'completed': 5,
+      'shipping': 1,
+      'delivered': 2,
+      'completed': 3,
       'rejected': -1
     };
-    return stepMap[status];
-  };
-
-  // Get status icon based on transaction status
-  const getStatusIcon = (status: TransactionStatus) => {
-    switch(status) {
-      case 'pending':
-        return <FaCheckCircle className="w-5 h-5 opacity-30 text-gray-400" />;
-      case 'approved':
-        return <FaCheckCircle className="w-5 h-5 text-blue-500" />;
-      case 'payment_held':
-        return <FaMoneyBillWave className="w-5 h-5 text-purple-500" />;
-      case 'shipped':
-        return <FaTruck className="w-5 h-5 text-indigo-500" />;
-      case 'delivered':
-        return <FaCheckCircle className="w-5 h-5 text-teal-500" />;
-      case 'completed':
-        return <FaCheckCircle className="w-5 h-5 text-green-500" />;
-      case 'rejected':
-        return <FaCheckCircle className="w-5 h-5 text-red-500" />;
-      default:
-        return <FaCheckCircle className="w-5 h-5 opacity-30 text-gray-400" />;
-    }
+    return stepMap[status] ?? -1;
   };
 
   return (
@@ -204,12 +220,6 @@ const PurchasingTransactions: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-bold text-[var(--headline)]">Transactions</h2>
         <div className="flex space-x-2">
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="px-3 py-1.5 bg-[var(--highlight)] text-white rounded-lg shadow-md hover:bg-opacity-90 transition-all flex items-center gap-1"
-          >
-            <FaPlus size={12} /> New Order
-          </button>
           <div className="relative">
             <select
               value={filter}
@@ -218,9 +228,7 @@ const PurchasingTransactions: React.FC = () => {
             >
               <option value="all">All Status</option>
               <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="payment_held">Payment Held</option>
-              <option value="shipped">Shipped</option>
+              <option value="shipping">Shipping</option>
               <option value="delivered">Delivered</option>
               <option value="completed">Completed</option>
               <option value="rejected">Rejected</option>
@@ -242,17 +250,15 @@ const PurchasingTransactions: React.FC = () => {
                 <div className="flex-1">
                   <div className="flex justify-between items-center">
                     <p className={`text-[var(--headline)] font-semibold ${
-                      transaction.status === 'completed' ? 'line-through' : ''
+                      transaction.status === 'completed' ? 'line-through opacity-70' : ''
                     }`}>
                       {transaction.vendor} - {transaction.items.length} item(s)
                     </p>
-                    <span className={`text-sm px-2 py-1 rounded-full ${
+                    <span className={`text-xs px-2 py-1 rounded-full ${
                       transaction.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                      transaction.status === 'approved' ? 'bg-blue-100 text-blue-800' :
-                      transaction.status === 'payment_held' ? 'bg-purple-100 text-purple-800' :
-                      transaction.status === 'shipped' ? 'bg-indigo-100 text-indigo-800' :
+                      transaction.status === 'shipping' ? 'bg-indigo-100 text-indigo-800' :
                       transaction.status === 'delivered' ? 'bg-teal-100 text-teal-800' :
-                      transaction.status === 'completed' ? 'bg-green-100 text-green-800' :
+                      transaction.status === 'completed' ? 'bg-gray-100 text-gray-800' :
                       'bg-red-100 text-red-800'
                     }`}>
                       {transaction.status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
@@ -261,23 +267,29 @@ const PurchasingTransactions: React.FC = () => {
                   <p className="text-sm text-[var(--paragraph)]">
                     Total: RM{transaction.totalPrice.toLocaleString()} | Fund: {transaction.fundSource}
                   </p>
-                  <p className="text-sm text-[var(--paragraph)]">
+                  <p className="text-xs text-[var(--paragraph)]">
                     Created by: {transaction.createdBy === 'charity' ? 'You' : transaction.vendor} | Date: {transaction.date}
                   </p>
                   
-                  {/* Compact step indicators */}
+                  {/* Compact step indicators  */}
                   <div className="flex mt-3 space-x-1">
-                    {['pending', 'approved', 'payment_held', 'shipped', 'delivered', 'completed'].map((step, index) => {
-                      const isActive = getStepValue(transaction.status) >= index;
-                      const isCurrentStep = getStepValue(transaction.status) === index;
+                    {['pending', 'shipping', 'delivered', 'completed'].map((step, index) => {
+                      // Ignore rejected status for the progress bar
+                      if (transaction.status === 'rejected') return null;
+                      
+                      const currentStepValue = getStepValue(transaction.status);
+                      const isActive = currentStepValue >= index;
+                      const isCurrentStep = currentStepValue === index;
+                      
                       return (
-                        <div 
+                        <div
                           key={index}
-                          className={`h-1.5 flex-1 rounded-full ${
-                            isActive ? 
-                              (isCurrentStep ? 'bg-[var(--highlight)]' : 'bg-[var(--highlight)] bg-opacity-60') : 
+                          className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${
+                            isActive ?
+                              (isCurrentStep ? 'bg-[var(--highlight)]' : 'bg-[var(--highlight)] bg-opacity-60') :
                               'bg-gray-200'
                           }`}
+                          title={step.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                         />
                       );
                     })}
@@ -293,7 +305,7 @@ const PurchasingTransactions: React.FC = () => {
           ))
         ) : (
           <div className="p-4 text-center text-gray-500">
-            No transactions found
+            No transactions found for the selected filter.
           </div>
         )}
       </div>
@@ -303,14 +315,18 @@ const PurchasingTransactions: React.FC = () => {
         <TransactionCard
           transaction={selectedTransaction}
           onClose={handleCloseCard}
-          onConfirmDelivery={selectedTransaction.status === 'shipped' ? handleConfirmDelivery : undefined}
+          onReleasePayment={selectedTransaction.status === 'delivered' ? handleReleasePayment : undefined}
+          onReportIssue={selectedTransaction.status === 'delivered' ? handleShowReportIssue : undefined} // Reverted: Only allow reporting on 'delivered'
         />
       )}
 
-      {/* Create Transaction Modal */}
-      {showCreateModal && (
-        <CreateTransactionModal
-          onClose={() => setShowCreateModal(false)}
+      {/* Report Issue Modal */}
+      {showReportModal && selectedTransaction && (
+        <ReportIssueModal
+          transactionId={selectedTransaction.id}
+          vendor={selectedTransaction.vendor}
+          onClose={() => setShowReportModal(false)}
+          onSubmit={handleSubmitIssueReport}
         />
       )}
     </div>
