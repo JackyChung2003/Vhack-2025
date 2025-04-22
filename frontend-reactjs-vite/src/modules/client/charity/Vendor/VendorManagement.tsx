@@ -7,7 +7,7 @@ import ChatModal from "./ChatModal";
 import TransactionCard from "./TransactionCard";
 
 // Define transaction status type
-type TransactionStatus = 'pending' | 'approved' | 'payment_held' | 'shipped' | 'delivered' | 'completed' | 'rejected';
+type TransactionStatus = 'pending' | 'shipping' | 'delivered' | 'completed' | 'rejected';
 
 // Define a Transaction type
 type Transaction = {
@@ -78,7 +78,7 @@ const VendorManagement: React.FC = () => {
       ],
       totalPrice: 1200,
       vendor: "XYZ Traders",
-      status: 'shipped',
+      status: 'shipping',
       fundSource: "Education for All",
       createdBy: 'vendor',
       date: "2023-05-10"
@@ -89,11 +89,9 @@ const VendorManagement: React.FC = () => {
   const getStepValue = (status: TransactionStatus): number => {
     const stepMap: Record<TransactionStatus, number> = {
       'pending': 0,
-      'approved': 1,
-      'payment_held': 2,
-      'shipped': 3,
-      'delivered': 4,
-      'completed': 5,
+      'shipping': 1,
+      'delivered': 2,
+      'completed': 3,
       'rejected': -1
     };
     return stepMap[status];
@@ -103,17 +101,13 @@ const VendorManagement: React.FC = () => {
   const getStatusIcon = (status: TransactionStatus) => {
     switch(status) {
       case 'pending':
-        return <FaCheckCircle className="w-5 h-5 opacity-30 text-gray-400" />;
-      case 'approved':
-        return <FaCheckCircle className="w-5 h-5 text-blue-500" />;
-      case 'payment_held':
-        return <FaMoneyBillWave className="w-5 h-5 text-purple-500" />;
-      case 'shipped':
+        return <FaBoxOpen className="w-5 h-5 text-yellow-500" />;
+      case 'shipping':
         return <FaTruck className="w-5 h-5 text-indigo-500" />;
       case 'delivered':
         return <FaCheckCircle className="w-5 h-5 text-teal-500" />;
       case 'completed':
-        return <FaCheckCircle className="w-5 h-5 text-green-500" />;
+        return <FaMoneyBillWave className="w-5 h-5 text-green-500" />;
       case 'rejected':
         return <FaCheckCircle className="w-5 h-5 text-red-500" />;
       default:
@@ -155,9 +149,7 @@ const VendorManagement: React.FC = () => {
                       </p>
                       <span className={`text-sm px-2 py-1 rounded-full ${
                         transaction.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                        transaction.status === 'approved' ? 'bg-blue-100 text-blue-800' :
-                        transaction.status === 'payment_held' ? 'bg-purple-100 text-purple-800' :
-                        transaction.status === 'shipped' ? 'bg-indigo-100 text-indigo-800' :
+                        transaction.status === 'shipping' ? 'bg-indigo-100 text-indigo-800' :
                         transaction.status === 'delivered' ? 'bg-teal-100 text-teal-800' :
                         transaction.status === 'completed' ? 'bg-green-100 text-green-800' :
                         'bg-red-100 text-red-800'
@@ -174,7 +166,7 @@ const VendorManagement: React.FC = () => {
                     
                     {/* Compact step indicators */}
                     <div className="flex mt-3 space-x-1">
-                      {['pending', 'approved', 'payment_held', 'shipped', 'delivered', 'completed'].map((step, index) => {
+                      {['pending', 'shipped', 'delivered', 'completed'].map((step, index) => {
                         const isActive = getStepValue(transaction.status as TransactionStatus) >= index;
                         const isCurrentStep = getStepValue(transaction.status as TransactionStatus) === index;
                         return (
@@ -222,7 +214,7 @@ const VendorManagement: React.FC = () => {
         <TransactionCard
           transaction={selectedTransaction}
           onClose={handleCloseTransaction}
-          onConfirmDelivery={selectedTransaction.status === 'shipped' ? handleConfirmDelivery : undefined}
+          onConfirmDelivery={selectedTransaction.status === 'shipping' ? handleConfirmDelivery : undefined}
         />
       )}
     </div>
