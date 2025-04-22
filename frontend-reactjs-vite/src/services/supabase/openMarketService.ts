@@ -474,6 +474,70 @@ export const openMarketService = {
       console.error('Error fetching vendor quotations:', error);
       return [];
     }
+  },
+
+  // Accept a quotation (charity view)
+  acceptQuotation: async (quotationId: string): Promise<void> => {
+    try {
+      // Get current authenticated user
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) throw authError;
+      if (!user) throw new Error('User not authenticated');
+
+      // Get quotation details to get request_id
+      const { data: quotationData, error: getQuotationError } = await supabase
+        .from('OpenMarketQuotation')
+        .select('request_id')
+        .eq('id', quotationId)
+        .single();
+
+      if (getQuotationError) throw getQuotationError;
+      if (!quotationData) throw new Error('Quotation not found');
+
+      // Verify that the user owns the request (is the charity that created it)
+      const { data: requestData, error: requestError } = await supabase
+        .from('OpenMarketRequest')
+        .select('created_by')
+        .eq('id', quotationData.request_id)
+        .single();
+
+      if (requestError) throw requestError;
+      if (!requestData) throw new Error('Request not found');
+      if (requestData.created_by !== user.id) throw new Error('You are not authorized to accept this quotation');
+
+      // Update all quotations for this request to ensure only one is accepted
+      // First, set all to false
+      const { error: updateAllError } = await supabase
+        .from('OpenMarketQuotation')
+        .update({ is_accepted: false })
+        .eq('request_id', quotationData.request_id);
+
+      if (updateAllError) throw updateAllError;
+
+      // Then set the selected quotation to accepted
+      const { error: updateError } = await supabase
+        .from('OpenMarketQuotation')
+        .update({ is_accepted: true })
+        .eq('id', quotationId);
+
+      if (updateError) throw updateError;
+
+      // Update the request status to closed and mark as having an accepted quotation
+      const { error: requestUpdateError } = await supabase
+        .from('OpenMarketRequest')
+        .update({ 
+          status: 'closed',
+          has_accepted_quotation: true
+        })
+        .eq('id', quotationData.request_id);
+
+      if (requestUpdateError) throw requestUpdateError;
+      
+    } catch (error) {
+      console.error('Error accepting quotation:', error);
+      throw error;
+    }
   }
 };
 
