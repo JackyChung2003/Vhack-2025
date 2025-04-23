@@ -33,7 +33,9 @@ const QuotationCard: React.FC<QuotationCardProps> = ({
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
     }).format(price);
   };
 
@@ -54,143 +56,120 @@ const QuotationCard: React.FC<QuotationCardProps> = ({
 
   const isExpired = requestDeadline ? new Date() > new Date(requestDeadline) : false;
 
-  // Action buttons section
-  const renderActionButtons = () => {
-    if (quotation.is_accepted) {
-      return (
-        <div className="flex items-center justify-center py-2 px-4 bg-green-50 border border-green-100 rounded-md">
-          <FaCheckCircle className="text-green-500 mr-2" />
-          <span className="text-green-600 font-medium">Accepted</span>
-        </div>
-      );
-    }
-
-    // Vendor view - only show delete button
-    if (isVendor) {
-      return (
-        <div className="flex flex-row gap-2">
-          {onDelete && (
-            <button
-              onClick={onDelete}
-              className="flex-1 py-2 px-4 bg-red-50 text-red-600 hover:bg-red-100 rounded-md flex items-center justify-center"
-            >
-              <FaTrash className="mr-2" />
-              Delete Quotation
-            </button>
-          )}
-        </div>
-      );
-    }
-
-    // Charity view - show chat and accept buttons
-    return (
-      <div className="flex flex-row gap-2">
-        {onChat && (
-          <button
-            onClick={onChat}
-            className="flex-1 py-2 px-4 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-md flex items-center justify-center"
-          >
-            <FaComment className="mr-2" />
-            Chat with Vendor
-          </button>
-        )}
-        {onAccept && (
-          <button
-            onClick={onAccept}
-            className="flex-1 py-2 px-4 bg-green-50 text-green-600 hover:bg-green-100 rounded-md flex items-center justify-center"
-          >
-            <FaCheckCircle className="mr-2" />
-            Accept Quotation
-          </button>
-        )}
-      </div>
-    );
-  };
-
   return (
-    <div 
-      className={`
-        rounded-lg shadow-md overflow-hidden relative transition-all 
-        ${quotation.is_accepted ? 'border-2 border-green-500' : 'border border-[var(--stroke)]'} 
-        bg-[var(--main)]
-      `}
-    >
-      {/* Accepted indicator */}
-      {quotation.is_accepted && (
-        <div className="absolute top-0 left-0 right-0 bg-green-500 text-white px-2 py-1 text-xs font-medium text-center">
-          Accepted Quotation
-        </div>
-      )}
-      
-      {/* Open indicator */}
-      {!quotation.is_accepted && !isExpired && !isVendor && (
-        <div className="absolute top-0 left-0 right-0 bg-green-500 text-white px-2 py-1 text-xs font-medium text-center">
+    <div className="rounded-lg overflow-hidden shadow-md border border-[var(--stroke)]">
+      {/* Status header */}
+      {!quotation.is_accepted && !isExpired ? (
+        <div className="py-3 px-4 text-center text-white bg-green-500">
           Open for Acceptance
         </div>
+      ) : quotation.is_accepted ? (
+        <div className="py-3 px-4 text-center text-white bg-blue-500">
+          Accepted
+        </div>
+      ) : (
+        <div className="py-3 px-4 text-center text-white bg-gray-500">
+          Closed
+        </div>
       )}
       
-      <div className={`p-4 ${(quotation.is_accepted || (!isExpired && !quotation.is_accepted && !isVendor)) ? 'pt-8' : ''}`}>
-        {/* Vendor info */}
-        <div className="flex justify-between items-start mb-3">
+      {/* Quotation content */}
+      <div className="p-4 bg-white">
+        {/* Header with vendor/charity and price */}
+        <div className="flex justify-between items-start mb-2">
           <div>
-            <h3 className="font-semibold text-[var(--headline)]">{quotation.vendor_name}</h3>
-            <div className="mt-1">
-              {renderRating(quotation.vendor_rating)}
-            </div>
+            <h3 className="font-bold text-[var(--headline)]">
+              {isVendor ? (quotation as any).charity_name || "Anonymous Charity" : quotation.vendor_name || "Anonymous Vendor"}
+            </h3>
+            {renderRating(quotation.vendor_rating || 0.0)}
           </div>
-          <div className="text-lg font-bold text-[var(--highlight)]">
+          <div className="text-xl font-bold text-[var(--highlight)]">
             {formatPrice(quotation.price)}
           </div>
         </div>
         
-        {/* Accepted badge for prominent display */}
-        {quotation.is_accepted && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-2 mb-3 flex items-center justify-center">
-            <FaCheckCircle className="text-green-500 mr-2" />
-            <span className="text-green-700 font-medium">This quotation has been accepted</span>
-          </div>
-        )}
-        
-        {/* Quotation details */}
-        <div className="bg-white p-3 rounded-lg my-3 text-sm text-[var(--paragraph)]">
-          <p>{quotation.details}</p>
+        {/* Description */}
+        <div className="bg-gray-50 p-3 rounded-lg mb-3 min-h-[80px]">
+          <p className="text-[var(--paragraph)]">{quotation.details}</p>
         </div>
         
-        {/* Date and attachment */}
-        <div className="flex justify-between items-center text-xs text-[var(--paragraph-light)] mb-4">
-          <span className="flex items-center">
-            <FaCalendarAlt className="mr-1" />
+        {/* Dates */}
+        <div className="mb-4">
+          <div className="flex items-center text-sm text-[var(--paragraph)]">
+            <FaCalendarAlt className="mr-2 text-gray-400" />
             {formatDate(quotation.created_at)}
-          </span>
-          {quotation.attachment_url && (
+          </div>
+          
+          <div className="flex items-center justify-between text-sm mt-2">
+            <div className="flex items-center">
+              <span className="text-[var(--paragraph)]">Due by: {requestDeadline ? formatDate(requestDeadline) : 'N/A'}</span>
+            </div>
+            {!isExpired && !quotation.is_accepted && (
+              <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                Active
+              </span>
+            )}
+          </div>
+        </div>
+        
+        {/* Action buttons */}
+        {!quotation.is_accepted && !isExpired ? (
+          <div className="flex justify-between mt-4 space-x-2">
+            {/* For charity view */}
+            {!isVendor && (
+              <>
+                {onChat && (
+                  <button
+                    onClick={onChat}
+                    className="flex-1 flex items-center justify-center text-blue-600 bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-lg transition-colors"
+                  >
+                    <FaComment className="mr-2" /> Chat with Vendor
+                  </button>
+                )}
+                {onAccept && (
+                  <button
+                    onClick={onAccept}
+                    className="flex-1 flex items-center justify-center text-green-600 bg-green-50 hover:bg-green-100 px-4 py-2 rounded-lg transition-colors"
+                  >
+                    Accept Quotation
+                  </button>
+                )}
+              </>
+            )}
+            
+            {/* For vendor view */}
+            {isVendor && onDelete && (
+              <button
+                onClick={onDelete}
+                className="flex-1 py-2 px-4 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg flex items-center justify-center"
+              >
+                <FaTrash className="mr-2" />
+                Delete Quotation
+              </button>
+            )}
+          </div>
+        ) : (
+          quotation.is_accepted && (
+            <div className="flex items-center justify-center py-2 px-4 mt-4 bg-blue-50 text-blue-600 rounded-lg">
+              <FaCheckCircle className="mr-2" />
+              <span className="font-medium">This quotation has been accepted</span>
+            </div>
+          )
+        )}
+        
+        {/* Attachment link */}
+        {quotation.attachment_url && (
+          <div className="mt-3 text-center">
             <a 
               href={quotation.attachment_url} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="flex items-center text-[var(--highlight)] hover:underline"
+              className="text-[var(--highlight)] hover:underline text-sm flex items-center justify-center"
             >
               View Attachment <FaExternalLinkAlt className="ml-1 h-2.5 w-2.5" />
             </a>
-          )}
-        </div>
-        
-        {/* Show deadline if provided */}
-        {requestDeadline && (
-          <div className="text-xs text-[var(--paragraph-light)] mb-4">
-            <span className="flex items-center">
-              <FaCalendarAlt className="mr-1" />
-              Due by: {formatDate(requestDeadline)}
-              {!isExpired && (
-                <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-xs">
-                  Active
-                </span>
-              )}
-            </span>
           </div>
         )}
-        
-        {/* Action buttons */}
-        {renderActionButtons()}
       </div>
     </div>
   );

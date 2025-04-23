@@ -1,20 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { FaChevronLeft, FaCalendarAlt, FaBuilding, FaPaperclip, FaFileAlt, FaQuoteLeft } from "react-icons/fa";
+import { FaChevronLeft, FaCalendarAlt, FaBuilding, FaPaperclip, FaFileAlt, FaQuoteLeft, FaStar, FaComment, FaTrash, FaGraduationCap, FaUser } from "react-icons/fa";
 import { MdSend } from "react-icons/md";
 import SubmitQuotationModal from "./SubmitQuotationModal";
 import { openMarketService, OpenMarketRequest, Quotation } from "../../../../services/supabase/openMarketService";
 import { useAuth } from "../../../../contexts/AuthContext";
 import { toast } from "react-toastify";
+import { charityService, Campaign } from "../../../../services/supabase/charityService";
 
 // Extended interface for Request with UI-specific properties
 interface RequestWithUIData extends OpenMarketRequest {
   charity_name?: string;
+  campaign?: Campaign;
 }
 
 interface VendorRequestDetailProps {
   requestId: string;
   onBack: () => void;
 }
+
+// Generate star rating display
+const StarRating = ({ rating = 0 }: { rating?: number }) => {
+  return (
+    <div className="flex items-center">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <FaStar 
+          key={star} 
+          className={`${star <= rating ? 'text-yellow-500' : 'text-gray-300'} text-xs`}
+        />
+      ))}
+      <span className="ml-1 text-xs">{rating.toFixed(1)}</span>
+    </div>
+  );
+};
 
 const VendorRequestDetail: React.FC<VendorRequestDetailProps> = ({ requestId, onBack }) => {
   const [request, setRequest] = useState<RequestWithUIData | null>(null);
@@ -58,6 +75,17 @@ const VendorRequestDetail: React.FC<VendorRequestDetailProps> = ({ requestId, on
           ...requestData,
           charity_name: "Charity Organization" // This would be fetched from a users table in real implementation
         };
+        
+        // If this is a campaign-funded request, fetch the campaign details
+        if (requestData.fund_type === 'campaign' && requestData.campaign_id) {
+          try {
+            const campaignData = await charityService.getCampaignById(requestData.campaign_id);
+            requestWithUI.campaign = campaignData;
+          } catch (campaignErr) {
+            console.error("Error fetching campaign details:", campaignErr);
+            // Don't fail the whole request if campaign fetch fails
+          }
+        }
         
         setRequest(requestWithUI);
         
@@ -105,6 +133,42 @@ const VendorRequestDetail: React.FC<VendorRequestDetailProps> = ({ requestId, on
     }
   };
 
+  const handleChatWithVendor = (quotationId: string) => {
+    // In a real app, this would open a chat interface with the vendor
+    console.log("Chat with vendor for quotation:", quotationId);
+    toast.info("Chat feature would open here");
+  };
+
+  const handleAcceptQuotation = (quotationId: string) => {
+    // In a real app, this would call an API to accept the quotation
+    console.log("Accept quotation:", quotationId);
+    toast.success("Quotation would be accepted here");
+  };
+
+  const handleDeleteQuotation = async (quotationId: string) => {
+    if (!confirm("Are you sure you want to delete this quotation?")) {
+      return;
+    }
+    
+    try {
+      // Call service to delete the quotation
+      await openMarketService.deleteQuotation(quotationId);
+      
+      // Update the UI - remove the deleted quotation
+      setQuotations(quotations.filter(q => q.id !== quotationId));
+      
+      // If it was the user's quotation, update status
+      if (quotations.find(q => q.id === quotationId)?.vendor_id === user?.id) {
+        setHasSubmittedQuotation(false);
+      }
+      
+      toast.success("Quotation deleted successfully");
+    } catch (error) {
+      console.error("Error deleting quotation:", error);
+      toast.error("Failed to delete quotation. Please try again.");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="p-6 flex justify-center items-center min-h-screen">
@@ -126,6 +190,15 @@ const VendorRequestDetail: React.FC<VendorRequestDetailProps> = ({ requestId, on
     );
   }
 
+  // Check if the current user has submitted a quotation
+  const userQuotation = quotations.find(q => q.vendor_id === user?.id);
+  
+  // Get other vendors' quotations
+  const otherQuotations = quotations.filter(q => q.vendor_id !== user?.id);
+  
+  // Determine if this is an education campaign
+  const isEducationCampaign = request.campaign?.category === 'education';
+
   return (
     <div className="bg-[var(--main)] rounded-xl shadow-lg p-6">
       {/* Back button */}
@@ -133,62 +206,111 @@ const VendorRequestDetail: React.FC<VendorRequestDetailProps> = ({ requestId, on
         <FaChevronLeft className="mr-1" /> Back to listings
       </button>
 
-      {/* Request header */}
-      <div className="border-b border-[var(--stroke)] pb-6 mb-6">
-        <div className="flex justify-between items-start">
-          <h1 className="text-2xl font-bold text-[var(--headline)]">{request.title}</h1>
-          <span 
-            className={`px-3 py-1 rounded-full text-xs font-medium ${
+      {/* Redesigned header - clean white background with clear sections */}
+      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div className="mb-4">
+          <h1 className="text-3xl font-bold text-[var(--headline)]">{request.title}</h1>
+          <div className="mt-2 flex items-center">
+            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
               !isExpired(request) 
                 ? 'bg-green-100 text-green-800' 
-                : 'bg-gray-100 text-gray-800'
-            }`}
-          >
-            {!isExpired(request) ? 'Open' : 'Closed'}
-          </span>
-        </div>
-        
-        <div className="flex flex-wrap gap-4 mt-3 text-sm text-[var(--paragraph-light)]">
-          <span className="flex items-center">
-            <FaCalendarAlt className="mr-1" /> Posted: {formatDate(request.created_at)}
-          </span>
-          <span className="flex items-center">
-            <FaCalendarAlt className="mr-1" /> Deadline: {formatDate(request.deadline || '')}
-          </span>
-          {request.charity_name && (
-            <span className="flex items-center">
-              <FaBuilding className="mr-1" /> {request.charity_name}
+                : 'bg-gray-200 text-gray-800'
+            }`}>
+              {!isExpired(request) ? 'Open' : 'Closed'}
             </span>
-          )}
+            <span className="ml-4 text-sm text-gray-500">
+              Posted: {formatDate(request.created_at)}
+            </span>
+            
+            {isEducationCampaign && (
+              <span className="ml-3 px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 flex items-center">
+                <FaGraduationCap className="mr-1" /> Education Campaign
+              </span>
+            )}
+          </div>
+        </div>
+        
+        {/* Campaign info for campaign-funded requests */}
+        {request.fund_type === 'campaign' && request.campaign && (
+          <div className="mb-4 bg-blue-50 p-4 rounded-lg">
+            <div className="flex items-center mb-2">
+              <h3 className="font-semibold text-blue-800">Campaign Information</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-blue-700 font-medium">{request.campaign.title}</p>
+                <p className="text-xs text-blue-600 mt-1">
+                  Target: ${request.campaign.target_amount.toLocaleString()}
+                </p>
+                <p className="text-xs text-blue-600">
+                  Raised: ${request.campaign.current_amount.toLocaleString()} 
+                  ({Math.round((request.campaign.current_amount / request.campaign.target_amount) * 100)}%)
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-blue-600">
+                  Deadline: {formatDate(request.campaign.deadline)}
+                </p>
+                {request.campaign.category && (
+                  <p className="text-xs text-blue-600 flex items-center mt-1">
+                    Category: {request.campaign.category.charAt(0).toUpperCase() + request.campaign.category.slice(1)}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Organization info prominently displayed */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between border-t border-b border-gray-100 py-4 my-4">
+          <div className="flex items-center">
+            <div className="bg-blue-100 p-2 rounded-full mr-3">
+              <FaBuilding className="text-blue-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold">{request.charity_name || "Unknown Organization"}</h3>
+              <p className="text-sm text-gray-500">Requesting Organization</p>
+            </div>
+          </div>
+          <div className="mt-3 md:mt-0 bg-yellow-50 px-4 py-2 rounded-lg flex items-center">
+            <FaCalendarAlt className="mr-2 text-yellow-600" /> 
+            <div>
+              <span className="text-sm font-medium text-yellow-800">
+                Deadline: 
+              </span>
+              <span className="ml-1 text-sm font-bold">
+                {formatDate(request.deadline || '')}
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        {/* Bid details */}
+        <div>
+          <h2 className="text-xl font-semibold text-[var(--headline)] mb-3">Bid Details</h2>
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <p className="text-[var(--paragraph)] whitespace-pre-wrap">{request.description}</p>
+          </div>
         </div>
       </div>
 
-      {/* Request details */}
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold text-[var(--headline)] mb-3">Request Details</h2>
-        <p className="text-[var(--paragraph)] whitespace-pre-wrap">{request.description}</p>
-        
-        {/* Note: Request doesn't have attachments in the DB schema, so we don't render this section */}
-      </div>
-
-      {/* Quotations section */}
-      <div className="mb-8">
-        <div className="flex justify-between items-center mb-4">
+      {/* Submit Quotation button - Prominent position */}
+      <div className="mb-6">
+        <div className="flex justify-between items-center">
           <h2 className="text-xl font-semibold text-[var(--headline)]">
             Quotations ({quotations.length})
           </h2>
           
-          {/* Only show the button if the request is not expired and the vendor hasn't submitted yet */}
           {!isExpired(request) && !hasSubmittedQuotation && (
             <button
               onClick={() => setIsModalOpen(true)}
-              className="bg-[var(--highlight)] hover:bg-[var(--highlight-dark)] text-white px-4 py-2 rounded-lg flex items-center transition-colors"
+              className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg text-base font-medium shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1 flex items-center"
             >
-              <MdSend className="mr-2" /> Submit Quotation
+              <MdSend className="mr-2" /> Submit your Quotation
             </button>
           )}
           
-          {/* Show message if vendor has already submitted */}
+          {/* Only show message if vendor has already submitted */}
           {hasSubmittedQuotation && (
             <span className="text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full">
               You've submitted a quotation
@@ -202,61 +324,171 @@ const VendorRequestDetail: React.FC<VendorRequestDetailProps> = ({ requestId, on
             </span>
           )}
         </div>
+      </div>
         
-        {/* List of quotations */}
-        <div className="space-y-4">
-          {quotations.length > 0 ? (
-            quotations.map((quotation) => (
-              <div 
-                key={quotation.id} 
-                className="bg-[var(--background)] p-4 rounded-lg border border-[var(--stroke)]"
-              >
-                <div className="flex justify-between mb-2">
-                  <div className="font-medium text-[var(--headline)]">
-                    {quotation.vendor_name || "Anonymous Vendor"}
+      {/* All quotations in a single section */}
+      <div className="mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* User's quotation (if any) */}
+          {userQuotation && (
+            <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm relative">
+              {/* Status header */}
+              <div className="bg-blue-600 text-white py-2 px-4 text-center font-medium">
+                Open for Acceptance
+              </div>
+              
+              {/* Your quotation badge */}
+              <div className="absolute top-2 right-2 bg-blue-700 text-white text-xs px-2 py-1 rounded-full flex items-center">
+                <FaUser className="mr-1" size={10} /> Your Quote
+              </div>
+              
+              {/* Quotation content */}
+              <div className="p-4 bg-white">
+                {/* Header with vendor/charity and price */}
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h3 className="font-bold text-gray-800">
+                      You (Vendor)
+                    </h3>
+                    <StarRating rating={0.0} />
                   </div>
-                  <div className="text-lg font-semibold text-[var(--highlight)]">
-                    ${quotation.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                  <div className="text-xl font-bold text-amber-500">
+                    ${userQuotation.price.toFixed(2)}
                   </div>
                 </div>
                 
-                <p className="text-[var(--paragraph)] text-sm mb-3">
-                  {quotation.details}
-                </p>
-                
-                <div className="flex justify-between items-center text-xs text-[var(--paragraph-light)]">
-                  <span>Submitted: {formatDate(quotation.created_at)}</span>
+                {/* Description */}
+                <div className="bg-gray-50 p-3 rounded-lg mb-3 min-h-[80px]">
+                  <p className="text-gray-700">{userQuotation.details}</p>
                   
-                  {/* Only show attachment icon if there's an attachment URL */}
-                  {quotation.attachment_url && (
-                    <div className="flex items-center">
-                      <FaPaperclip className="mr-1" /> 
+                  {isEducationCampaign && (
+                    <div className="mt-2 flex items-center">
+                      <FaGraduationCap className="text-blue-600 mr-1" />
+                      <span className="text-xs text-blue-700">Education Campaign Quotation</span>
+                    </div>
+                  )}
+                  
+                  {userQuotation.attachment_url && (
+                    <div className="mt-2">
                       <a 
-                        href={quotation.attachment_url} 
+                        href={userQuotation.attachment_url} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="text-[var(--highlight)] hover:underline"
+                        className="text-[var(--highlight)] hover:underline flex items-center text-sm"
                       >
-                        View attachment
+                        <FaPaperclip className="mr-1" /> View Attachment
                       </a>
                     </div>
                   )}
                 </div>
                 
-                {/* If this quotation belongs to the current vendor, highlight it */}
-                {user?.id === quotation.vendor_id && (
-                  <div className="mt-2 text-xs text-green-600 bg-green-50 px-2 py-1 rounded inline-block">
-                    Your quotation
+                {/* Dates */}
+                <div className="flex items-center justify-between text-sm mb-4">
+                  <div className="flex items-center">
+                    <FaCalendarAlt className="text-gray-400 mr-2" />
+                    <span className="text-gray-600">
+                      {formatDate(userQuotation.created_at)}
+                    </span>
                   </div>
-                )}
+                  <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                    Active
+                  </span>
+                </div>
+                
+                {/* Action buttons */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => handleDeleteQuotation(userQuotation.id)}
+                    className="col-span-2 flex items-center justify-center text-red-600 bg-red-50 hover:bg-red-100 px-3 py-2 rounded-lg transition-colors"
+                  >
+                    <FaTrash className="mr-1" /> Delete Quotation
+                  </button>
+                </div>
               </div>
-            ))
-          ) : (
-            <div className="bg-[var(--background)] p-6 rounded-lg text-center">
+            </div>
+          )}
+          
+          {/* Other vendors' quotations */}
+          {otherQuotations.map((quotation) => (
+            <div key={quotation.id} className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+              {/* Status header */}
+              <div className="bg-blue-600 text-white py-2 px-4 text-center font-medium">
+                Open for Acceptance
+              </div>
+              
+              {/* Quotation content */}
+              <div className="p-4 bg-white">
+                {/* Header with vendor/charity and price */}
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h3 className="font-bold text-gray-800">
+                      {quotation.vendor_name || "Anonymous Vendor"}
+                    </h3>
+                    <StarRating rating={quotation.vendor_rating || 0} />
+                  </div>
+                  <div className="text-xl font-bold text-amber-500">
+                    ${quotation.price.toFixed(2)}
+                  </div>
+                </div>
+                
+                {/* Description */}
+                <div className="bg-gray-50 p-3 rounded-lg mb-3 min-h-[80px]">
+                  <p className="text-gray-700">{quotation.details}</p>
+                  
+                  {isEducationCampaign && (
+                    <div className="mt-2 flex items-center">
+                      <FaGraduationCap className="text-blue-600 mr-1" />
+                      <span className="text-xs text-blue-700">Education Campaign Quotation</span>
+                    </div>
+                  )}
+                  
+                  {quotation.attachment_url && (
+                    <div className="mt-2">
+                      <a 
+                        href={quotation.attachment_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-[var(--highlight)] hover:underline flex items-center text-sm"
+                      >
+                        <FaPaperclip className="mr-1" /> View Attachment
+                      </a>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Dates */}
+                <div className="flex items-center justify-between text-sm mb-4">
+                  <div className="flex items-center">
+                    <FaCalendarAlt className="text-gray-400 mr-2" />
+                    <span className="text-gray-600">
+                      {formatDate(quotation.created_at)}
+                    </span>
+                  </div>
+                  <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                    Active
+                  </span>
+                </div>
+                
+                {/* Action buttons for other vendors' quotations */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => handleDeleteQuotation(quotation.id)}
+                    className="col-span-2 flex items-center justify-center text-red-600 bg-red-50 hover:bg-red-100 px-3 py-2 rounded-lg transition-colors"
+                  >
+                    <FaTrash className="mr-1" /> Delete Quotation
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+          
+          {/* Empty state if no quotations */}
+          {quotations.length === 0 && (
+            <div className="col-span-full bg-gray-50 p-6 rounded-lg text-center">
               <FaQuoteLeft className="mx-auto mb-2 text-gray-300 text-3xl" />
-              <p className="text-[var(--paragraph-light)]">No quotations have been submitted yet.</p>
+              <p className="text-gray-500">No quotations have been submitted yet.</p>
               {!isExpired(request) && !hasSubmittedQuotation && (
-                <p className="mt-2 text-[var(--paragraph)]">Be the first to submit a quotation!</p>
+                <p className="mt-2 text-gray-700">Be the first to submit a quotation!</p>
               )}
             </div>
           )}

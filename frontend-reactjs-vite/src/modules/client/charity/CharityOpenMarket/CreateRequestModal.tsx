@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaTimes, FaInfoCircle } from 'react-icons/fa';
+import { FaTimes, FaInfoCircle, FaCalendarAlt } from 'react-icons/fa';
 import { charityService, Campaign } from '../../../../services/supabase/charityService';
 
 interface CreateRequestModalProps {
@@ -94,15 +94,10 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({ onClose, onSubm
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-[var(--main)] rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="flex justify-between items-center p-6 border-b border-[var(--stroke)]">
-          <h2 className="text-xl font-bold text-[var(--headline)]">Create New Request</h2>
-          <button 
-            onClick={onClose}
-            className="text-[var(--paragraph)] hover:text-[var(--headline)] transition-colors"
-          >
-            <FaTimes size={24} />
-          </button>
+      <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="bg-green-500 text-white py-4 px-6">
+          <h2 className="text-xl font-bold">Create New Request</h2>
         </div>
         
         <form onSubmit={handleSubmit} className="p-6">
@@ -115,7 +110,7 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({ onClose, onSubm
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g., School Supplies for Education Program"
-              className={`w-full p-3 rounded-lg border ${titleError ? 'border-red-500' : 'border-[var(--stroke)]'} focus:outline-none focus:ring-2 focus:ring-[var(--highlight)]`}
+              className={`w-full p-3 rounded-lg border ${titleError ? 'border-red-500' : 'border-[var(--stroke)]'} focus:outline-none focus:ring-2 focus:ring-green-500`}
             />
             {titleError && <p className="mt-1 text-red-500 text-sm">{titleError}</p>}
           </div>
@@ -129,7 +124,7 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({ onClose, onSubm
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe what you need in detail, including quantities, specifications, and any other relevant information."
               rows={5}
-              className={`w-full p-3 rounded-lg border ${descriptionError ? 'border-red-500' : 'border-[var(--stroke)]'} focus:outline-none focus:ring-2 focus:ring-[var(--highlight)]`}
+              className={`w-full p-3 rounded-lg border ${descriptionError ? 'border-red-500' : 'border-[var(--stroke)]'} focus:outline-none focus:ring-2 focus:ring-green-500`}
             />
             {descriptionError && <p className="mt-1 text-red-500 text-sm">{descriptionError}</p>}
           </div>
@@ -138,13 +133,18 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({ onClose, onSubm
             <label className="block text-[var(--headline)] font-medium mb-2">
               Deadline
             </label>
-            <input
-              type="date"
-              value={deadline}
-              onChange={(e) => setDeadline(e.target.value)}
-              min={today}
-              className={`w-full p-3 rounded-lg border border-[var(--stroke)] focus:outline-none focus:ring-2 focus:ring-[var(--highlight)]`}
-            />
+            <div className="relative">
+              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                <FaCalendarAlt />
+              </div>
+              <input
+                type="date"
+                value={deadline}
+                onChange={(e) => setDeadline(e.target.value)}
+                min={today}
+                className={`w-full p-3 pl-10 rounded-lg border border-[var(--stroke)] focus:outline-none focus:ring-2 focus:ring-green-500`}
+              />
+            </div>
             <p className="mt-1 text-gray-500 text-sm">If not specified, defaults to 30 days from today</p>
           </div>
           
@@ -159,7 +159,7 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({ onClose, onSubm
                   name="fundType"
                   checked={fundType === 'general'}
                   onChange={() => setFundType('general')}
-                  className="w-4 h-4 text-[var(--highlight)]"
+                  className="w-4 h-4 text-green-500 focus:ring-green-500"
                 />
                 <span>General Fund</span>
               </label>
@@ -169,7 +169,7 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({ onClose, onSubm
                   name="fundType"
                   checked={fundType === 'campaign'}
                   onChange={() => setFundType('campaign')}
-                  className="w-4 h-4 text-[var(--highlight)]"
+                  className="w-4 h-4 text-green-500 focus:ring-green-500"
                 />
                 <span>Campaign Fund</span>
               </label>
@@ -185,7 +185,7 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({ onClose, onSubm
               <select
                 value={campaignId}
                 onChange={(e) => setCampaignId(e.target.value)}
-                className={`w-full p-3 rounded-lg border ${campaignIdError ? 'border-red-500' : 'border-[var(--stroke)]'} focus:outline-none focus:ring-2 focus:ring-[var(--highlight)]`}
+                className={`w-full p-3 rounded-lg border ${campaignIdError ? 'border-red-500' : 'border-[var(--stroke)]'} focus:outline-none focus:ring-2 focus:ring-green-500`}
                 disabled={loading}
               >
                 <option value="">Select a campaign</option>
@@ -208,7 +208,7 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({ onClose, onSubm
             </p>
           </div>
           
-          <div className="flex justify-end gap-4">
+          <div className="flex justify-end gap-4 mt-8">
             <button
               type="button"
               onClick={onClose}
@@ -218,7 +218,7 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({ onClose, onSubm
             </button>
             <button
               type="submit"
-              className="px-6 py-3 rounded-lg font-medium bg-[var(--highlight)] text-white hover:bg-opacity-90 transition-colors"
+              className="px-6 py-3 rounded-lg font-medium bg-green-500 text-white hover:bg-green-600 transition-colors"
             >
               Create Request
             </button>
