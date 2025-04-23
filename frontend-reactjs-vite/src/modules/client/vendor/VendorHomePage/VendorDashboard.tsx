@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { FaSearch, FaComments } from "react-icons/fa";
+import { FaComments, FaFileInvoiceDollar, FaTimes } from "react-icons/fa";
 import { motion } from "framer-motion";
 import CharityChats from "./V.CharityChats";
-import CharitySearch from "./CharitySearch";
+import OrderManagement from "./OrderManagement";
+import OrderAnalytics from "../OrderManagement/OrderAnalytics";
 
 const VendorDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -14,53 +15,62 @@ const VendorDashboard: React.FC = () => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
-      className="p-6 bg-[var(--background)] text-[var(--paragraph)] max-w-7xl mx-auto min-h-screen"
+      className="p-6 bg-[var(--background)] text-[var(--paragraph)] max-w-7xl mx-auto min-h-screen relative"
     >
-      {/* Header with gradient background */}
+      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="bg-gradient-to-r from-[var(--secondary)] to-[var(--highlight)] rounded-xl p-8 mb-8 text-white shadow-xl relative overflow-hidden"
+        className="bg-white rounded-xl p-6 mb-8 shadow-md border border-[var(--stroke)]"
       >
-        <div className="absolute inset-0 bg-white opacity-5 z-0">
-          <div className="absolute -right-20 -top-20 w-64 h-64 rounded-full bg-white opacity-10"></div>
-          <div className="absolute -left-10 -bottom-10 w-40 h-40 rounded-full bg-white opacity-10"></div>
+        <div className="flex items-center">
+          <FaFileInvoiceDollar className="text-[var(--highlight)] mr-3 text-3xl" />
+          <h1 className="text-2xl md:text-3xl font-bold text-[var(--headline)]">Vendor Dashboard</h1>
         </div>
-        <div className="relative z-10">
-          <div className="flex items-center">
-            <FaSearch className="text-white opacity-80 mr-3 text-3xl" />
-            <h1 className="text-2xl md:text-3xl font-bold">Vendor Dashboard</h1>
-          </div>
-          <p className="mt-3 opacity-90 max-w-2xl">
-            Communicate with charity organizations and discover new opportunities to collaborate.
-          </p>
-        </div>
+        <p className="mt-3 text-[var(--paragraph)]">
+          Manage your orders, track deliveries, and communicate with charity organizations.
+        </p>
       </motion.div>
 
-      {/* Combined Content Area */}
+      {/* Main Content Area */}
       <div className="flex flex-col lg:flex-row gap-6">
-        {/* Find Organizations Section (3/4 width) */}
-        <div className="w-full lg:w-3/4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="bg-[var(--main)] rounded-xl shadow-md overflow-hidden h-full"
-          >
-            <CharitySearch />
-          </motion.div>
-        </div>
+        {/* Order Management Section (2/3 width) */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="w-full lg:w-2/3"
+        >
+          <div className="bg-white rounded-xl shadow-md border border-[var(--stroke)] overflow-hidden p-4">
+            <OrderManagement />
+          </div>
+        </motion.div>
         
-        {/* Charity Chat Section (1/4 width) */}
-        <div className="w-full lg:w-1/4">
+        {/* Right sidebar with CharityChats and OrderAnalytics */}
+        <div className="w-full lg:w-1/3 flex flex-col gap-6">
+          {/* CharityChats Section with reduced height */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="bg-[var(--main)] rounded-xl shadow-md overflow-hidden h-full"
+            transition={{ duration: 0.5, delay: 0.3 }}
           >
-            <CharityChats />
+            <div className="bg-white rounded-xl shadow-md border border-[var(--stroke)] overflow-hidden">
+              <div className="max-h-[400px] overflow-auto">
+                <CharityChats />
+              </div>
+            </div>
+          </motion.div>
+          
+          {/* Order Summary Analytics */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+          >
+            <div className="bg-white rounded-xl shadow-md border border-[var(--stroke)] overflow-hidden">
+              <OrderAnalytics />
+            </div>
           </motion.div>
         </div>
       </div>

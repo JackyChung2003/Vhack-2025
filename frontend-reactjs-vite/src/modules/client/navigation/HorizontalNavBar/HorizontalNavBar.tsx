@@ -48,11 +48,6 @@ const HorizontalNavbar: React.FC<NavbarProps> = ({ toggle }) => {
     },
     { title: "Open Market", link: `/vendor/open-market`, icon: <FaListAlt /> },
     {
-      title: "Order",
-      link: "/vendor/order-management",
-      icon: <FaReceipt />,
-    },
-    {
       title: "Profile",
       link: "/Vhack-2025/vendor/profile",
       icon: <FaUserCircle />,
