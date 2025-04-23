@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   FaArrowLeft, FaHandHoldingHeart, FaBuilding, FaUsers, FaHistory, FaChartLine,
-  FaGlobe, FaEnvelope, FaPhone, FaMapMarkerAlt, FaCalendarAlt, FaComments, FaClock, FaPencilAlt, FaTimes, FaPlus, FaFacebook, FaTwitter, FaInstagram, FaCoins, FaChevronLeft, FaGift
+  FaGlobe, FaEnvelope, FaPhone, FaMapMarkerAlt, FaCalendarAlt, FaComments, FaClock, FaPencilAlt, FaTimes, FaPlus, FaFacebook, FaTwitter, FaInstagram, FaCoins, FaChevronLeft, FaGift, FaTrophy
 } from "react-icons/fa";
 import { motion } from "framer-motion";
 import CampaignCard from "../../../../components/cards/CampaignCard";
@@ -17,6 +17,8 @@ import { charityService, CharityProfile as CharityProfileType } from "../../../.
 import CharityInfo from "../../charity/profile/components/CharityInfo";
 import AddCampaignModal from "../../../../components/modals/AddCampaignModal";
 import CampaignTimeline from "../../../../components/campaign/CampaignTimeline";
+import DonorLeaderboardAndTracker from "../../../../components/donation/DonorLeaderboardAndTracker";
+import { DonationTracker } from "../../../../utils/mockData";
 
 const OrganizationDetail: React.FC = () => {
   const { id: organizationIdString } = useParams();
@@ -59,6 +61,111 @@ const OrganizationDetail: React.FC = () => {
 
   // Determine if we're viewing as charity's own profile
   const isOwnProfile = userRole === 'charity' && !organizationIdString;
+
+  // Initialize donationTracker with default values
+  const [donationTracker, setDonationTracker] = useState<DonationTracker>({
+    id: 1,
+    recipientId: isOwnProfile ? 1 : Number(organizationIdString) || 1,
+    recipientType: 'organization',
+    donations: {
+      total: 0,
+      count: 25,
+      topDonors: [
+        {
+          donorId: 1,
+          name: "Lim Wei Jian",
+          amount: 5000,
+          lastDonation: "2024-02-15",
+        },
+        {
+          donorId: 2,
+          name: "Sarah Abdullah",
+          amount: 3500,
+          lastDonation: "2024-02-20",
+        },
+        {
+          donorId: 3,
+          name: "Jay Prakash",
+          amount: 2800,
+          lastDonation: "2024-03-01",
+        },
+        {
+          donorId: 4,
+          name: "James Robertson",
+          amount: 1500,
+          lastDonation: "2024-03-05",
+        },
+        {
+          donorId: 5,
+          name: "Michelle Wong",
+          amount: 1000,
+          lastDonation: "2024-03-10",
+        }
+      ],
+      timeline: {
+        daily: [
+          {
+            date: "2024-02-15",
+            amount: 2500,
+            donationPolicy: 'always-donate',
+          },
+          {
+            date: "2024-02-20",
+            amount: 3500,
+            donationPolicy: 'campaign-specific',
+          },
+          {
+            date: "2024-03-01",
+            amount: 2800,
+            isRecurring: true,
+            donationPolicy: 'always-donate',
+          },
+          {
+            date: "2024-03-05",
+            amount: 1500,
+            donationPolicy: 'campaign-specific',
+          },
+          {
+            date: "2024-03-10",
+            amount: 1000,
+            donationPolicy: 'always-donate',
+          }
+        ],
+        weekly: [
+          {
+            week: "2024-W07",
+            amount: 6000
+          },
+          {
+            week: "2024-W08",
+            amount: 4500
+          },
+          {
+            week: "2024-W09",
+            amount: 5200
+          },
+          {
+            week: "2024-W10",
+            amount: 3800
+          }
+        ],
+        monthly: [
+          {
+            month: "2024-01",
+            amount: 15000
+          },
+          {
+            month: "2024-02",
+            amount: 18500
+          },
+          {
+            month: "2024-03",
+            amount: 12300
+          }
+        ]
+      }
+    }
+  });
 
   // Load charity's own profile if applicable
   useEffect(() => {
@@ -292,6 +399,17 @@ const OrganizationDetail: React.FC = () => {
     const estimatedGoal = supporters > 100 ? 200000 : supporters > 50 ? 100000 : 50000;
     setGoalAmount(estimatedGoal);
   }, [supporters]);
+
+  // Update donation tracker when combinedTotalRaised changes
+  useEffect(() => {
+    setDonationTracker((prevTracker: DonationTracker) => ({
+      ...prevTracker,
+      donations: {
+        ...prevTracker.donations,
+        total: combinedTotalRaised
+      }
+    }));
+  }, [combinedTotalRaised]);
 
   // Organization timeline entries - mock data
   const generateOrganizationTimelineEntries = () => {
@@ -731,28 +849,45 @@ const OrganizationDetail: React.FC = () => {
           </div>
         </motion.section>
 
-        {/* Organization Timeline Section */}
+        {/* Organization Timeline and Leaderboard Section */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.28 }}
           className="mb-8"
         >
-          <div className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] p-6">
-            <h2 className="text-2xl font-bold text-[var(--headline)] flex items-center gap-2 mb-4">
-              <FaHistory className="text-[var(--highlight)]" />
-              Organization Timeline
-            </h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Timeline - Left Column */}
+            <div className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] p-6">
+              <h2 className="text-2xl font-bold text-[var(--headline)] flex items-center gap-2 mb-4">
+                <FaHistory className="text-[var(--highlight)]" />
+                Organization Timeline
+              </h2>
 
-            <CampaignTimeline
-              entries={generateOrganizationTimelineEntries()}
-              className="bg-transparent p-0"
-              startDate={extendedDetails.founded ? `Jan 1, ${extendedDetails.founded}` : undefined}
-              currentAmount={combinedTotalRaised}
-              goalAmount={goalAmount}
-              daysLeft={daysLeft}
-              todayDonations={todayDonations}
-            />
+              <CampaignTimeline
+                entries={generateOrganizationTimelineEntries()}
+                className="bg-transparent p-0"
+                startDate={extendedDetails.founded ? `Jan 1, ${extendedDetails.founded}` : undefined}
+                currentAmount={combinedTotalRaised}
+                goalAmount={goalAmount}
+                daysLeft={daysLeft}
+                todayDonations={todayDonations}
+              />
+            </div>
+
+            {/* Donor Leaderboard - Right Column */}
+            <div className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] p-6">
+              <h2 className="text-2xl font-bold text-[var(--headline)] flex items-center gap-2 mb-4">
+                <FaTrophy className="text-[var(--highlight)]" />
+                Top Supporters
+              </h2>
+
+              <DonorLeaderboardAndTracker
+                tracker={donationTracker}
+                className="border-0 bg-transparent p-0 shadow-none"
+                userDonorId={userRole === 'donor' ? 2 : undefined} // Example: highlight user with ID 2 if current user is a donor
+              />
+            </div>
           </div>
         </motion.section>
 
