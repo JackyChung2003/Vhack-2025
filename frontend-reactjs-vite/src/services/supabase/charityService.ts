@@ -1215,4 +1215,173 @@ export const charityService = {
       throw error;
     }
   },
+  
+  // Get campaign transactions and fund allocation
+  getCampaignTransactions: async (campaignId: string): Promise<{
+    transactions: Array<{
+      id: string;
+      date: string;
+      type: string;
+      amount: number;
+      status: string;
+      description: string;
+      donor?: string;
+      vendor?: string;
+    }>;
+    fundAllocation: {
+      availableCampaignSpecific: number;
+      availableAlwaysDonate: number;
+      onHold: number;
+      used: number;
+    };
+  }> => {
+    try {
+      // Get campaign donations
+      const { data: donationsData, error: donationsError } = await supabase
+        .from('campaign_donations')
+        .select(`
+          id,
+          amount,
+          donation_policy,
+          is_anonymous,
+          created_at,
+          message,
+          status,
+          user_id,
+          users:user_id (
+            id,
+            name
+          )
+        `)
+        .eq('campaign_id', campaignId)
+        .order('created_at', { ascending: false });
+      
+      if (donationsError) throw donationsError;
+      
+      // Get campaign expenses/vendor payments
+      const { data: expensesData, error: expensesError } = await supabase
+        .from('campaign_expenses')
+        .select(`
+          id,
+          amount,
+          status,
+          created_at,
+          description,
+          vendor_id,
+          vendors:vendor_id (
+            id,
+            name
+          )
+        `)
+        .eq('campaign_id', campaignId)
+        .order('created_at', { ascending: false });
+        
+      if (expensesError) throw expensesError;
+      
+      // Convert donations to transaction format
+      const donationTransactions = (donationsData || []).map(donation => ({
+        id: donation.id,
+        date: new Date(donation.created_at).toISOString().split('T')[0],
+        type: 'Donation',
+        amount: donation.amount,
+        status: donation.status,
+        description: donation.message || (donation.donation_policy === 'campaign-specific' ? 
+          'Campaign-specific donation' : 'Always donate policy'),
+        donor: donation.is_anonymous ? 
+          'Anonymous Donor' : 
+          (donation.users && typeof donation.users === 'object' && 'name' in donation.users ? 
+            String(donation.users.name) : 'Unknown Donor')
+      }));
+      
+      // Convert expenses to transaction format
+      const expenseTransactions = (expensesData || []).map(expense => ({
+        id: expense.id,
+        date: new Date(expense.created_at).toISOString().split('T')[0],
+        type: expense.status === 'completed' ? 'Vendor Payment' : 'Vendor Quotation',
+        amount: expense.amount,
+        status: expense.status,
+        description: expense.description || 'Campaign expense',
+        vendor: expense.vendors && typeof expense.vendors === 'object' && 'name' in expense.vendors ?
+          String(expense.vendors.name) : 'Unknown Vendor'
+      }));
+      
+      // Combine and sort all transactions by date (newest first)
+      const allTransactions = [...donationTransactions, ...expenseTransactions]
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      
+      // Get campaign to determine total donated
+      const { data: campaign } = await supabase
+        .from('campaigns')
+        .select('current_amount, target_amount')
+        .eq('id', campaignId)
+        .single();
+      
+      if (!campaign) {
+        throw new Error('Campaign not found');
+      }
+      
+      const currentAmount = campaign?.current_amount || 0;
+      
+      // Calculate expense totals by status
+      const onHoldTotal = expensesData?.reduce((sum, expense) => 
+        sum + ((expense.status === 'on-hold' ? expense.amount : 0) || 0), 0) || 0;
+      const usedTotal = expensesData?.reduce((sum, expense) => 
+        sum + ((expense.status === 'completed' ? expense.amount : 0) || 0), 0) || 0;
+      
+      // Calculate policy-specific donation totals
+      const campaignSpecificTotal = donationsData?.reduce((sum, donation) => 
+        sum + ((donation.donation_policy === 'campaign-specific' ? donation.amount : 0) || 0), 0) || 0;
+      const alwaysDonateTotal = donationsData?.reduce((sum, donation) => 
+        sum + ((donation.donation_policy === 'always-donate' ? donation.amount : 0) || 0), 0) || 0;
+      
+      // Calculate total categorized donations
+      const totalCategorizedDonations = campaignSpecificTotal + alwaysDonateTotal;
+      
+      // Calculate available funds based on donation policies
+      let availableCampaignSpecific = 0;
+      let availableAlwaysDonate = 0;
+      
+      // The total available amount is the current amount minus expenses
+      const totalAvailable = Math.max(0, currentAmount - onHoldTotal - usedTotal);
+      
+      if (totalCategorizedDonations === 0 && currentAmount > 0) {
+        // If there are no policy-specific donations but we have funds,
+        // allocate all available funds as Campaign Specific (default policy)
+        availableCampaignSpecific = totalAvailable;
+        availableAlwaysDonate = 0;
+      } else if (totalCategorizedDonations > 0) {
+        // If we have policy-specific donations, allocate proportionally
+        const campaignSpecificRatio = campaignSpecificTotal / totalCategorizedDonations;
+        const alwaysDonateRatio = alwaysDonateTotal / totalCategorizedDonations;
+        
+        availableCampaignSpecific = totalAvailable * campaignSpecificRatio;
+        availableAlwaysDonate = totalAvailable * alwaysDonateRatio;
+      }
+      
+      console.log('Fund allocation:', {
+        campaignId,
+        currentAmount,
+        onHoldTotal,
+        usedTotal,
+        availableCampaignSpecific,
+        availableAlwaysDonate,
+        totalAvailable,
+        campaignSpecificTotal,
+        alwaysDonateTotal
+      });
+      
+      return {
+        transactions: allTransactions,
+        fundAllocation: {
+          availableCampaignSpecific,
+          availableAlwaysDonate,
+          onHold: onHoldTotal,
+          used: usedTotal
+        }
+      };
+    } catch (error) {
+      console.error('Error fetching campaign transactions:', error);
+      throw error;
+    }
+  },
 }; 
