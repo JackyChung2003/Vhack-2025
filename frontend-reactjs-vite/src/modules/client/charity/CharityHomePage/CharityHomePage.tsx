@@ -385,7 +385,10 @@ const CharityHomePage: React.FC = () => {
                     <div 
                       key={campaign.id}
                         className="bg-white p-4 rounded-lg border border-gray-100 hover:shadow-md hover:-translate-y-1 active:translate-y-0 transition-all cursor-pointer"
-                      onClick={() => navigate(`/charity/${campaign.id}`)}
+                      onClick={() => {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        navigate(`/charity/${campaign.id}`);
+                      }}
                     >
                       <div className="flex justify-between items-start mb-3">
                         <div className="flex items-center">
