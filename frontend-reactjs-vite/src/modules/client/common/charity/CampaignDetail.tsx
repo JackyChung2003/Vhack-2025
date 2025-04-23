@@ -15,6 +15,7 @@ import MyContributionPopup from '../../../../components/modals/MyContributionPop
 import CampaignTimeline from "../../../../components/campaign/CampaignTimeline";
 // Add this import
 import DonorLeaderboardAndTracker from '../../../../components/donation/DonorLeaderboardAndTracker';
+import supabase from "../../../../services/supabase/supabaseClient";  
 
 // Floating Modal Component for Full Leaderboard
 const LeaderboardModal: React.FC<{
@@ -142,6 +143,9 @@ const CampaignDetail: React.FC = () => {
       params.get('tab') === 'community-temp' ? 'community-temp' : 'transactions';
   });
 
+  // Add to CampaignDetail.tsx
+  const [userDonations, setUserDonations] = useState<any>(null);
+
   // Fetch campaign data
   useEffect(() => {
     const fetchCampaign = async () => {
@@ -195,6 +199,50 @@ const CampaignDetail: React.FC = () => {
     }
   };
 
+  // Add to CampaignDetail.tsx
+  const fetchUserDonations = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      const { data } = await supabase
+        .from('campaign_donations')
+        .select('id, amount, created_at, transaction_hash, donation_policy, blockchain_donation_id, status')
+        .eq('campaign_id', id)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+        
+      if (data && data.length > 0) {
+        const contributions = data.map(donation => ({
+          id: donation.id,
+          date: donation.created_at,
+          amount: donation.amount,
+          txHash: donation.transaction_hash,
+          donationPolicy: donation.donation_policy,
+          blockchainId: donation.blockchain_donation_id,
+          status: donation.status
+        }));
+        
+        setUserDonations({
+          totalAmount: data.reduce((sum, d) => sum + d.amount, 0),
+          contributions,
+          percentageOfTotal: donationStats ? 
+            ((data.reduce((sum, d) => sum + d.amount, 0) / donationStats.donations.total) * 100).toFixed(1) : 
+            '0'
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching user donations:', error);
+    }
+  };
+
+  // Use effect to fetch user donations after donation stats are fetched
+  useEffect(() => {
+    if (donationStats) {
+      fetchUserDonations();
+    }
+  }, [donationStats]);
+
   // Show loading state
   if (loading) {
     return (
@@ -228,16 +276,6 @@ const CampaignDetail: React.FC = () => {
   // Use charity data from campaign
   const charity = campaign.charity || null;
   
-  // Create mock donor contribution data for all donors
-  const donorContribution: DonorContribution = {
-    totalAmount: 250,
-    contributions: [
-      { id: '1', date: '2023-11-15T10:30:00', amount: 150 },
-      { id: '2', date: '2023-12-20T15:45:00', amount: 100 }
-    ],
-    percentageOfTotal: '8.5'
-  };
-  
   // Calculate progress percentage
   const progress = (campaign.current_amount / campaign.target_amount) * 100;
   
@@ -249,7 +287,7 @@ const CampaignDetail: React.FC = () => {
   // Check if campaign is active
   const isCampaignActive = campaign.status === 'active';
 
-  const handleDonationComplete = async (amount: number, donationPolicy?: string, isAnonymous?: boolean, isRecurring?: boolean) => {
+  const handleDonationComplete = async (amount: number, donationPolicy?: string, isAnonymous?: boolean, isRecurring?: boolean, txHash?: string) => {
     try {
       console.log("Full campaign object:", campaign);
       
@@ -307,6 +345,8 @@ const CampaignDetail: React.FC = () => {
       
       // Also refresh donation stats
       refreshDonationStats();
+      // Also refresh user donations
+      fetchUserDonations();
     } catch (error: any) {
       console.error('Error making donation:', error);
       toast.error(error.message || 'Failed to process donation. Please try again.');
@@ -451,21 +491,24 @@ const CampaignDetail: React.FC = () => {
           </div>
 
           {/* User's donation - show for all donors */}
-          {userRole === 'donor' && (
+          {userRole === 'donor' && userDonations && (
             <div
               className="mt-4 group bg-white/70 p-3.5 px-5 rounded-lg cursor-pointer hover:bg-white/80 transition-all duration-300 shadow-sm border border-white/30"
-              onClick={() => setSelectedDonorId(1)} // Assuming current user's ID is 1 for now
+              onClick={() => setIsContributionPopupOpen(true)}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3.5">
                   <div className="flex items-center justify-center w-9 h-9 rounded-full bg-amber-100 border border-amber-200">
                     <span className="text-xl" role="img" aria-label="raised hands">🙌</span>
-                </div>
+                  </div>
                   <div className="text-black">
                     <div className="font-bold text-base">Thanks for your support!</div>
                     <div className="text-sm text-black/70 mt-0.5">
-                      Top 3 Donor · RM{donorContribution.totalAmount} · Last on Apr 14, 2025
-                  </div>
+                      {donationStats && donationStats.donations.topDonors.some((d: any) => d.donorId === getCurrentUserDonorId()) ? 
+                        `Top Donor · RM${userDonations.totalAmount} · Last on ${new Date(userDonations.contributions[0].date).toLocaleDateString()}` :
+                        `RM${userDonations.totalAmount} · Last on ${new Date(userDonations.contributions[0].date).toLocaleDateString()}`
+                      }
+                    </div>
                   </div>
                 </div>
                 <svg className="w-5 h-5 text-black/50 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -776,7 +819,7 @@ const CampaignDetail: React.FC = () => {
             )}
 
             {/* Donation Tracker - temporarily disabled until real data is available */}
-            {false && (userRole === 'charity' || (userRole === 'donor' && donorContribution)) && (
+            {false && (userRole === 'charity' || (userRole === 'donor' && userDonations)) && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -905,17 +948,17 @@ const CampaignDetail: React.FC = () => {
                   <div className="space-y-3">
                     <div className="flex justify-between items-center p-3 bg-[var(--main)] rounded-lg border border-[var(--stroke)]">
                       <div className="text-sm text-[var(--paragraph)]">Total Donated</div>
-                      <div className="font-bold text-[#00674D]">RM{donorContribution.totalAmount}</div>
+                      <div className="font-bold text-[#00674D]">RM{userDonations?.totalAmount}</div>
                     </div>
 
                     <div className="flex justify-between items-center p-3 bg-[var(--main)] rounded-lg border border-[var(--stroke)]">
                       <div className="text-sm text-[var(--paragraph)]">Transactions</div>
-                      <div className="font-bold text-[#00674D]">{donorContribution.contributions.length}</div>
+                      <div className="font-bold text-[#00674D]">{userDonations?.contributions.length}</div>
                     </div>
 
                     <div className="flex justify-between items-center p-3 bg-[var(--main)] rounded-lg border border-[var(--stroke)]">
                       <div className="text-sm text-[var(--paragraph)]">Last Donation</div>
-                      <div className="font-bold text-[#00674D]">Apr 14, 2025</div>
+                      <div className="font-bold text-[#00674D]">{new Date(userDonations?.contributions[0].date).toLocaleDateString()}</div>
                     </div>
                   </div>
 
@@ -938,8 +981,8 @@ const CampaignDetail: React.FC = () => {
                   {/* Donation timeline */}
                   <div className="flex-1 overflow-y-auto pr-2" style={{ maxHeight: "350px" }}>
                     <div className="space-y-2">
-                      {donorContribution.contributions.length > 0 ? (
-                        donorContribution.contributions.map((contribution, index) => (
+                      {userDonations?.contributions.length > 0 ? (
+                        userDonations.contributions.map((contribution: any, index: number) => (
                           <div
                             key={contribution.id}
                             className="bg-[var(--main)] p-4 rounded-lg border border-[var(--stroke)] flex justify-between items-center"
@@ -982,12 +1025,12 @@ const CampaignDetail: React.FC = () => {
 
       {/* MyContributionPopup - Keep but set isOpen to false */}
       <MyContributionPopup
-        isOpen={false}
+        isOpen={isContributionPopupOpen}
         onClose={() => setIsContributionPopupOpen(false)}
-        contributions={donorContribution.contributions}
-        totalContributed={donorContribution.totalAmount}
-        donationsCount={donorContribution.contributions.length}
-        percentageOfTotal={parseFloat(donorContribution.percentageOfTotal)}
+        contributions={userDonations?.contributions || []}
+        totalContributed={userDonations?.totalAmount || 0}
+        donationsCount={userDonations?.contributions?.length || 0}
+        percentageOfTotal={userDonations?.percentageOfTotal ? parseFloat(userDonations.percentageOfTotal) : 0}
         displayAsCenterModal={true}
       />
     </div>
