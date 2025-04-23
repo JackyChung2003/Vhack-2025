@@ -39,7 +39,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ chatId, onClose }) => {
       setNewMessage("");
     }
   };
-
+  
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -63,7 +63,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ chatId, onClose }) => {
     link.click();
     document.body.removeChild(link);
   };
-
+  
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
@@ -80,21 +80,21 @@ const ChatModal: React.FC<ChatModalProps> = ({ chatId, onClose }) => {
             <FaTimes />
           </button>
         </div>
-
+        
         {/* Messages */}
         <div className="h-[400px] overflow-y-auto p-4 space-y-4">
           {chatMessages.map((message) => (
-            <div 
-              key={message.id} 
-              className={`flex ${message.fromVendor ? 'justify-end' : 'justify-start'}`}
-            >
-              <div 
-                className={`max-w-[75%] rounded-lg px-4 py-2 ${
-                  message.fromVendor 
-                    ? 'bg-[var(--highlight)] text-white rounded-br-none' 
-                    : 'bg-gray-100 text-[var(--paragraph)] rounded-bl-none'
-                }`}
-              >
+                <div 
+                  key={message.id} 
+                  className={`flex ${message.fromVendor ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div 
+                    className={`max-w-[75%] rounded-lg px-4 py-2 ${
+                      message.fromVendor 
+                        ? 'bg-[var(--highlight)] text-white rounded-br-none' 
+                        : 'bg-gray-100 text-[var(--paragraph)] rounded-bl-none'
+                    }`}
+                  >
                 {message.type === 'file' ? (
                   <div className="flex items-center gap-2">
                     <FaFile className="text-xl" />
@@ -107,13 +107,13 @@ const ChatModal: React.FC<ChatModalProps> = ({ chatId, onClose }) => {
                     </button>
                   </div>
                 ) : (
-                  <p>{message.text}</p>
+                    <p>{message.text}</p>
                 )}
-                <div className="text-xs opacity-70 text-right mt-1">
-                  {message.timestamp}
+                    <div className="text-xs opacity-70 text-right mt-1">
+                      {message.timestamp}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
           ))}
           <div ref={messagesEndRef} />
         </div>

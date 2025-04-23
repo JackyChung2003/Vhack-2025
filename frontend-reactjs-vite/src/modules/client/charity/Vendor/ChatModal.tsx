@@ -43,7 +43,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ chatId, onClose }) => {
       setNewMessage("");
     }
   };
-
+  
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -58,7 +58,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ chatId, onClose }) => {
   const handleFileClick = () => {
     fileInputRef.current?.click();
   };
-
+  
   const handleDownload = (url: string, fileName: string) => {
     const link = document.createElement('a');
     link.href = url;
@@ -67,7 +67,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ chatId, onClose }) => {
     link.click();
     document.body.removeChild(link);
   };
-
+  
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
@@ -76,29 +76,29 @@ const ChatModal: React.FC<ChatModalProps> = ({ chatId, onClose }) => {
           <div className="flex items-center gap-2">
             <h3 className="font-medium text-lg">Chat</h3>
             <span className="text-sm text-green-500">●</span>
-          </div>
-          <button
-            onClick={onClose}
+            </div>
+            <button 
+              onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <FaTimes />
-          </button>
-        </div>
-
+            >
+              <FaTimes />
+            </button>
+          </div>
+          
         {/* Messages */}
         <div className="h-[400px] overflow-y-auto p-4 space-y-4">
           {chatMessages.map((message) => (
-            <div 
+              <div 
               key={message.id} 
               className={`flex ${message.fromVendor ? 'justify-start' : 'justify-end'}`}
-            >
-              <div 
+              >
+                <div 
                 className={`max-w-[75%] rounded-lg px-4 py-2 ${
-                  message.fromVendor 
+                    message.fromVendor 
                     ? 'bg-gray-100 text-[var(--paragraph)] rounded-bl-none' 
                     : 'bg-[var(--highlight)] text-white rounded-br-none'
-                }`}
-              >
+                  }`}
+                >
                 {message.type === 'file' ? (
                   <div className="flex items-center gap-2">
                     <FaFile className="text-xl" />
@@ -110,18 +110,18 @@ const ChatModal: React.FC<ChatModalProps> = ({ chatId, onClose }) => {
                       <FaDownload />
                     </button>
                   </div>
-                ) : (
-                  <p>{message.text}</p>
-                )}
+                  ) : (
+                    <p>{message.text}</p>
+                  )}
                 <div className="text-xs opacity-70 text-right mt-1">
-                  {message.timestamp}
+                    {message.timestamp}
+                </div>
                 </div>
               </div>
-            </div>
-          ))}
-          <div ref={messagesEndRef} />
-        </div>
-        
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+          
         {/* Input */}
         <form onSubmit={handleSendMessage} className="p-3 border-t border-gray-200 flex gap-2">
           <input
@@ -131,30 +131,30 @@ const ChatModal: React.FC<ChatModalProps> = ({ chatId, onClose }) => {
             className="hidden"
             accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
           />
-          <button 
-            type="button"
+            <button 
+              type="button"
             onClick={handleFileClick}
             className="p-2 rounded-full text-[var(--paragraph)] hover:bg-gray-100" 
             title="Attach File"
-          >
+            >
             <FaFile />
-          </button>
+            </button>
           <textarea
             className="flex-grow resize-none border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--highlight)] focus:border-transparent"
             placeholder="Type a message..."
             rows={1}
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-          />
-          <button
-            type="submit"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+            />
+            <button 
+              type="submit"
             className="bg-[var(--highlight)] text-white rounded-full w-10 h-10 flex items-center justify-center"
-          >
-            <FaPaperPlane />
-          </button>
-        </form>
+            >
+              <FaPaperPlane />
+            </button>
+          </form>
+        </div>
       </div>
-    </div>
   );
 };
 

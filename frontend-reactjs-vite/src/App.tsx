@@ -34,6 +34,7 @@ import OrderManagement from "./modules/client/vendor/OrderManagement/OrderManage
 import SettingsPage from "./modules/client/settings/SettingsPage";
 import CharityOpenMarket from "./modules/client/charity/CharityOpenMarket/CharityOpenMarket";
 import VendorOpenMarket from "./modules/client/vendor/OpenMarket/OpenMarket";
+import CampaignTransactions from './modules/client/charity/management/CampaignTransactions';
 import AllCampaigns from "./modules/client/donor/AllCampaigns";
 import RecurringDonations from "./modules/client/common/charity/AutoDonation";
 
@@ -133,6 +134,7 @@ export function App() {
 							<Route path="/Vhack-2025/charity/vendor-page" element={<VendorPage />} />
 							<Route path="/charity-management" element={<CharityManagementPage />} />
 							<Route path="/charity/open-market" element={<CharityOpenMarket />} />
+							<Route path="/campaign/:id/transactions" element={<CampaignTransactions />} />
 						</Route>
 
 						{/* Vendor-Specific Routes */}

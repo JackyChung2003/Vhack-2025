@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
-import { FaTimes, FaHistory, FaCalendarAlt, FaMoneyBillWave, FaChartLine, FaDownload } from 'react-icons/fa';
+import { FaTimes, FaHistory, FaCalendarAlt, FaMoneyBillWave, FaChartLine, FaDownload, FaExternalLinkAlt } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getTransactionExplorerUrl } from '../../services/blockchain/blockchainService';
 
 interface MyContributionPopupProps {
     isOpen: boolean;
@@ -12,6 +13,7 @@ interface MyContributionPopupProps {
         date: string;
         amount: number;
         id: string;
+        txHash?: string;
     }>;
     displayAsCenterModal?: boolean;
 }
@@ -162,6 +164,17 @@ const MyContributionPopup: React.FC<MyContributionPopupProps> = ({
                                                                 <FaDownload />
                                                             </button>
                                                         </div>
+                                                        {contribution.txHash && (
+                                                            <a 
+                                                                href={getTransactionExplorerUrl(contribution.txHash)}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="px-3 py-1.5 bg-[#FFA500] bg-opacity-10 text-[#FF8C00] rounded-md hover:bg-opacity-20 transition-colors flex items-center gap-1.5 text-xs font-medium ml-2"
+                                                            >
+                                                                <FaExternalLinkAlt className="text-sm" />
+                                                                <span>Verify</span>
+                                                            </a>
+                                                        )}
                                                     </div>
                                                 ))}
                                             </div>
@@ -255,6 +268,17 @@ const MyContributionPopup: React.FC<MyContributionPopupProps> = ({
                                                     <FaDownload />
                                                 </button>
                                             </div>
+                                            {contribution.txHash && (
+                                                <a 
+                                                    href={getTransactionExplorerUrl(contribution.txHash)}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="px-3 py-1.5 bg-[#FFA500] bg-opacity-10 text-[#FF8C00] rounded-md hover:bg-opacity-20 transition-colors flex items-center gap-1.5 text-xs font-medium ml-2"
+                                                >
+                                                    <FaExternalLinkAlt className="text-sm" />
+                                                    <span>Verify</span>
+                                                </a>
+                                            )}
                                         </div>
                                     ))}
                                 </div>

@@ -177,12 +177,12 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ requestId, onBack, onRequ
             <p className="text-[var(--paragraph)] whitespace-pre-wrap">{request.description}</p>
             {request.fund_type === 'campaign' && request.campaign_id && (
               <div className="mt-4 p-3 bg-blue-50 text-blue-800 rounded-lg">
-                <span className="font-medium">Campaign Fund:</span> This request will use funds from a specific campaign (ID: {request.campaign_id})
+                <span className="font-medium">Campaign Fund:</span> This request will use funds for a specific campaign (ID: {request.campaign_id})
               </div>
             )}
             {request.fund_type === 'general' && (
               <div className="mt-4 p-3 bg-purple-50 text-purple-800 rounded-lg">
-                <span className="font-medium">General Fund:</span> This request will use funds from your general charity fund
+                <span className="font-medium">General Fund:</span> This request will use funds for your general charity fund
               </div>
           )}
         </div>
