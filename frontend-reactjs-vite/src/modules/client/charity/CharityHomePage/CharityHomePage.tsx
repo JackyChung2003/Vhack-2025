@@ -471,9 +471,14 @@ const CharityHomePage: React.FC = () => {
                       return (
                         <div key={index} className="flex flex-col items-center">
                           <div 
-                            className="w-24 bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-lg transition-all duration-500 ease-in-out shadow-md"
+                            className="w-24 bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-lg transition-all duration-300 ease-in-out shadow-md hover:from-blue-700 hover:to-blue-500 hover:scale-105 hover:shadow-lg cursor-pointer transform-gpu"
                             style={{ height: `${barHeight}px` }}
-                          ></div>
+                          >
+                            {/* Tooltip on hover */}
+                            <div className="opacity-0 hover:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-3 py-1 rounded-md text-sm whitespace-nowrap transition-opacity duration-200">
+                              RM{data.amount.toLocaleString()}
+                            </div>
+                          </div>
                           <div className="mt-2 flex flex-col items-center">
                             <p className="text-sm font-medium text-gray-600">{data.month}</p>
                             <p className="text-sm font-bold text-[var(--headline)]">RM{data.amount.toLocaleString()}</p>
