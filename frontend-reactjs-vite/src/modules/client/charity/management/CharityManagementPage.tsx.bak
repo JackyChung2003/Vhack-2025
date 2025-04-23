@@ -44,7 +44,7 @@ import { charityService, Campaign } from "../../../../services/supabase/charityS
 // Mock current charity organization ID (Global Relief)
 const CURRENT_CHARITY_ORG_ID = 1;
 
-// Interface for formatted campaigns matching the UI structure
+// Interface for campaigns with properties matching the mock data structure
 interface FormattedCampaign {
   id: string | number;
   name: string;
@@ -53,7 +53,7 @@ interface FormattedCampaign {
   currentContributions: number;
   deadline: string;
   description?: string;
-  status: string;
+  status?: string;
 }
 
 const CharityManagementPage: React.FC = () => {
@@ -90,7 +90,7 @@ const CharityManagementPage: React.FC = () => {
     fetchCharityProfile();
   }, []);
   
-  // Fetch campaigns data from database
+  // Fetch campaigns data
   useEffect(() => {
     const fetchCampaigns = async () => {
       try {
@@ -151,11 +151,8 @@ const CharityManagementPage: React.FC = () => {
   const filteredCampaigns = organizationCampaigns
     .filter(campaign => {
       // Filter by status
-      if (filterStatus !== 'all') {
-        // Check if status exists in the object and matches the filter
-        if (!('status' in campaign) || campaign['status'] !== filterStatus) {
-          return false;
-        }
+      if (filterStatus !== 'all' && campaign.status !== filterStatus) {
+        return false;
       }
       
       // Filter by search term
@@ -260,24 +257,22 @@ const CharityManagementPage: React.FC = () => {
         transition={{ duration: 0.5 }}
         className="mb-8"
       >
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
-          <div className="flex-1">
+        <div className="flex justify-between items-center mb-4">
+          <div>
             <h1 className="text-3xl font-bold text-[var(--headline)]">
               {currentOrganization?.name || "Your Charity Organization"}
             </h1>
-            <p className="text-[var(--paragraph)] mt-1">
+            <p className="text-[var(--paragraph)]">
               {currentOrganization?.description || "Manage your campaigns"}
             </p>
           </div>
-          <div className="flex justify-end">
-            <button
-              onClick={() => navigate('/charity')}
-              className="px-4 py-2 bg-[#FFA726] text-white rounded-full hover:bg-[#FF9800] transition-all flex items-center gap-2 text-sm whitespace-nowrap"
-            >
-              <FaGlobe />
-              <span>View Public Charity Page</span>
-            </button>
-          </div>
+          <button
+            onClick={() => navigate('/charity')}
+            className="px-4 py-2 bg-[var(--highlight)] bg-opacity-10 text-white rounded-lg hover:bg-opacity-20 transition-all flex items-center gap-2"
+          >
+            <FaGlobe />
+            View Public Charity Page
+          </button>
         </div>
       </motion.div>
 
@@ -553,7 +548,7 @@ const CharityManagementPage: React.FC = () => {
                   <div className="relative flex justify-center">
                     {/* Legend positioned absolutely */}
                     <div className="absolute left-12 top-0 flex flex-col gap-2">
-                      {sortedCampaigns
+                      {organizationCampaigns
                         .filter(campaign => new Date(campaign.deadline) > new Date())
                         .map((campaign, index) => {
                           const percentage = Math.round((campaign.currentContributions / campaignFundsRaised) * 100) || 0;
@@ -576,7 +571,7 @@ const CharityManagementPage: React.FC = () => {
                         const circumference = 2 * Math.PI * radius;
                         
                         // Get active campaigns and their percentages
-                        const activeCampaigns = sortedCampaigns
+                        const activeCampaigns = organizationCampaigns
                           .filter(campaign => new Date(campaign.deadline) > new Date())
                           .map(campaign => ({
                             id: campaign.id,
@@ -672,7 +667,7 @@ const CharityManagementPage: React.FC = () => {
                 <div className="p-4">
                   <h3 className="text-lg font-medium text-[var(--headline)] mb-4">Campaign Fund Details</h3>
                   <div className="space-y-6">
-                    {sortedCampaigns
+                    {organizationCampaigns
                       .filter(campaign => new Date(campaign.deadline) > new Date())
                       .map((campaign) => {
                         // Mock data for fund status - Replace with actual data later
