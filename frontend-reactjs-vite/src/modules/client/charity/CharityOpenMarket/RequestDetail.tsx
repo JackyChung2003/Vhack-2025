@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaArrowLeft, FaCalendarAlt, FaUser, FaExternalLinkAlt, FaThumbtack, FaCheckCircle, FaTimes, FaComment, FaExclamationTriangle, FaClock, FaTimesCircle, FaExclamationCircle } from 'react-icons/fa';
 import QuotationCard from './QuotationCard';
+import QuotationModal from './QuotationModal';
 import { openMarketService, OpenMarketRequest, Quotation } from "../../../../services/supabase/openMarketService";
 import { toast } from "react-toastify";
 
@@ -16,6 +17,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ requestId, onBack, onRequ
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [quotationsLoading, setQuotationsLoading] = useState(true);
+  const [selectedQuotation, setSelectedQuotation] = useState<Quotation | null>(null);
 
   // Fetch request when component mounts or requestId changes
   useEffect(() => {
@@ -64,9 +66,8 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ requestId, onBack, onRequ
     if (!request) return;
     
     try {
-      // In a real app, you would have an API call to accept the quotation
-      // For now, we'll just update the request status to "closed"
-      await onRequestUpdated(request.id, true);
+      // Call the service to accept the quotation
+      await openMarketService.acceptQuotation(quotationId);
       
       // Update locally
       setQuotations(prevQuotations => 
@@ -77,6 +78,9 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ requestId, onBack, onRequ
         )
       );
       setRequest(prev => prev ? { ...prev, status: "closed", has_accepted_quotation: true } : null);
+      
+      // Notify the parent component that the request has been updated
+      onRequestUpdated(request.id, true);
       
       toast.success("Quotation accepted successfully!");
     } catch (err: any) {
@@ -96,6 +100,14 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ requestId, onBack, onRequ
       console.error("Error closing request:", err);
       toast.error(err.message || "Failed to close request. Please try again.");
     }
+  };
+
+  const handleQuotationClick = (quotation: Quotation) => {
+    setSelectedQuotation(quotation);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedQuotation(null);
   };
 
   if (loading) {
@@ -221,14 +233,15 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ requestId, onBack, onRequ
         ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {quotations.map(quotation => (
-              <QuotationCard
-                key={quotation.id}
-                quotation={quotation}
-                requestDeadline={request.deadline}
-                onAccept={canAcceptQuotation ? () => handleAcceptQuotation(quotation.id) : undefined}
-                onChat={() => toast.info("Chat feature is coming soon!")}
-                isVendor={false}
-              />
+              <div key={quotation.id} onClick={() => handleQuotationClick(quotation)} className="cursor-pointer">
+                <QuotationCard
+                  quotation={quotation}
+                  requestDeadline={request.deadline}
+                  onAccept={canAcceptQuotation ? () => handleAcceptQuotation(quotation.id) : undefined}
+                  onChat={() => toast.info("Chat feature is coming soon!")}
+                  isVendor={false}
+                />
+              </div>
             ))}
             </div>
           )}
@@ -246,6 +259,23 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ requestId, onBack, onRequ
                 </button>
               )}
         </div>
+      )}
+
+      {/* Quotation Modal */}
+      {selectedQuotation && (
+        <QuotationModal
+          quotation={selectedQuotation}
+          requestDeadline={request?.deadline}
+          isExpired={isExpired}
+          isClosed={isClosed}
+          hasAcceptedQuotation={hasAcceptedQuotation}
+          onClose={handleCloseModal}
+          onAccept={() => {
+            handleAcceptQuotation(selectedQuotation.id);
+            handleCloseModal();
+          }}
+          onChat={() => toast.info("Chat feature is coming soon!")}
+        />
       )}
     </div>
   );

@@ -47,11 +47,6 @@ const HorizontalNavbar: React.FC<NavbarProps> = ({ toggle }) => {
       icon: <FaHome />,
     },
     { title: "Open Market", link: `/vendor/open-market`, icon: <FaListAlt /> },
-      {
-        title: "Order",
-        link: "/vendor/order-management",
-        icon: <FaReceipt />,
-      },
     {
       title: "Profile",
       link: "/Vhack-2025/vendor/profile",
@@ -62,8 +57,8 @@ const HorizontalNavbar: React.FC<NavbarProps> = ({ toggle }) => {
   // Custom navigation items for donor users
   const donorNavItems = [
     {
-      title: "Home",
-      link: "/",
+      title: "Dashboard",
+      link: "/donor/dashboard",
       icon: <FaHome />,
     },
     {
@@ -88,7 +83,7 @@ const HorizontalNavbar: React.FC<NavbarProps> = ({ toggle }) => {
 
   return (
     <nav className={styles.nav}>
-      <Link to={userRole === 'charity' ? "/Vhack-2025/charity/home" : userRole === 'vendor' ? "/Vhack-2025/vendor/dashboard" : "/"} className={styles.link}>
+      <Link to={userRole === 'charity' ? "/Vhack-2025/charity/home" : userRole === 'vendor' ? "/Vhack-2025/vendor/dashboard" : "/donor/dashboard"} className={styles.link}>
         <img src={logoPNGImage} alt="DermaNow Logo" className={styles.logoIcon} />
         <span className={styles.logoName}>DermaNow</span>
       </Link>

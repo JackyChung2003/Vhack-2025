@@ -1,24 +1,24 @@
 import React, { useState, useEffect } from "react";
 import CampaignCard from "../../../../components/cards/CampaignCard";
-import { 
-  FaHandHoldingHeart, 
-  FaBuilding, 
-  FaSearch, 
-  FaHistory, 
-  FaFilter, 
-  FaSort, 
-  FaTags, 
-  FaChevronDown, 
-  FaChevronUp, 
-  FaTimes, 
-  FaListUl, 
+import {
+  FaHandHoldingHeart,
+  FaBuilding,
+  FaSearch,
+  FaHistory,
+  FaFilter,
+  FaSort,
+  FaTags,
+  FaChevronDown,
+  FaChevronUp,
+  FaTimes,
+  FaListUl,
   FaMoneyBillWave
 } from "react-icons/fa";
 import OrganizationCard from "../../../../components/cards/OrganizationCard";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useRole } from "../../../../contexts/RoleContext";
 import DonorSupportedCampaigns from "./DonorSupportedCampaigns";
-import AutoDonation from "./AutoDonation";
+import RecurringDonations from "./AutoDonation";
 import { charityService, Campaign } from "../../../../services/supabase/charityService";
 
 // Define available campaign categories
@@ -49,15 +49,15 @@ const sortOptions = [
 
 const CharityPage: React.FC = () => {
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState<'campaigns' | 'organizations' | 'supported' | 'autoDonate'>(() => {
+  const [activeTab, setActiveTab] = useState<'campaigns' | 'organizations' | 'supported' | 'recurring'>(() => {
     // Check if there's a tab parameter in the URL
     const params = new URLSearchParams(location.search);
     const tabParam = params.get('tab');
-    
-    if (tabParam === 'autoDonate' && userRole === 'donor') {
-      return 'autoDonate';
+
+    if (tabParam === 'recurring' && userRole === 'donor') {
+      return 'recurring';
     }
-    
+
     return 'campaigns';
   });
   const [searchTerm, setSearchTerm] = useState('');
@@ -66,7 +66,7 @@ const CharityPage: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const { userRole } = useRole();
   const navigate = useNavigate();
-  
+
   // Add state for real campaigns and organizations
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [organizations, setOrganizations] = useState<any[]>([]);
@@ -114,9 +114,9 @@ const CharityPage: React.FC = () => {
 
   // Filter campaigns by search term and category
   const filteredCampaigns = campaigns
-    .filter(campaign => 
-      (campaign.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-       campaign.description.toLowerCase().includes(searchTerm.toLowerCase())) &&
+    .filter(campaign =>
+      (campaign.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        campaign.description.toLowerCase().includes(searchTerm.toLowerCase())) &&
       (selectedCategories.length === 0 || (campaign.category && selectedCategories.includes(campaign.category)))
     );
 
@@ -179,7 +179,7 @@ const CharityPage: React.FC = () => {
           <p className="text-white text-opacity-90 max-w-2xl">Support causes you care about and make a difference in the world through our verified charity campaigns and organizations.</p>
         </div>
       </div>
-      
+
       {/* Search bar */}
       <div className="mb-6 relative">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -193,39 +193,36 @@ const CharityPage: React.FC = () => {
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
-      
+
       {/* Tab navigation */}
       <div className="flex border-b border-gray-300 mb-6">
         <button
-          className={`px-6 py-3 font-semibold flex items-center gap-2 transition-colors ${
-            activeTab === 'campaigns'
-              ? 'text-[var(--highlight)] border-b-2 border-[var(--highlight)]'
-              : 'text-[var(--paragraph)] hover:text-[var(--headline)]'
-          }`}
+          className={`px-6 py-3 font-semibold flex items-center gap-2 transition-colors ${activeTab === 'campaigns'
+            ? 'text-[var(--highlight)] border-b-2 border-[var(--highlight)]'
+            : 'text-[var(--paragraph)] hover:text-[var(--headline)]'
+            }`}
           onClick={() => setActiveTab('campaigns')}
         >
           <FaHandHoldingHeart />
           Campaigns
         </button>
         <button
-          className={`px-6 py-3 font-semibold flex items-center gap-2 transition-colors ${
-            activeTab === 'organizations'
-              ? 'text-[var(--highlight)] border-b-2 border-[var(--highlight)]'
-              : 'text-[var(--paragraph)] hover:text-[var(--headline)]'
-          }`}
+          className={`px-6 py-3 font-semibold flex items-center gap-2 transition-colors ${activeTab === 'organizations'
+            ? 'text-[var(--highlight)] border-b-2 border-[var(--highlight)]'
+            : 'text-[var(--paragraph)] hover:text-[var(--headline)]'
+            }`}
           onClick={() => setActiveTab('organizations')}
         >
           <FaBuilding />
           Organizations
         </button>
-        
+
         {userRole === 'donor' && (
           <button
-            className={`px-6 py-3 font-semibold flex items-center gap-2 transition-colors ${
-              activeTab === 'supported'
-                ? 'text-[var(--highlight)] border-b-2 border-[var(--highlight)]'
-                : 'text-[var(--paragraph)] hover:text-[var(--headline)]'
-            }`}
+            className={`px-6 py-3 font-semibold flex items-center gap-2 transition-colors ${activeTab === 'supported'
+              ? 'text-[var(--highlight)] border-b-2 border-[var(--highlight)]'
+              : 'text-[var(--paragraph)] hover:text-[var(--headline)]'
+              }`}
             onClick={() => setActiveTab('supported')}
           >
             <FaHistory />
@@ -235,19 +232,18 @@ const CharityPage: React.FC = () => {
 
         {userRole === 'donor' && (
           <button
-            className={`px-6 py-3 font-semibold flex items-center gap-2 transition-colors ${
-              activeTab === 'autoDonate'
-                ? 'text-[var(--highlight)] border-b-2 border-[var(--highlight)]'
-                : 'text-[var(--paragraph)] hover:text-[var(--headline)]'
-            }`}
-            onClick={() => setActiveTab('autoDonate')}
+            className={`px-6 py-3 font-semibold flex items-center gap-2 transition-colors ${activeTab === 'recurring'
+              ? 'text-[var(--highlight)] border-b-2 border-[var(--highlight)]'
+              : 'text-[var(--paragraph)] hover:text-[var(--headline)]'
+              }`}
+            onClick={() => setActiveTab('recurring')}
           >
             <FaMoneyBillWave />
-            Auto Donation
+            Recurring Donations
           </button>
         )}
       </div>
-      
+
       {/* Content based on active tab */}
       {activeTab === 'campaigns' ? (
         <>
@@ -255,11 +251,10 @@ const CharityPage: React.FC = () => {
             <h2 className="text-2xl font-bold text-[var(--headline)]">Active Campaigns</h2>
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                showFilters 
-                  ? 'bg-[var(--highlight)] text-white' 
-                  : 'bg-[var(--background)] border border-[var(--stroke)] hover:bg-gray-100'
-              }`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${showFilters
+                ? 'bg-[var(--highlight)] text-white'
+                : 'bg-[var(--background)] border border-[var(--stroke)] hover:bg-gray-100'
+                }`}
             >
               {showFilters ? <FaTimes /> : <FaFilter />}
               {showFilters ? 'Hide Filters' : 'Filters & Sort'}
@@ -267,13 +262,12 @@ const CharityPage: React.FC = () => {
           </div>
 
           {/* Filters and sorting section with animation */}
-          <div 
-            className={`overflow-hidden transition-all duration-300 ease-in-out ${
-              showFilters ? 'max-h-96 opacity-100 mb-6' : 'max-h-0 opacity-0'
-            }`}
+          <div
+            className={`overflow-hidden transition-all duration-300 ease-in-out ${showFilters ? 'max-h-96 opacity-100 mb-6' : 'max-h-0 opacity-0'
+              }`}
           >
             <div className="bg-gradient-to-r from-[var(--main)] to-white border border-[var(--stroke)] rounded-lg shadow-sm p-5">
-              <div className="flex justify-between items-center mb-4">                
+              <div className="flex justify-between items-center mb-4">
                 {/* Results count */}
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-[var(--paragraph)]">
@@ -282,7 +276,7 @@ const CharityPage: React.FC = () => {
                       <> in <span className="font-semibold text-[var(--headline)]">{selectedCategories.length}</span> categories</>
                     )}
                   </span>
-                  
+
                   {/* Clear filters button - only show if filters are applied */}
                   {(selectedCategories.length > 0 || sortBy !== "default" || searchTerm) && (
                     <button
@@ -295,31 +289,30 @@ const CharityPage: React.FC = () => {
                   )}
                 </div>
               </div>
-              
+
               {/* Category filter section */}
               <div className="mb-5">
                 <label className="text-sm font-medium text-[var(--headline)] mb-3 flex items-center gap-2">
                   <FaTags className="text-[var(--highlight)]" />
                   Filter by Categories
                 </label>
-                
+
                 {/* Category chips for multiple selection */}
                 <div className="flex flex-wrap gap-2 mb-3">
                   {campaignCategories.slice(1).map((category) => ( // Skip "All Categories"
                     <button
                       key={category}
                       onClick={() => {
-                        setSelectedCategories(prev => 
+                        setSelectedCategories(prev =>
                           prev.includes(category)
                             ? prev.filter(cat => cat !== category) // Remove if already selected
                             : [...prev, category] // Add if not selected
                         );
                       }}
-                      className={`px-3 py-1.5 text-sm rounded-full transition-colors flex items-center gap-1 ${
-                        selectedCategories.includes(category)
-                          ? 'bg-[var(--highlight)] text-white'
-                          : 'bg-gray-100 text-[var(--paragraph)] hover:bg-gray-200'
-                      }`}
+                      className={`px-3 py-1.5 text-sm rounded-full transition-colors flex items-center gap-1 ${selectedCategories.includes(category)
+                        ? 'bg-[var(--highlight)] text-white'
+                        : 'bg-gray-100 text-[var(--paragraph)] hover:bg-gray-200'
+                        }`}
                     >
                       {category}
                       {selectedCategories.includes(category) && (
@@ -327,7 +320,7 @@ const CharityPage: React.FC = () => {
                       )}
                     </button>
                   ))}
-                  
+
                   {/* Clear categories button - only show if categories are selected */}
                   {selectedCategories.length > 0 && (
                     <button
@@ -339,14 +332,14 @@ const CharityPage: React.FC = () => {
                   )}
                 </div>
               </div>
-              
+
               {/* Sort section */}
               <div>
                 <label className="text-sm font-medium text-[var(--headline)] mb-3 flex items-center gap-2">
                   <FaSort className="text-[var(--highlight)]" />
                   Sort Results
                 </label>
-                
+
                 <div className="relative">
                   <select
                     value={sortBy}
@@ -364,23 +357,23 @@ const CharityPage: React.FC = () => {
                   </div>
                 </div>
               </div>
-              
+
               {/* Active filters summary */}
               {(selectedCategories.length > 0 || sortBy !== "default") && (
                 <div className="mt-4 pt-4 border-t border-gray-200">
                   <div className="text-sm text-[var(--paragraph)]">
                     <span className="font-medium">Active filters:</span>
-                    
+
                     {/* Combined flex container for all tags */}
                     <div className="mt-2 flex flex-wrap gap-1">
                       {/* Category tags */}
                       {selectedCategories.map(category => (
-                        <span 
+                        <span
                           key={category}
                           className="px-2 py-1 bg-[var(--highlight)] bg-opacity-10 rounded-full text-xs font-semibold text-[var(--headline)] flex items-center"
                         >
                           Category: {category}
-                          <button 
+                          <button
                             onClick={() => setSelectedCategories(prev => prev.filter(cat => cat !== category))}
                             className="ml-1 hover:text-[var(--highlight)]"
                           >
@@ -388,12 +381,12 @@ const CharityPage: React.FC = () => {
                           </button>
                         </span>
                       ))}
-                      
+
                       {/* Sort tag */}
                       {sortBy !== "default" && (
                         <span className="px-2 py-1 bg-[var(--secondary)] bg-opacity-10 rounded-full text-xs font-semibold text-[var(--headline)] flex items-center">
                           Sort: {currentSortLabel}
-                          <button 
+                          <button
                             onClick={() => setSortBy("default")}
                             className="ml-1 hover:text-[var(--secondary)]"
                           >
@@ -434,7 +427,7 @@ const CharityPage: React.FC = () => {
                 // Calculate a default deadline of 30 days from now if not provided
                 const defaultDeadline = new Date();
                 defaultDeadline.setDate(defaultDeadline.getDate() + 30);
-                
+
                 return (
                   <CampaignCard
                     key={campaign.id}
@@ -505,9 +498,9 @@ const CharityPage: React.FC = () => {
             </div>
           )}
         </>
-      ) : activeTab === 'autoDonate' ? (
+      ) : activeTab === 'recurring' ? (
         <>
-          <AutoDonation />
+          <RecurringDonations />
         </>
       ) : (
         <>

@@ -8,31 +8,33 @@ import {
   FaHandshake, 
   FaThList, 
   FaBuilding, 
-  FaArrowRight
+  FaArrowRight,
+  FaQuoteRight
 } from "react-icons/fa";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import VendorChats from "./VendorChats";
 import PurchasingTransactions from "./PurchasingTransactions";
 import VendorSearch from "./VendorSearch";
+import CharityOpenMarket from "../../charity/CharityOpenMarket/CharityOpenMarket";
 
 const VendorPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState<'transactions' | 'chats' | 'search'>('transactions');
+  const [activeTab, setActiveTab] = useState<'transactions' | 'chats' | 'search' | 'quotations'>('transactions');
 
   // Read tab from URL parameters on component mount and when URL changes
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const tab = params.get('tab');
     
-    if (tab === 'chats' || tab === 'search' || tab === 'transactions') {
+    if (tab === 'chats' || tab === 'search' || tab === 'transactions' || tab === 'quotations') {
       setActiveTab(tab);
     }
   }, [location.search]);
 
   // Update URL when tab changes
-  const handleTabChange = (tab: 'transactions' | 'chats' | 'search') => {
+  const handleTabChange = (tab: 'transactions' | 'chats' | 'search' | 'quotations') => {
     setActiveTab(tab);
     navigate(`/Vhack-2025/charity/vendor-page?tab=${tab}`, { replace: true });
   };
@@ -89,7 +91,7 @@ const VendorPage: React.FC = () => {
           <p className="mt-3 opacity-90 max-w-2xl">
             Connect with suppliers, manage purchasing transactions, and find new vendors to help your organization make a greater impact.
           </p>
-          <div className="flex mt-6 gap-3">
+          <div className="flex mt-6 gap-3 flex-wrap">
             <button 
               onClick={() => handleTabChange('transactions')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
@@ -131,7 +133,7 @@ const VendorPage: React.FC = () => {
         transition={{ duration: 0.4, delay: 0.2 }}
         className="bg-[var(--main)] rounded-xl shadow-md border border-[var(--stroke)] mb-6 overflow-hidden"
       >
-        <div className="flex border-b border-[var(--stroke)]">
+        <div className="flex border-b border-[var(--stroke)] flex-wrap">
           <TabButton 
             isActive={activeTab === 'transactions'} 
             onClick={() => handleTabChange('transactions')}
