@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { FaArrowLeft, FaHandHoldingHeart, FaBuilding, FaUsers, FaHistory, FaChartLine, 
-         FaGlobe, FaEnvelope, FaPhone, FaMapMarkerAlt, FaCalendarAlt, FaComments, FaClock, FaPencilAlt, FaTimes, FaPlus, FaFacebook, FaTwitter, FaInstagram, FaCoins, FaChevronLeft, FaGift } from "react-icons/fa";
+import {
+  FaArrowLeft, FaHandHoldingHeart, FaBuilding, FaUsers, FaHistory, FaChartLine,
+  FaGlobe, FaEnvelope, FaPhone, FaMapMarkerAlt, FaCalendarAlt, FaComments, FaClock, FaPencilAlt, FaTimes, FaPlus, FaFacebook, FaTwitter, FaInstagram, FaCoins, FaChevronLeft, FaGift
+} from "react-icons/fa";
 import { motion } from "framer-motion";
 import CampaignCard from "../../../../components/cards/CampaignCard";
 import { useRole } from "../../../../contexts/RoleContext";
@@ -14,6 +16,7 @@ import ChatModal from "../../../client/vendor/VendorHomePage/ChatModal";
 import { charityService, CharityProfile as CharityProfileType } from "../../../../services/supabase/charityService";
 import CharityInfo from "../../charity/profile/components/CharityInfo";
 import AddCampaignModal from "../../../../components/modals/AddCampaignModal";
+import CampaignTimeline from "../../../../components/campaign/CampaignTimeline";
 
 const OrganizationDetail: React.FC = () => {
   const { id: organizationIdString } = useParams();
@@ -32,26 +35,31 @@ const OrganizationDetail: React.FC = () => {
   const [charityProfile, setCharityProfile] = useState<CharityProfileType | null>(null);
   const [charityLoading, setCharityLoading] = useState(false);
   const [charityError, setCharityError] = useState<string | null>(null);
-  
+
   // For charity's own campaigns
   const [charityCampaigns, setCharityCampaigns] = useState<any[]>([]);
   const [charityCampaignsLoading, setCharityCampaignsLoading] = useState(false);
   const [charityCampaignsError, setCharityCampaignsError] = useState<string | null>(null);
-  
+
   // For general fund data
   const [generalFund, setGeneralFund] = useState<{ totalAmount: number, donationsCount: number }>({ totalAmount: 0, donationsCount: 0 });
   const [generalFundLoading, setGeneralFundLoading] = useState(false);
   const [generalFundError, setGeneralFundError] = useState<string | null>(null);
-  
+
   // For external organization view
   const [organization, setOrganization] = useState<any>(null);
   const [organizationLoading, setOrganizationLoading] = useState(false);
   const [organizationError, setOrganizationError] = useState<string | null>(null);
   const [organizationCampaigns, setOrganizationCampaigns] = useState<any[]>([]);
-  
+
+  // For timeline data
+  const [goalAmount, setGoalAmount] = useState<number>(100000); // Default goal amount for organization
+  const [daysLeft, setDaysLeft] = useState<number>(365); // Default yearly goal
+  const [todayDonations, setTodayDonations] = useState<number>(0); // Today's donations
+
   // Determine if we're viewing as charity's own profile
   const isOwnProfile = userRole === 'charity' && !organizationIdString;
-  
+
   // Load charity's own profile if applicable
   useEffect(() => {
     if (isOwnProfile) {
@@ -61,13 +69,13 @@ const OrganizationDetail: React.FC = () => {
           const profileData = await charityService.getCharityProfile();
           setCharityProfile(profileData);
           setCharityError(null);
-          
+
           // Also fetch the charity's campaigns
           setCharityCampaignsLoading(true);
           const campaignsData = await charityService.getCharityCampaigns();
           setCharityCampaigns(campaignsData);
           setCharityCampaignsError(null);
-          
+
           // Fetch general fund data
           setGeneralFundLoading(true);
           const fundData = await charityService.getCharityGeneralFund(profileData.id);
@@ -93,7 +101,7 @@ const OrganizationDetail: React.FC = () => {
           setOrganization(orgData);
           setOrganizationCampaigns(orgData.campaignsList || []);
           setOrganizationError(null);
-          
+
           // Fetch general fund data for the organization
           setGeneralFundLoading(true);
           const fundData = await charityService.getCharityGeneralFund(organizationIdString);
@@ -111,7 +119,7 @@ const OrganizationDetail: React.FC = () => {
       fetchOrganization();
     }
   }, [isOwnProfile, organizationIdString]);
-  
+
   // Unconditional donor effect hook
   useEffect(() => {
     if (userRole === 'donor' && !isOwnProfile && organizationIdString) {
@@ -126,15 +134,15 @@ const OrganizationDetail: React.FC = () => {
   // Calculate additional stats based on either own profile or external organization
   const orgData = isOwnProfile
     ? {
-        id: charityProfile?.id || '',
-        name: charityProfile?.name || '',
-        totalRaised: charityProfile?.totalRaised || 0,
-        activeCampaigns: charityProfile?.activeCampaigns || 0,
-        campaigns: 0,
-        verified: charityProfile?.verified || false,
-      }
+      id: charityProfile?.id || '',
+      name: charityProfile?.name || '',
+      totalRaised: charityProfile?.totalRaised || 0,
+      activeCampaigns: charityProfile?.activeCampaigns || 0,
+      campaigns: 0,
+      verified: charityProfile?.verified || false,
+    }
     : organization || {};
-  
+
   // Calculate additional stats for active campaigns if viewing external organization
   const activeCampaigns = isOwnProfile
     ? charityProfile?.activeCampaigns || 0
@@ -147,31 +155,31 @@ const OrganizationDetail: React.FC = () => {
   // Extended organization details
   const extendedDetails = isOwnProfile && charityProfile
     ? {
-        email: charityProfile.email || '',
-        phone: charityProfile.phone || '',
-        website: charityProfile.website || '',
-        location: charityProfile.location || '',
-        founded: charityProfile.founded || '',
-        mission: charityProfile.description || '',
-        // Default values for impact and values if not provided
-        impact: "Helping communities through various programs.",
-        values: ["Integrity", "Innovation", "Impact"]
-      }
+      email: charityProfile.email || '',
+      phone: charityProfile.phone || '',
+      website: charityProfile.website || '',
+      location: charityProfile.location || '',
+      founded: charityProfile.founded || '',
+      mission: charityProfile.description || '',
+      // Default values for impact and values if not provided
+      impact: "Helping communities through various programs.",
+      values: ["Integrity", "Innovation", "Impact"]
+    }
     : {
-        email: organization?.email || '',
-        phone: organization?.phone || '',
-        website: organization?.website || '',
-        location: organization?.location || '',
-        founded: organization?.founded || '',
-        mission: organization?.description || '',
-        impact: "Helping communities through various programs.",
-        values: ["Integrity", "Innovation", "Impact"]
-      };
-  
+      email: organization?.email || '',
+      phone: organization?.phone || '',
+      website: organization?.website || '',
+      location: organization?.location || '',
+      founded: organization?.founded || '',
+      mission: organization?.description || '',
+      impact: "Helping communities through various programs.",
+      values: ["Integrity", "Innovation", "Impact"]
+    };
+
   // Add event listener for chat modal - unconditional hook call
   useEffect(() => {
     if (!orgData) return;
-    
+
     const handleOpenChat = (event: CustomEvent) => {
       if (event.detail.organizationId === orgData.id) {
         // Find the chat ID for this organization
@@ -189,7 +197,7 @@ const OrganizationDetail: React.FC = () => {
       window.removeEventListener('openVendorChat', handleOpenChat as EventListener);
     };
   }, [orgData]);
-  
+
   // Handle saving charity profile changes
   const handleSaveCharityData = async (updatedData: Partial<CharityProfileType>) => {
     try {
@@ -208,7 +216,7 @@ const OrganizationDetail: React.FC = () => {
       setCharityLoading(false);
     }
   };
-  
+
   // Handle campaign modal
   const handleOpenCampaignModal = () => {
     setShowAddCampaignModal(true);
@@ -231,7 +239,7 @@ const OrganizationDetail: React.FC = () => {
       throw err;
     }
   };
-  
+
   const handleContactClick = () => {
     if (orgData && orgData.id) {
       openChat(Number(orgData.id));
@@ -255,7 +263,7 @@ const OrganizationDetail: React.FC = () => {
         }
       }
     };
-    
+
     window.addEventListener('refreshCampaigns', handleRefreshCampaigns);
     return () => {
       window.removeEventListener('refreshCampaigns', handleRefreshCampaigns);
@@ -263,9 +271,87 @@ const OrganizationDetail: React.FC = () => {
   }, [isOwnProfile]);
 
   // Calculate combined total raised (campaign + general fund)
-  const combinedTotalRaised = (isOwnProfile ? 
-    (charityProfile?.totalRaised || 0) : 
+  const combinedTotalRaised = (isOwnProfile ?
+    (charityProfile?.totalRaised || 0) :
     (organization?.totalRaised || 0)) + generalFund.totalAmount;
+
+  // Update today's donations - mock data for demonstration
+  useEffect(() => {
+    // For a real implementation, this would fetch from an API
+    // Here we're just generating a random value between 0 and 5000
+    setTodayDonations(Math.floor(Math.random() * 5000));
+
+    // Calculate days left until end of year for demonstration purposes
+    const now = new Date();
+    const endOfYear = new Date(now.getFullYear(), 11, 31); // December 31st
+    const diffTime = endOfYear.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    setDaysLeft(diffDays);
+
+    // Set a default goal amount based on organization size
+    const estimatedGoal = supporters > 100 ? 200000 : supporters > 50 ? 100000 : 50000;
+    setGoalAmount(estimatedGoal);
+  }, [supporters]);
+
+  // Organization timeline entries - mock data
+  const generateOrganizationTimelineEntries = () => {
+    const foundedDate = extendedDetails.founded || "2018";
+
+    return [
+      {
+        id: 'org-founded',
+        date: `Jan 1, ${foundedDate}`,
+        title: 'Organization Founded',
+        description: `${orgData.name} was established to address ${extendedDetails.mission?.substring(0, 40) || "community needs"}...`,
+        icon: <FaBuilding />,
+        color: 'bg-blue-500',
+        type: 'milestone' as const,
+        statusTag: {
+          text: 'Founded',
+          color: 'bg-blue-100 text-blue-800'
+        }
+      },
+      {
+        id: 'first-campaign',
+        date: `Mar 15, ${foundedDate}`,
+        title: 'First Campaign Launched',
+        description: 'Our first campaign to support the local community',
+        icon: <FaHandHoldingHeart />,
+        color: 'bg-green-500',
+        type: 'milestone' as const,
+        statusTag: {
+          text: 'Milestone',
+          color: 'bg-green-100 text-green-800'
+        }
+      },
+      {
+        id: 'community-growth',
+        date: `Jul 10, ${parseInt(foundedDate) + 1}`,
+        title: 'Community Growth',
+        description: 'Reached 100 supporters milestone',
+        icon: <FaUsers />,
+        color: 'bg-purple-500',
+        type: 'milestone' as const,
+        statusTag: {
+          text: 'Growth',
+          color: 'bg-purple-100 text-purple-800'
+        }
+      },
+      {
+        id: 'today-progress',
+        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        title: 'Organization Progress',
+        description: `Currently supporting ${activeCampaigns} active campaigns with ${supporters || 0} supporters`,
+        icon: <FaChartLine />,
+        color: 'bg-blue-600',
+        type: 'status' as const,
+        statusTag: {
+          text: 'Today',
+          color: 'bg-blue-100 text-blue-800'
+        }
+      }
+    ];
+  };
 
   // Conditional rendering after all hooks are called
   // If we're viewing as charity profile and still loading
@@ -281,7 +367,7 @@ const OrganizationDetail: React.FC = () => {
       </div>
     );
   }
-  
+
   // Loading state for external organization
   if (!isOwnProfile && organizationLoading) {
     return (
@@ -295,7 +381,7 @@ const OrganizationDetail: React.FC = () => {
       </div>
     );
   }
-  
+
   // Error state for external organization
   if (!isOwnProfile && organizationError) {
     return (
@@ -304,7 +390,7 @@ const OrganizationDetail: React.FC = () => {
           <div className="flex flex-col items-center">
             <div className="text-red-500 text-xl mb-4">⚠️</div>
             <p className="text-red-500">{organizationError}</p>
-            <button 
+            <button
               onClick={() => window.location.reload()}
               className="mt-4 px-4 py-2 rounded-lg bg-[var(--highlight)] text-white hover:bg-opacity-90"
             >
@@ -315,7 +401,7 @@ const OrganizationDetail: React.FC = () => {
       </div>
     );
   }
-  
+
   // If we're viewing as charity profile and have an error
   if (isOwnProfile && charityError) {
     return (
@@ -324,7 +410,7 @@ const OrganizationDetail: React.FC = () => {
           <div className="flex flex-col items-center">
             <div className="text-red-500 text-xl mb-4">⚠️</div>
             <p className="text-red-500">{charityError}</p>
-            <button 
+            <button
               onClick={() => window.location.reload()}
               className="mt-4 px-4 py-2 rounded-lg bg-[var(--highlight)] text-white hover:bg-opacity-90"
             >
@@ -335,7 +421,7 @@ const OrganizationDetail: React.FC = () => {
       </div>
     );
   }
-  
+
   // If we're viewing as charity profile but no profile found
   if (isOwnProfile && !charityLoading && !charityError && (!charityProfile || !charityProfile.name)) {
     return (
@@ -343,7 +429,7 @@ const OrganizationDetail: React.FC = () => {
         <div className="bg-[var(--main)] p-8 rounded-xl shadow-xl border border-[var(--stroke)]">
           <div className="flex flex-col items-center">
             <p className="text-[var(--paragraph)] mb-4">No charity profile found.</p>
-            <button 
+            <button
               onClick={() => setIsEditing(true)}
               className="px-4 py-2 rounded-lg bg-[var(--highlight)] text-white hover:bg-opacity-90"
             >
@@ -354,15 +440,15 @@ const OrganizationDetail: React.FC = () => {
       </div>
     );
   }
-  
+
   // If organization not found for regular view, show error or redirect
   if (!isOwnProfile && !organization && !organizationLoading) {
     return (
       <div className="p-6 bg-[var(--background)] text-[var(--paragraph)]">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-2xl font-bold mb-4">Organization not found</h1>
-          <button 
-            onClick={() => navigate('/charity')} 
+          <button
+            onClick={() => navigate('/charity')}
             className="button flex items-center gap-2 px-6 py-2 mx-auto"
           >
             <FaArrowLeft />
@@ -379,18 +465,18 @@ const OrganizationDetail: React.FC = () => {
       <div className="relative h-64 bg-gradient-to-r from-[var(--highlight)] to-[var(--tertiary)]">
         <div className="absolute inset-0 bg-black bg-opacity-50"></div>
         {!isOwnProfile && (
-        <button
-          onClick={() => navigate(-1)}
-          className="absolute top-6 left-6 z-10 text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
-        >
-          <FaArrowLeft size={20} />
-        </button>
+          <button
+            onClick={() => navigate(-1)}
+            className="absolute top-6 left-6 z-10 text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
+          >
+            <FaArrowLeft size={20} />
+          </button>
         )}
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-32 relative z-10 pb-12">
         {/* Organization Info Card - Overlapping Hero */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-[var(--main)] rounded-xl shadow-xl border border-[var(--stroke)] p-6 mb-8"
@@ -405,7 +491,7 @@ const OrganizationDetail: React.FC = () => {
                 (orgData.name && orgData.name.charAt(0)) || "C"
               )}
             </div>
-            
+
             <div className="flex-1">
               <div className="flex items-center justify-between mb-4">
                 <h1 className="text-3xl font-bold text-[var(--headline)]">{orgData.name}</h1>
@@ -432,7 +518,7 @@ const OrganizationDetail: React.FC = () => {
                   </motion.button>
                 )}
                 {isOwnProfile && (
-                  <button 
+                  <button
                     onClick={() => setIsEditing(true)}
                     className="px-4 py-2 rounded-lg bg-[var(--highlight)] text-white hover:bg-opacity-90 flex items-center gap-2 transition-colors"
                   >
@@ -441,52 +527,52 @@ const OrganizationDetail: React.FC = () => {
                 )}
               </div>
               <p className="text-[var(--paragraph)] mt-2">{extendedDetails.mission}</p>
-              
+
               <div className="flex flex-wrap gap-4 mt-4">
                 {extendedDetails.email && (
-                <div className="flex items-center gap-2">
-                  <FaEnvelope className="text-[var(--highlight)]" />
-                  <a href={`mailto:${extendedDetails.email}`} className="hover:text-[var(--highlight)] transition-colors">
-                    {extendedDetails.email}
-                  </a>
-                </div>
+                  <div className="flex items-center gap-2">
+                    <FaEnvelope className="text-[var(--highlight)]" />
+                    <a href={`mailto:${extendedDetails.email}`} className="hover:text-[var(--highlight)] transition-colors">
+                      {extendedDetails.email}
+                    </a>
+                  </div>
                 )}
                 {extendedDetails.website && (
-                <div className="flex items-center gap-2">
-                  <FaGlobe className="text-[var(--highlight)]" />
-                    <a href={extendedDetails.website.startsWith('http') ? extendedDetails.website : `https://${extendedDetails.website}`} target="_blank" rel="noopener noreferrer" 
-                     className="hover:text-[var(--highlight)] transition-colors">
+                  <div className="flex items-center gap-2">
+                    <FaGlobe className="text-[var(--highlight)]" />
+                    <a href={extendedDetails.website.startsWith('http') ? extendedDetails.website : `https://${extendedDetails.website}`} target="_blank" rel="noopener noreferrer"
+                      className="hover:text-[var(--highlight)] transition-colors">
                       {extendedDetails.website.replace(/^https?:\/\//, '')}
-                  </a>
-                </div>
+                    </a>
+                  </div>
                 )}
                 {extendedDetails.phone && (
-                <div className="flex items-center gap-2">
-                  <FaPhone className="text-[var(--highlight)]" />
-                  <a 
-                    href={`tel:${extendedDetails.phone}`}
-                    className="hover:text-[var(--highlight)] hover:underline transition-colors"
-                  >
-                    {extendedDetails.phone}
-                  </a>
-                </div>
+                  <div className="flex items-center gap-2">
+                    <FaPhone className="text-[var(--highlight)]" />
+                    <a
+                      href={`tel:${extendedDetails.phone}`}
+                      className="hover:text-[var(--highlight)] hover:underline transition-colors"
+                    >
+                      {extendedDetails.phone}
+                    </a>
+                  </div>
                 )}
                 {extendedDetails.location && (
-                <div className="flex items-center gap-2">
-                  <FaMapMarkerAlt className="text-[var(--highlight)]" />
-                  <span>{extendedDetails.location}</span>
-                </div>
+                  <div className="flex items-center gap-2">
+                    <FaMapMarkerAlt className="text-[var(--highlight)]" />
+                    <span>{extendedDetails.location}</span>
+                  </div>
                 )}
                 {extendedDetails.founded && (
-                <div className="flex items-center gap-2">
-                  <FaCalendarAlt className="text-[var(--highlight)]" />
-                  <span>Founded: {extendedDetails.founded}</span>
-                </div>
+                  <div className="flex items-center gap-2">
+                    <FaCalendarAlt className="text-[var(--highlight)]" />
+                    <span>Founded: {extendedDetails.founded}</span>
+                  </div>
                 )}
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-                <motion.div 
+                <motion.div
                   whileHover={{ scale: 1.02 }}
                   className="bg-gradient-to-r from-[var(--highlight)] to-[var(--tertiary)] rounded-lg p-4 text-white"
                 >
@@ -499,7 +585,7 @@ const OrganizationDetail: React.FC = () => {
                   </div>
                 </motion.div>
 
-                <motion.div 
+                <motion.div
                   whileHover={{ scale: 1.02 }}
                   className="bg-gradient-to-r from-[var(--secondary)] to-[var(--tertiary)] rounded-lg p-4 text-white"
                 >
@@ -512,7 +598,7 @@ const OrganizationDetail: React.FC = () => {
                   </div>
                 </motion.div>
 
-                <motion.div 
+                <motion.div
                   whileHover={{ scale: 1.02 }}
                   className="bg-gradient-to-r from-[var(--tertiary)] to-[var(--highlight)] rounded-lg p-4 text-white"
                 >
@@ -525,7 +611,7 @@ const OrganizationDetail: React.FC = () => {
                   </div>
                 </motion.div>
 
-                <motion.div 
+                <motion.div
                   whileHover={{ scale: 1.02 }}
                   className="bg-gradient-to-r from-[var(--highlight)] to-[var(--secondary)] rounded-lg p-4 text-white"
                 >
@@ -543,7 +629,7 @@ const OrganizationDetail: React.FC = () => {
         </motion.div>
 
         {/* Impact Section */}
-        <motion.section 
+        <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
@@ -555,11 +641,11 @@ const OrganizationDetail: React.FC = () => {
               Our Impact
             </h2>
             <p className="text-[var(--paragraph)] mb-6">{extendedDetails.impact}</p>
-            
+
             <h3 className="text-xl font-bold text-[var(--headline)] mb-4">Our Values</h3>
             <div className="flex flex-wrap gap-3">
               {extendedDetails.values.map((value, index) => (
-                <span 
+                <span
                   key={index}
                   className="px-4 py-2 bg-[var(--highlight)] text-white rounded-full text-sm font-medium"
                 >
@@ -571,7 +657,7 @@ const OrganizationDetail: React.FC = () => {
         </motion.section>
 
         {/* General Fund Section */}
-        <motion.section 
+        <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
@@ -582,7 +668,7 @@ const OrganizationDetail: React.FC = () => {
               <FaHandHoldingHeart className="text-[var(--highlight)]" />
               General Fund
             </h2>
-            
+
             {generalFundLoading ? (
               <div className="flex justify-center py-4">
                 <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[var(--highlight)]"></div>
@@ -591,7 +677,7 @@ const OrganizationDetail: React.FC = () => {
               <div className="text-red-500 py-2">{generalFundError}</div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <motion.div 
+                <motion.div
                   whileHover={{ scale: 1.02 }}
                   className="bg-gradient-to-r from-[var(--highlight)] to-[var(--tertiary)] rounded-lg p-6 text-white"
                 >
@@ -608,8 +694,8 @@ const OrganizationDetail: React.FC = () => {
                     Funds donated directly to support our general operations and mission.
                   </p>
                 </motion.div>
-                
-                <motion.div 
+
+                <motion.div
                   whileHover={{ scale: 1.02 }}
                   className="bg-gradient-to-r from-[var(--secondary)] to-[var(--tertiary)] rounded-lg p-6 text-white"
                 >
@@ -628,7 +714,7 @@ const OrganizationDetail: React.FC = () => {
                 </motion.div>
               </div>
             )}
-            
+
             {userRole === 'donor' && !isOwnProfile && (
               <div className="mt-6 text-center">
                 <motion.button
@@ -645,8 +731,33 @@ const OrganizationDetail: React.FC = () => {
           </div>
         </motion.section>
 
+        {/* Organization Timeline Section */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.28 }}
+          className="mb-8"
+        >
+          <div className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] p-6">
+            <h2 className="text-2xl font-bold text-[var(--headline)] flex items-center gap-2 mb-4">
+              <FaHistory className="text-[var(--highlight)]" />
+              Organization Timeline
+            </h2>
+
+            <CampaignTimeline
+              entries={generateOrganizationTimelineEntries()}
+              className="bg-transparent p-0"
+              startDate={extendedDetails.founded ? `Jan 1, ${extendedDetails.founded}` : undefined}
+              currentAmount={combinedTotalRaised}
+              goalAmount={goalAmount}
+              daysLeft={daysLeft}
+              todayDonations={todayDonations}
+            />
+          </div>
+        </motion.section>
+
         {/* Campaigns Section */}
-        <motion.section 
+        <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
@@ -658,7 +769,7 @@ const OrganizationDetail: React.FC = () => {
               {isOwnProfile ? "Your Campaigns" : "Active Campaigns"}
             </h2>
             {isOwnProfile && (
-              <button 
+              <button
                 onClick={handleOpenCampaignModal}
                 className="px-4 py-2 rounded-lg bg-[var(--highlight)] text-white hover:bg-opacity-90 flex items-center gap-2 transition-colors"
               >
@@ -666,7 +777,7 @@ const OrganizationDetail: React.FC = () => {
               </button>
             )}
           </div>
-          
+
           {isOwnProfile ? (
             /* Updated code for charity viewing own campaigns */
             charityCampaignsLoading ? (
@@ -680,7 +791,7 @@ const OrganizationDetail: React.FC = () => {
               <div className="text-center py-10 bg-[var(--main)] rounded-xl border border-[var(--stroke)]">
                 <FaHandHoldingHeart className="mx-auto text-4xl text-[var(--paragraph)] opacity-30 mb-4" />
                 <p className="text-lg text-red-500">{charityCampaignsError}</p>
-                <button 
+                <button
                   onClick={() => window.location.reload()}
                   className="mt-4 px-4 py-2 rounded-lg bg-[var(--highlight)] text-white hover:bg-opacity-90"
                 >
@@ -693,7 +804,7 @@ const OrganizationDetail: React.FC = () => {
                   // Calculate a default deadline of 30 days from now if not provided
                   const defaultDeadline = new Date();
                   defaultDeadline.setDate(defaultDeadline.getDate() + 30);
-                  
+
                   return (
                     <CampaignCard
                       key={campaign.id}
@@ -712,7 +823,7 @@ const OrganizationDetail: React.FC = () => {
               <div className="text-center py-10 bg-[var(--main)] rounded-xl border border-[var(--stroke)]">
                 <FaHandHoldingHeart className="mx-auto text-4xl text-[var(--paragraph)] opacity-30 mb-4" />
                 <p className="text-lg">You don't have any campaigns yet.</p>
-                <button 
+                <button
                   onClick={handleOpenCampaignModal}
                   className="mt-4 px-4 py-2 rounded-lg bg-[var(--highlight)] text-white hover:bg-opacity-90 flex items-center gap-2 mx-auto"
                 >
@@ -728,7 +839,7 @@ const OrganizationDetail: React.FC = () => {
                   // Calculate a default deadline of 30 days from now if not provided
                   const defaultDeadline = new Date();
                   defaultDeadline.setDate(defaultDeadline.getDate() + 30);
-                  
+
                   return (
                     <CampaignCard
                       key={campaign.id}
@@ -753,7 +864,7 @@ const OrganizationDetail: React.FC = () => {
         </motion.section>
 
         {/* Community Section */}
-        <motion.section 
+        <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
@@ -777,7 +888,7 @@ const OrganizationDetail: React.FC = () => {
 
                   {/* Community Stats */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <motion.div 
+                    <motion.div
                       whileHover={{ scale: 1.02 }}
                       className="bg-gradient-to-r from-[var(--highlight)] to-[var(--tertiary)] rounded-lg p-4 text-white w-full"
                     >
@@ -790,7 +901,7 @@ const OrganizationDetail: React.FC = () => {
                       </div>
                     </motion.div>
 
-                    <motion.div 
+                    <motion.div
                       whileHover={{ scale: 1.02 }}
                       className="bg-gradient-to-r from-[var(--secondary)] to-[var(--tertiary)] rounded-lg p-4 text-white w-full"
                     >
@@ -808,22 +919,20 @@ const OrganizationDetail: React.FC = () => {
                   <div className="flex mb-6 bg-[var(--background)] rounded-lg p-1">
                     <button
                       onClick={() => setCommunityView('feed')}
-                      className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all ${
-                        communityView === 'feed' 
-                        ? 'bg-[var(--highlight)] text-white shadow-lg' 
+                      className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all ${communityView === 'feed'
+                        ? 'bg-[var(--highlight)] text-white shadow-lg'
                         : 'text-[var(--paragraph)] hover:text-[var(--headline)]'
-                      }`}
+                        }`}
                     >
                       <FaComments className={communityView === 'feed' ? 'text-white' : 'text-[var(--highlight)]'} />
                       Discussion Feed
                     </button>
                     <button
                       onClick={() => setCommunityView('members')}
-                      className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all ${
-                        communityView === 'members' 
-                        ? 'bg-[var(--highlight)] text-white shadow-lg' 
+                      className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all ${communityView === 'members'
+                        ? 'bg-[var(--highlight)] text-white shadow-lg'
                         : 'text-[var(--paragraph)] hover:text-[var(--headline)]'
-                      }`}
+                        }`}
                     >
                       <FaUsers className={communityView === 'members' ? 'text-white' : 'text-[var(--highlight)]'} />
                       Members
@@ -838,7 +947,7 @@ const OrganizationDetail: React.FC = () => {
                     {communityView === 'members' && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {[1, 2, 3, 4, 5].map((i) => (
-                          <motion.div 
+                          <motion.div
                             key={i}
                             whileHover={{ scale: 1.02 }}
                             className="bg-[var(--main)] p-4 rounded-lg border border-[var(--stroke)] flex items-center gap-4 cursor-pointer"
@@ -883,7 +992,7 @@ const OrganizationDetail: React.FC = () => {
           ) : null}
         </motion.section>
       </div>
-      
+
       {/* Donation Modal */}
       {isDonationModalOpen && orgData && (
         <DonationModal
@@ -895,12 +1004,12 @@ const OrganizationDetail: React.FC = () => {
           onDonationComplete={async (amount, _, isAnonymous, isRecurring) => {
             try {
               console.log("Full organization data:", orgData);
-              
+
               // Ensure we have a valid charity ID
               if (!orgData.id) {
                 throw new Error("Invalid charity ID for donation");
               }
-              
+
               // Debug information
               console.log("Making general charity donation with parameters:", {
                 charityId: orgData.id,
@@ -908,7 +1017,7 @@ const OrganizationDetail: React.FC = () => {
                 isAnonymous,
                 isRecurring
               });
-              
+
               // Call charityService to make a general donation to the organization
               await charityService.makeDonation({
                 charityId: orgData.id,
@@ -916,11 +1025,11 @@ const OrganizationDetail: React.FC = () => {
                 isAnonymous: isAnonymous || false,
                 isRecurring: isRecurring || false
               });
-              
+
               const donationType = isRecurring ? 'monthly' : 'one-time';
               toast.success(`Thank you for your ${donationType} donation of RM${amount} to ${orgData.name}!`);
               setIsDonationModalOpen(false);
-              
+
               // Optionally refresh organization data to show updated stats
               if (!isOwnProfile && organizationIdString) {
                 const refreshedOrgData = await charityService.getCharityOrganizationById(organizationIdString);
@@ -937,19 +1046,19 @@ const OrganizationDetail: React.FC = () => {
 
       {/* Chat Modal */}
       {activeChatId !== null && (
-        <ChatModal 
-          chatId={activeChatId} 
-          onClose={() => setActiveChatId(null)} 
+        <ChatModal
+          chatId={activeChatId}
+          onClose={() => setActiveChatId(null)}
         />
       )}
-      
+
       {/* Edit Profile Modal for charity users viewing their own profile */}
       {isEditing && isOwnProfile && charityProfile && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-[var(--main)] rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-[var(--stroke)] flex justify-between items-center sticky top-0 bg-[var(--main)] z-10">
               <h2 className="text-xl font-bold text-[var(--headline)]">Edit Organization Profile</h2>
-              <button 
+              <button
                 onClick={() => setIsEditing(false)}
                 className="text-[var(--paragraph)] hover:text-[var(--headline)] transition-colors"
               >
@@ -957,21 +1066,21 @@ const OrganizationDetail: React.FC = () => {
               </button>
             </div>
             <div className="p-6">
-              <CharityInfo 
-                charity={charityProfile} 
-                isEditing={true} 
-                onSave={handleSaveCharityData} 
+              <CharityInfo
+                charity={charityProfile}
+                isEditing={true}
+                onSave={handleSaveCharityData}
               />
             </div>
           </div>
         </div>
       )}
-      
+
       {/* Add Campaign Modal */}
       {showAddCampaignModal && (
-        <AddCampaignModal 
-          onClose={handleCloseCampaignModal} 
-          onSave={handleSaveCampaign} 
+        <AddCampaignModal
+          onClose={handleCloseCampaignModal}
+          onSave={handleSaveCampaign}
         />
       )}
     </div>
