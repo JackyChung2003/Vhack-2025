@@ -159,21 +159,22 @@ const CharityHomePage: React.FC = () => {
         const lastDay = new Date(parseInt(endYear), parseInt(endMonth), 0).getDate();
         const endDate = `${month}-${lastDay}`;
 
-        // Get all campaign donations for this month using supabase directly
-        const { data: campaignDonations, error: campaignError } = await supabase
+        // Get ALL donations for this month (both campaign donations and general fund donations)
+        // We don't filter by campaign_id, so we get all donations to the charity
+        const { data: allDonations, error: donationsError } = await supabase
           .from('campaign_donations')
           .select('amount, created_at')
           .eq('charity_id', charityProfile.id)
           .gte('created_at', startDate)
           .lte('created_at', endDate);
 
-        if (campaignError) {
-          console.error("Error fetching campaign donations:", campaignError);
+        if (donationsError) {
+          console.error("Error fetching donations:", donationsError);
           continue;
         }
 
-        // Calculate total amount for this month
-        const totalAmount = campaignDonations?.reduce((sum: number, donation: {amount: number}) => 
+        // Calculate total amount for this month (all donations)
+        const totalAmount = allDonations?.reduce((sum: number, donation: {amount: number}) => 
           sum + donation.amount, 0) || 0;
         
         // Format month for display
@@ -277,7 +278,7 @@ const CharityHomePage: React.FC = () => {
             >
               <FaChartLine size={14} /> Management Portal
             </button>
-            <button
+            <button 
               onClick={() => handleNavigate("/Vhack-2025/charity/vendor-page")}
               className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium bg-white bg-opacity-20 text-white hover:bg-opacity-30 transition-all"
             >
@@ -286,41 +287,41 @@ const CharityHomePage: React.FC = () => {
           </div>
         </div>
       </motion.div>
-      
+
       {/* Stats Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-xl">
           <div className="flex justify-between items-center mb-1">
             <div className="text-sm text-gray-600">Finance</div>
             <FaMoneyBillWave className="text-green-500" />
-          </div>
+                </div>
           <div className="mt-2">
             <div className="text-gray-800 font-bold text-2xl">RM{(generalFundBalance + campaignFundsRaised).toLocaleString()}</div>
             <div className="text-gray-700 text-sm">Total Funds</div>
-          </div>
-        </div>
+                </div>
+              </div>
         
         <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-xl">
           <div className="flex justify-between items-center mb-1">
             <div className="text-sm text-gray-600">Growing</div>
             <FaHandHoldingHeart className="text-blue-500" />
-          </div>
+                        </div>
           <div className="mt-2">
             <div className="text-gray-800 font-bold text-2xl">{activeCampaigns}</div>
             <div className="text-gray-700 text-sm">Active Campaigns</div>
-          </div>
-        </div>
+                        </div>
+                      </div>
         
         <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-xl">
           <div className="flex justify-between items-center mb-1">
             <div className="text-sm text-gray-600">Community</div>
             <FaUsers className="text-purple-500" />
-          </div>
+                  </div>
           <div className="mt-2">
             <div className="text-gray-800 font-bold text-2xl">{supporters}</div>
             <div className="text-gray-700 text-sm">Supporters</div>
-          </div>
-        </div>
+                </div>
+              </div>
         
         <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 p-4 rounded-xl">
           <div className="flex justify-between items-center mb-1">
@@ -330,9 +331,9 @@ const CharityHomePage: React.FC = () => {
           <div className="mt-2">
             <div className="text-gray-800 font-bold text-2xl">{pendingVendorChats}</div>
             <div className="text-gray-700 text-sm">Vendor Messages</div>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
       {/* Main Dashboard Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -380,56 +381,56 @@ const CharityHomePage: React.FC = () => {
                 ) : latestActiveCampaigns.length > 0 ? (
                   latestActiveCampaigns.map((campaign) => {
                     const progress = Math.min(100, (campaign.current_amount / campaign.target_amount) * 100);
-                    return (
-                      <div 
-                        key={campaign.id}
+                  return (
+                    <div 
+                      key={campaign.id}
                         className="bg-white p-4 rounded-lg border border-gray-100 hover:shadow-md transition-all cursor-pointer"
-                        onClick={() => handleNavigate(`/campaign/${campaign.id}`)}
-                      >
-                        <div className="flex justify-between items-start mb-3">
-                          <div className="flex items-center">
-                            {progress >= 75 ? (
-                              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
-                                <FaTrophy className="text-green-600" />
-                              </div>
-                            ) : progress >= 50 ? (
-                              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                                <FaChartLine className="text-blue-600" />
-                              </div>
-                            ) : (
-                              <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center mr-3">
-                                <FaHandHoldingHeart className="text-yellow-600" />
-                              </div>
-                            )}
-                            <div>
+                      onClick={() => handleNavigate(`/campaign/${campaign.id}`)}
+                    >
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex items-center">
+                          {progress >= 75 ? (
+                            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                              <FaTrophy className="text-green-600" />
+                            </div>
+                          ) : progress >= 50 ? (
+                            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                              <FaChartLine className="text-blue-600" />
+                            </div>
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center mr-3">
+                              <FaHandHoldingHeart className="text-yellow-600" />
+                            </div>
+                          )}
+                          <div>
                               <h3 className="font-medium text-[var(--headline)]">{campaign.title}</h3>
-                              <div className="flex items-center text-xs text-[var(--paragraph)] mt-1">
-                                <FaCalendarAlt className="mr-1" />
-                                <span>Ends: {new Date(campaign.deadline).toLocaleDateString()}</span>
-                              </div>
+                            <div className="flex items-center text-xs text-[var(--paragraph)] mt-1">
+                              <FaCalendarAlt className="mr-1" />
+                              <span>Ends: {new Date(campaign.deadline).toLocaleDateString()}</span>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="font-bold text-[var(--headline)]">
-                              RM{campaign.current_amount.toLocaleString()}
-                            </p>
-                            <p className="text-xs text-[var(--paragraph)]">
-                              of RM{campaign.target_amount.toLocaleString()}
-                            </p>
-                          </div>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className={`h-2 rounded-full ${
-                              progress >= 75 ? 'bg-green-500' : 
-                              progress >= 50 ? 'bg-blue-500' : 
-                              'bg-yellow-500'
-                            }`}
-                            style={{ width: `${progress}%` }}
-                          ></div>
+                        <div className="text-right">
+                          <p className="font-bold text-[var(--headline)]">
+                              RM{campaign.current_amount.toLocaleString()}
+                          </p>
+                          <p className="text-xs text-[var(--paragraph)]">
+                              of RM{campaign.target_amount.toLocaleString()}
+                          </p>
                         </div>
                       </div>
-                    );
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full ${
+                            progress >= 75 ? 'bg-green-500' : 
+                            progress >= 50 ? 'bg-blue-500' : 
+                            'bg-yellow-500'
+                          }`}
+                          style={{ width: `${progress}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  );
                   })
                 ) : (
                   <div className="text-center py-8">
@@ -446,14 +447,14 @@ const CharityHomePage: React.FC = () => {
             </div>
           </div>
 
-          {/* Monthly Donation Trends */}
+          {/* Monthly Donation */}
           <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all">
             <div className="p-4 flex justify-between items-center border-b border-gray-100">
               <div className="flex items-center">
                 <div className="p-2 rounded-lg bg-[var(--highlight)] bg-opacity-10 mr-3">
                   <FaChartLine className="text-[var(--highlight)] text-xl" />
                 </div>
-                <h2 className="text-lg font-bold text-[var(--headline)]">Monthly Donation</h2>
+                <h2 className="text-lg font-bold text-[var(--headline)]">Monthly Donation (General Fund)</h2>
               </div>
             </div>
             <div className="p-8">
@@ -462,21 +463,25 @@ const CharityHomePage: React.FC = () => {
                   <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[var(--highlight)]"></div>
                 </div>
               ) : monthlyDonations.length > 0 ? (
-                <div className="flex justify-between items-end h-64">
-                  {monthlyDonations.map((data, index) => {
-                    const maxAmount = Math.max(...monthlyDonations.map(d => d.amount));
-                    const barHeight = getBarHeight(data.amount, maxAmount);
-                    return (
-                      <div key={index} className="flex flex-col items-center">
-                        <div 
-                          className="w-20 bg-blue-500 rounded-t-lg transition-all duration-500 ease-in-out"
-                          style={{ height: `${barHeight}px` }}
-                        ></div>
-                        <p className="text-xs mt-2">{data.month}</p>
-                        <p className="text-xs font-medium">RM{data.amount.toLocaleString()}</p>
-                      </div>
-                    );
-                  })}
+                <div className="flex flex-col h-64">
+                  <div className="flex justify-between items-end h-64">
+                    {monthlyDonations.map((data, index) => {
+                      const maxAmount = Math.max(...monthlyDonations.map(d => d.amount));
+                      const barHeight = getBarHeight(data.amount, maxAmount);
+                      return (
+                        <div key={index} className="flex flex-col items-center">
+                          <div 
+                            className="w-24 bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-lg transition-all duration-500 ease-in-out shadow-md"
+                            style={{ height: `${barHeight}px` }}
+                          ></div>
+                          <div className="mt-2 flex flex-col items-center">
+                            <p className="text-sm font-medium text-gray-600">{data.month}</p>
+                            <p className="text-sm font-bold text-[var(--headline)]">RM{data.amount.toLocaleString()}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               ) : (
                 <div className="flex justify-center items-center h-64 text-gray-500">
@@ -509,7 +514,7 @@ const CharityHomePage: React.FC = () => {
               </button>
             </div>
             <div className="p-6">
-              <div className="flex flex-col items-center">
+                <div className="flex flex-col items-center">
                 {fundingLoading ? (
                   <div className="w-48 h-48 flex items-center justify-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[var(--highlight)]"></div>
