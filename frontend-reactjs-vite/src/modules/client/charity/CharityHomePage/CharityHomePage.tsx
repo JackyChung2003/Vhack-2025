@@ -27,8 +27,23 @@ import {
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import AddCampaignModal from "../../../../components/modals/AddCampaignModal";
-import { charityService, Campaign } from "../../../../services/supabase/charityService";
+import { charityService, Campaign, CharityProfile } from "../../../../services/supabase/charityService";
 import { toast } from "react-toastify";
+import supabase from '../../../../services/supabase/supabaseClient';
+
+// Define a date formatter function since we don't have date-fns
+const formatDate = (date: Date, format: string): string => {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  
+  if (format === 'yyyy-MM') {
+    return `${year}-${String(month + 1).padStart(2, '0')}`;
+  } else if (format === 'MMM yyyy') {
+    return `${months[month]} ${year}`;
+  }
+  return '';
+};
 
 const CharityHomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -36,11 +51,50 @@ const CharityHomePage: React.FC = () => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [charityProfile, setCharityProfile] = useState<CharityProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [generalFundBalance, setGeneralFundBalance] = useState(0);
+  const [campaignFundsRaised, setCampaignFundsRaised] = useState(0);
+  const [fundingLoading, setFundingLoading] = useState(true);
+  const [monthlyDonations, setMonthlyDonations] = useState<{month: string; amount: number}[]>([]);
+  const [donationsLoading, setDonationsLoading] = useState(true);
+  
+  // Fetch profile when component mounts
+  useEffect(() => {
+    fetchCharityProfile();
+  }, []);
   
   // Fetch campaigns when component mounts
   useEffect(() => {
     fetchCampaigns();
   }, []);
+
+  // Fetch funding data when charity profile is loaded
+  useEffect(() => {
+    if (charityProfile) {
+      fetchFundingData();
+    }
+  }, [charityProfile]);
+
+  // Fetch monthly donations data
+  useEffect(() => {
+    if (charityProfile) {
+      fetchMonthlyDonations();
+    }
+  }, [charityProfile]);
+
+  const fetchCharityProfile = async () => {
+    try {
+      setProfileLoading(true);
+      const profileData = await charityService.getCharityProfile();
+      setCharityProfile(profileData);
+    } catch (err: any) {
+      console.error("Error fetching charity profile:", err);
+      // Don't set error state here to avoid showing error in UI
+    } finally {
+      setProfileLoading(false);
+    }
+  };
 
   const fetchCampaigns = async () => {
     try {
@@ -56,19 +110,96 @@ const CharityHomePage: React.FC = () => {
     }
   };
 
+  const fetchFundingData = async () => {
+    try {
+      setFundingLoading(true);
+      
+      if (!charityProfile) return;
+
+      // Get general fund (donations where campaign_id is null)
+      const generalFundData = await charityService.getCharityGeneralFund(charityProfile.id);
+      setGeneralFundBalance(generalFundData.totalAmount);
+
+      // Calculate campaign funds (sum of all campaign donations)
+      const campaignTotal = campaigns.reduce((total, campaign) => total + (campaign.current_amount || 0), 0);
+      setCampaignFundsRaised(campaignTotal);
+
+    } catch (err) {
+      console.error("Error fetching funding data:", err);
+      // Don't set error state to avoid showing error in UI
+    } finally {
+      setFundingLoading(false);
+    }
+  };
+
+  // Fetch monthly donations data
+  const fetchMonthlyDonations = async () => {
+    try {
+      setDonationsLoading(true);
+      
+      if (!charityProfile) return;
+
+      // Get current date and calculate dates for last 3 months
+      const now = new Date();
+      const months = [];
+      for (let i = 2; i >= 0; i--) {
+        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        months.push(formatDate(date, 'yyyy-MM'));
+      }
+
+      // Create an array to hold monthly data
+      const monthlyData: {month: string; amount: number}[] = [];
+
+      // For each month, calculate total donations (both campaign and general)
+      for (const month of months) {
+        const startDate = `${month}-01`;
+        const endMonth = month.split('-')[1];
+        const endYear = month.split('-')[0];
+        // Calculate last day of month (accounting for different month lengths)
+        const lastDay = new Date(parseInt(endYear), parseInt(endMonth), 0).getDate();
+        const endDate = `${month}-${lastDay}`;
+
+        // Get all campaign donations for this month using supabase directly
+        const { data: campaignDonations, error: campaignError } = await supabase
+          .from('campaign_donations')
+          .select('amount, created_at')
+          .eq('charity_id', charityProfile.id)
+          .gte('created_at', startDate)
+          .lte('created_at', endDate);
+
+        if (campaignError) {
+          console.error("Error fetching campaign donations:", campaignError);
+          continue;
+        }
+
+        // Calculate total amount for this month
+        const totalAmount = campaignDonations?.reduce((sum: number, donation: {amount: number}) => 
+          sum + donation.amount, 0) || 0;
+        
+        // Format month for display
+        const displayMonth = formatDate(new Date(month + '-01'), 'MMM yyyy');
+        
+        // Add to monthly data
+        monthlyData.push({
+          month: displayMonth,
+          amount: totalAmount
+        });
+      }
+
+      setMonthlyDonations(monthlyData);
+    } catch (err) {
+      console.error("Error fetching monthly donations:", err);
+    } finally {
+      setDonationsLoading(false);
+    }
+  };
+
   // Calculate statistics
   const activeCampaigns = campaigns.filter(campaign => 
     campaign.status === 'active'
   ).length;
 
-  // Calculate total raised from campaigns
-  const campaignFundsRaised = campaigns.reduce(
-    (sum, campaign) => sum + (campaign.current_amount || 0), 0
-  );
-
   // Get general fund from organization data
-  const generalFundBalance = 0; // TODO: Implement general fund balance
-
   const supporters = Math.floor(campaignFundsRaised / 500); // Rough estimate of supporters
 
   // Mock data for vendor activity
@@ -104,6 +235,13 @@ const CharityHomePage: React.FC = () => {
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 3);
 
+  // Helper function to determine bar height based on amount
+  const getBarHeight = (amount: number, maxAmount: number) => {
+    if (maxAmount <= 0) return 20; // Minimum height if no donations
+    // Scale height between 40px and 200px
+    return Math.max(40, Math.min(200, (amount / maxAmount) * 180 + 20));
+  };
+
   return (
     <div className="p-6 bg-[var(--background)] text-[var(--paragraph)] max-w-7xl mx-auto min-h-screen">
       {/* Header with gradient background */}
@@ -120,11 +258,18 @@ const CharityHomePage: React.FC = () => {
         <div className="relative z-10">
           <div className="flex items-center">
             <FaGlobe className="text-white opacity-80 mr-3 text-3xl" />
-            <h1 className="text-2xl md:text-3xl font-bold">Welcome, Global Relief</h1>
+            <h1 className="text-2xl md:text-3xl font-bold">
+              {profileLoading ? "Welcome" : `Welcome, ${charityProfile?.name || "Charity"}`}
+            </h1>
           </div>
-          <p className="mt-3 opacity-90 max-w-2xl">
-            Your centralized dashboard for managing campaigns, funds, and vendor relationships
-          </p>
+          <div className="flex items-start mt-3">
+            <div className="min-w-4 h-4 rounded-full bg-blue-500 mr-2 mt-1"></div>
+            <p className="opacity-90 text-white">
+              <span className="font-medium">About {charityProfile?.name || "Global Relief"}</span>{" "}
+              {charityProfile?.description || 
+               "Global Relief is a Malaysia-based humanitarian organization committed to providing rapid and compassionate aid to communities affected by disasters, poverty, and health crises. We work across the country to deliver clean water, food, medical support, and education resources—reaching those who need it most, when they need it most."}
+            </p>
+          </div>
           <div className="flex mt-6 gap-3">
             <button 
               onClick={() => handleNavigate("/charity-management")}
@@ -133,7 +278,7 @@ const CharityHomePage: React.FC = () => {
               <FaChartLine size={14} /> Management Portal
             </button>
             <button
-              onClick={() => handleNavigate("/charity/vendor-page")}
+              onClick={() => handleNavigate("/Vhack-2025/charity/vendor-page")}
               className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium bg-white bg-opacity-20 text-white hover:bg-opacity-30 transition-all"
             >
               <FaUserFriends size={14} /> Vendor Portal
@@ -308,27 +453,36 @@ const CharityHomePage: React.FC = () => {
                 <div className="p-2 rounded-lg bg-[var(--highlight)] bg-opacity-10 mr-3">
                   <FaChartLine className="text-[var(--highlight)] text-xl" />
                 </div>
-                <h2 className="text-lg font-bold text-[var(--headline)]">Monthly Donation Trends</h2>
+                <h2 className="text-lg font-bold text-[var(--headline)]">Monthly Donation</h2>
               </div>
             </div>
-            <div className="p-4">
-              <div className="flex justify-between items-end h-64">
-                <div className="flex flex-col items-center">
-                  <div className="w-16 h-48 bg-blue-500 rounded-t-lg"></div>
-                  <p className="text-xs mt-2">2025-01</p>
-                  <p className="text-xs font-medium">RM48,000</p>
+            <div className="p-8">
+              {donationsLoading ? (
+                <div className="flex justify-center items-center h-64">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[var(--highlight)]"></div>
                 </div>
-                <div className="flex flex-col items-center">
-                  <div className="w-16 h-56 bg-blue-500 rounded-t-lg"></div>
-                  <p className="text-xs mt-2">2025-02</p>
-                  <p className="text-xs font-medium">RM52,000</p>
+              ) : monthlyDonations.length > 0 ? (
+                <div className="flex justify-between items-end h-64">
+                  {monthlyDonations.map((data, index) => {
+                    const maxAmount = Math.max(...monthlyDonations.map(d => d.amount));
+                    const barHeight = getBarHeight(data.amount, maxAmount);
+                    return (
+                      <div key={index} className="flex flex-col items-center">
+                        <div 
+                          className="w-20 bg-blue-500 rounded-t-lg transition-all duration-500 ease-in-out"
+                          style={{ height: `${barHeight}px` }}
+                        ></div>
+                        <p className="text-xs mt-2">{data.month}</p>
+                        <p className="text-xs font-medium">RM{data.amount.toLocaleString()}</p>
+                      </div>
+                    );
+                  })}
                 </div>
-                <div className="flex flex-col items-center">
-                  <div className="w-16 h-44 bg-blue-500 rounded-t-lg"></div>
-                  <p className="text-xs mt-2">2025-03</p>
-                  <p className="text-xs font-medium">RM45,000</p>
+              ) : (
+                <div className="flex justify-center items-center h-64 text-gray-500">
+                  <p>No donation data available for the last three months.</p>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </motion.div>
@@ -340,64 +494,100 @@ const CharityHomePage: React.FC = () => {
           transition={{ duration: 0.5, delay: 0.6 }}
           className="lg:col-span-5 space-y-6"
         >
-          {/* Fund Summary */}
+          {/* Fund Summary Card */}
           <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all">
-            <div className="p-4 flex justify-between items-center border-b border-gray-100">
-              <div className="flex items-center">
-                <div className="p-2 rounded-lg bg-[var(--highlight)] bg-opacity-10 mr-3">
-                  <FaMoneyBillWave className="text-[var(--highlight)] text-xl" />
-                </div>
-                <h2 className="text-lg font-bold text-[var(--headline)]">Fund Summary</h2>
+            <div className="p-4 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 bg-[#FDB022] rounded-lg"></div>
+                <h2 className="text-xl font-semibold text-[var(--headline)]">Fund Summary</h2>
               </div>
               <button 
                 onClick={() => handleNavigate("/charity-management?tab=funds")}
-                className="flex items-center gap-1 text-sm text-[var(--highlight)] hover:underline"
+                className="text-[#FF784D] hover:text-[#FF784D]/90 font-medium flex items-center gap-1"
               >
                 View Details <FaArrowRight size={12} />
               </button>
             </div>
-            <div className="p-5">
-              <div className="flex items-center justify-center mb-4">
-                <div className="flex items-center mr-4">
-                  <div className="w-3 h-3 rounded-full bg-[#3b82f6] mr-2"></div>
-                  <span className="text-sm">General Fund</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-3 h-3 rounded-full bg-[#10b981] mr-2"></div>
-                  <span className="text-sm">Campaign Fund</span>
-                </div>
-              </div>
-              
+            <div className="p-6">
               <div className="flex flex-col items-center">
-                <div className="relative w-48 h-48 mb-4">
-                  <svg viewBox="0 0 100 100" className="transform -rotate-90">
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="40"
-                      fill="none"
-                      stroke="#e5e7eb"
-                      strokeWidth="10"
-                    />
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="40"
-                      fill="none"
-                      stroke="#3b82f6"
-                      strokeWidth="10"
-                      strokeDasharray="251.2 251.2"
-                      strokeDashoffset="0"
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-2xl font-bold text-[var(--headline)]">RM345,000</span>
-                    <span className="text-sm text-[var(--paragraph)]">Total Funds</span>
+                {fundingLoading ? (
+                  <div className="w-48 h-48 flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[var(--highlight)]"></div>
                   </div>
-                </div>
-                <div className="flex items-center text-xs text-green-600">
-                  <FaArrowUp className="mr-1" /> 12% increase from last month
-                </div>
+                ) : (
+                  <>
+                    <div className="relative w-48 h-48 mb-6">
+                      {(() => {
+                        const totalFunds = generalFundBalance + campaignFundsRaised;
+                        const generalPercentage = totalFunds > 0 ? (generalFundBalance / totalFunds) * 100 : 0;
+                        const campaignPercentage = totalFunds > 0 ? (campaignFundsRaised / totalFunds) * 100 : 0;
+                        const circumference = 2 * Math.PI * 40;
+                        
+                        // Calculate the dash offsets for both sections
+                        const generalDash = (generalPercentage / 100) * circumference;
+                        const campaignDash = (campaignPercentage / 100) * circumference;
+                        
+                        return (
+                          <svg viewBox="0 0 100 100" className="transform -rotate-90">
+                            {/* Background circle */}
+                            <circle
+                              cx="50"
+                              cy="50"
+                              r="40"
+                              fill="none"
+                              stroke="#E5E7EB"
+                              strokeWidth="12"
+                            />
+                            {/* General Fund circle */}
+                            <circle
+                              cx="50"
+                              cy="50"
+                              r="40"
+                              fill="none"
+                              stroke="#2563EB"
+                              strokeWidth="12"
+                              strokeDasharray={`${generalDash} ${circumference}`}
+                              className="transition-all duration-1000 ease-in-out"
+                            />
+                            {/* Campaign Fund circle */}
+                            <circle
+                              cx="50"
+                              cy="50"
+                              r="40"
+                              fill="none"
+                              stroke="#22C55E"
+                              strokeWidth="12"
+                              strokeDasharray={`${campaignDash} ${circumference}`}
+                              strokeDashoffset={-generalDash}
+                              className="transition-all duration-1000 ease-in-out"
+                            />
+                          </svg>
+                        );
+                      })()}
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-2xl font-bold text-[#1B4B43]">
+                          RM{(generalFundBalance + campaignFundsRaised).toLocaleString()}
+                        </span>
+                        <span className="text-sm text-[#475467]">Total Funds</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="flex items-center gap-6">
+                        <div className="flex items-center">
+                          <div className="w-2 h-2 rounded-full bg-[#2563EB] mr-2"></div>
+                          <span className="text-sm text-[#475467]">General Fund: <span className="text-[#1B4B43] font-medium">RM{generalFundBalance.toLocaleString()}</span></span>
+                        </div>
+                        <div className="flex items-center">
+                          <div className="w-2 h-2 rounded-full bg-[#22C55E] mr-2"></div>
+                          <span className="text-sm text-[#475467]">Campaign Fund: <span className="text-[#1B4B43] font-medium">RM{campaignFundsRaised.toLocaleString()}</span></span>
+                        </div>
+                      </div>
+                      <div className="flex items-center text-sm text-[#22C55E] font-medium">
+                        <FaArrowUp className="mr-1" /> 12% increase from last month
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
