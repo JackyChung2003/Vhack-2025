@@ -319,7 +319,7 @@ const CharityManagementPage: React.FC = () => {
                       <div
                         key={campaign.id}
                         className="bg-gradient-to-br from-white to-gray-50 p-4 rounded-lg shadow-sm hover:shadow-md transition-all"
-                      >
+        >
                         <div className="flex justify-between items-start mb-3">
             <div className="flex items-center">
                             {progress >= 75 ? (
@@ -427,7 +427,7 @@ const CharityManagementPage: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                
+                    
                 {/* Fund Allocation Chart */}
                 <div className="p-4 border-b border-[var(--stroke)]">
                   <h3 className="text-lg font-medium text-[var(--headline)] mb-4">Fund Allocation</h3>

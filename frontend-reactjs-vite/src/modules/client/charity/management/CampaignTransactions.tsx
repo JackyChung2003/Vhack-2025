@@ -1,27 +1,35 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FaArrowLeft, FaCheckCircle, FaClock, FaTimesCircle, FaExclamationCircle } from 'react-icons/fa';
+import { FaArrowLeft, FaCheckCircle, FaClock, FaTimesCircle, FaExclamationCircle, FaMoneyBillWave, FaShoppingCart } from 'react-icons/fa';
 import { mockCampaigns } from '../../../../utils/mockData';
 
 const CampaignTransactions: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  
+
   // Find the campaign
   const campaign = mockCampaigns.find(c => c.id === Number(id));
   
-  // Mock fund allocation data
+  if (!campaign) {
+    return (
+      <div className="p-6">
+        <h1 className="text-2xl font-bold text-red-500">Campaign not found</h1>
+      </div>
+    );
+  }
+
+  // Calculate fund allocation based on campaign data
   const fundAllocation = {
-    available: 40000, // Funds that haven't been used
-    onHold: 30000,    // Funds on hold for accepted vendor quotations
-    used: 20000,      // Funds already paid to vendors
-    remaining: 10000  // Remaining target amount
+    available: campaign.currentContributions * 0.4, // 40% of funds are available
+    onHold: campaign.currentContributions * 0.3,    // 30% of funds are on hold
+    used: campaign.currentContributions * 0.3,      // 30% of funds are used
+    remaining: campaign.goal - campaign.currentContributions  // Remaining target amount
   };
 
   // Calculate total funds
-  const totalFunds = fundAllocation.available + fundAllocation.onHold + fundAllocation.used;
-  const totalTarget = totalFunds + fundAllocation.remaining;
+  const totalFunds = campaign.currentContributions;
+  const totalTarget = campaign.goal;
 
   // Calculate percentages
   const percentages = {
@@ -62,26 +70,19 @@ const CampaignTransactions: React.FC = () => {
     }
   ];
 
-  if (!campaign) {
-    return (
-      <div className="p-6">
-        <h1 className="text-2xl font-bold text-red-500">Campaign not found</h1>
-      </div>
-    );
-  }
-
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       className="p-6 max-w-7xl mx-auto"
     >
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate('/Vhack-2025/management?tab=funds', { replace: true })}
           className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+          aria-label="Back to Fund Management"
         >
           <FaArrowLeft className="text-gray-600" />
         </button>
@@ -94,19 +95,20 @@ const CampaignTransactions: React.FC = () => {
       {/* Fund Allocation Donut Chart */}
       <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">Fund Allocation</h2>
-        <div className="flex items-center justify-center gap-8">
+        <div className="flex items-center justify-center gap-12">
           {/* Donut Chart */}
-          <div className="relative w-64 h-64">
-            <svg viewBox="0 0 100 100" className="transform -rotate-90">
-              {/* Background circle */}
+          <div className="relative w-72 h-72">
+            <svg viewBox="0 0 100 100" className="transform rotate-90 w-full h-full">
+              {/* Base circle (Remaining Target - Gray) */}
               <circle
                 cx="50"
                 cy="50"
                 r="40"
                 fill="none"
-                stroke="#E5E7EB"
-                strokeWidth="20"
+                stroke="#9CA3AF"
+                strokeWidth="16"
               />
+              
               {/* Available Funds (Green) */}
               <circle
                 cx="50"
@@ -114,21 +116,23 @@ const CampaignTransactions: React.FC = () => {
                 r="40"
                 fill="none"
                 stroke="#10B981"
-                strokeWidth="20"
-                strokeDasharray={`${percentages.available} ${100 - percentages.available}`}
+                strokeWidth="16"
+                strokeDasharray={`${20 * 2.51327} ${251.327 - (20 * 2.51327)}`}
                 strokeDashoffset="0"
               />
-              {/* On Hold Funds (Yellow) */}
+              
+              {/* On Hold (Yellow) */}
               <circle
                 cx="50"
                 cy="50"
                 r="40"
                 fill="none"
-                stroke="#F59E0B"
-                strokeWidth="20"
-                strokeDasharray={`${percentages.onHold} ${100 - percentages.onHold}`}
-                strokeDashoffset={`-${percentages.available}`}
+                stroke="#FFF44F"
+                strokeWidth="16"
+                strokeDasharray={`${15 * 2.51327} ${251.327 - (15 * 2.51327)}`}
+                strokeDashoffset={`${-(20 * 2.51327)}`}
               />
+              
               {/* Used Funds (Red) */}
               <circle
                 cx="50"
@@ -136,20 +140,9 @@ const CampaignTransactions: React.FC = () => {
                 r="40"
                 fill="none"
                 stroke="#EF4444"
-                strokeWidth="20"
-                strokeDasharray={`${percentages.used} ${100 - percentages.used}`}
-                strokeDashoffset={`-${percentages.available + percentages.onHold}`}
-              />
-              {/* Remaining Target (Gray) */}
-              <circle
-                cx="50"
-                cy="50"
-                r="40"
-                fill="none"
-                stroke="#9CA3AF"
-                strokeWidth="20"
-                strokeDasharray={`${percentages.remaining} ${100 - percentages.remaining}`}
-                strokeDashoffset={`-${percentages.available + percentages.onHold + percentages.used}`}
+                strokeWidth="16"
+                strokeDasharray={`${15 * 2.51327} ${251.327 - (15 * 2.51327)}`}
+                strokeDashoffset={`${-((20 + 15) * 2.51327)}`}
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -163,7 +156,7 @@ const CampaignTransactions: React.FC = () => {
           {/* Legend */}
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-5 h-5 rounded-full bg-green-500"></div>
+              <div className="w-4 h-4 rounded-full bg-[#10B981]"></div>
               <div>
                 <p className="font-medium text-gray-800">Available Funds</p>
                 <p className="text-sm text-gray-600">
@@ -172,7 +165,7 @@ const CampaignTransactions: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="w-5 h-5 rounded-full bg-yellow-500"></div>
+              <div className="w-4 h-4 bg-[#FFF44F]"></div>
               <div>
                 <p className="font-medium text-gray-800">On Hold</p>
                 <p className="text-sm text-gray-600">
@@ -181,7 +174,7 @@ const CampaignTransactions: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="w-5 h-5 rounded-full bg-red-500"></div>
+              <div className="w-4 h-4 rounded-full bg-[#EF4444]"></div>
               <div>
                 <p className="font-medium text-gray-800">Used Funds</p>
                 <p className="text-sm text-gray-600">
@@ -190,7 +183,7 @@ const CampaignTransactions: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="w-5 h-5 rounded-full bg-gray-400"></div>
+              <div className="w-4 h-4 rounded-full bg-[#9CA3AF]"></div>
               <div>
                 <p className="font-medium text-gray-800">Remaining Target</p>
                 <p className="text-sm text-gray-600">
@@ -207,50 +200,43 @@ const CampaignTransactions: React.FC = () => {
         <div className="p-6 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-800">Transaction History</h2>
         </div>
-        <div className="divide-y divide-gray-200">
-          {transactions.map((transaction) => (
-            <div key={transaction.id} className="p-6 hover:bg-gray-50 transition-colors">
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-4">
-                  <div className={`p-2 rounded-full ${
-                    transaction.status === 'completed' ? 'bg-green-100' :
-                    transaction.status === 'on-hold' ? 'bg-yellow-100' :
-                    'bg-red-100'
+        <div className="divide-y divide-gray-100">
+              {transactions.map((transaction) => (
+            <div key={transaction.id} className="p-4 hover:bg-gray-50 transition-colors">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    transaction.type === 'Donation' ? 'bg-green-100' : 'bg-red-100'
                   }`}>
-                    {transaction.status === 'completed' ? (
-                      <FaCheckCircle className="text-green-500" />
-                    ) : transaction.status === 'on-hold' ? (
-                      <FaClock className="text-yellow-500" />
+                    {transaction.type === 'Donation' ? (
+                      <FaMoneyBillWave className="text-green-600" />
                     ) : (
-                      <FaTimesCircle className="text-red-500" />
+                      <FaShoppingCart className="text-red-600" />
                     )}
                   </div>
                   <div>
-                    <p className="font-medium text-gray-800">{transaction.description}</p>
+                    <h3 className="font-medium text-gray-900">
+                      {transaction.type === 'Donation' ? 'Donation Received' : 'Campaign Expense'}
+                    </h3>
                     <p className="text-sm text-gray-600">
-                      {transaction.type === 'Donation' ? `Donor: ${transaction.donor}` : `Vendor: ${transaction.vendor}`}
+                      {transaction.type === 'Donation' ? `From ${transaction.donor}` : transaction.description}
                     </p>
-                    <p className="text-sm text-gray-500">{transaction.date}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-medium text-gray-800">RM{transaction.amount.toLocaleString()}</p>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    transaction.status === 'completed' ? 'bg-green-100 text-green-800' :
-                    transaction.status === 'on-hold' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-red-100 text-red-800'
+                  <p className={`text-lg font-semibold ${
+                    transaction.type === 'Donation' ? 'text-green-600' : 'text-red-600'
                   }`}>
-                    {transaction.status === 'completed' ? 'Completed' :
-                     transaction.status === 'on-hold' ? 'On Hold' :
-                     'Failed'}
-                  </span>
+                    {transaction.type === 'Donation' ? '+' : '-'}RM{transaction.amount.toLocaleString()}
+                  </p>
+                  <p className="text-sm text-gray-500">{transaction.date}</p>
                 </div>
               </div>
             </div>
-          ))}
+              ))}
         </div>
-      </div>
-    </motion.div>
+        </div>
+      </motion.div>
   );
 };
 
