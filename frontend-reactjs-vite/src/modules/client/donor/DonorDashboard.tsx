@@ -371,8 +371,8 @@ const DonorDashboard: React.FC = () => {
 
             {/* Other Campaigns */}
             {campaigns.slice(1, 3).map((campaign) => (
-              <div 
-                key={campaign.id} 
+              <div
+                key={campaign.id}
                 className="bg-white rounded-xl shadow-md overflow-hidden border border-[var(--stroke)] transition-all hover:shadow-lg hover:translate-y-[-5px] cursor-pointer"
                 onClick={() => navigateToCampaign(campaign.id)}
               >
@@ -418,12 +418,12 @@ const DonorDashboard: React.FC = () => {
           </div>
         )}
       </div>
-      
+
       {/* Badge Wall Section */}
       <div className="mb-10">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-[var(--headline)]">Your Achievement Badges</h2>
-          <button 
+          <button
             onClick={toggleExpandBadges}
             className="text-[var(--highlight)] hover:underline flex items-center gap-1 text-sm font-medium bg-transparent border-none cursor-pointer"
           >
@@ -433,8 +433,8 @@ const DonorDashboard: React.FC = () => {
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {displayBadges.map((badge) => (
-            <div 
-              key={badge.id} 
+            <div
+              key={badge.id}
               className={`bg-white rounded-xl shadow-md overflow-hidden border border-${badge.color}-200 transition-all hover:shadow-lg text-center p-4 ${!badge.earned && 'opacity-70'}`}
             >
               <div className={`mx-auto w-16 h-16 rounded-full mb-3 flex items-center justify-center bg-${badge.color}-100 relative`}>
@@ -447,23 +447,23 @@ const DonorDashboard: React.FC = () => {
                   </div>
                 )}
               </div>
-              
+
               <h3 className="font-bold text-[var(--headline)] mb-1">{badge.title}</h3>
               <p className="text-xs text-[var(--paragraph)] mb-2">{badge.description}</p>
-              
+
               {badge.earned ? (
                 <div className="text-xs text-green-600 font-medium">
                   Earned {badge.earnedDate ? new Date(badge.earnedDate).toLocaleDateString() : ''}
                 </div>
               ) : (
                 <div className="w-full bg-gray-200 rounded-full h-1.5 mb-1">
-                  <div 
-                    className={`bg-${badge.color}-500 h-1.5 rounded-full`} 
+                  <div
+                    className={`bg-${badge.color}-500 h-1.5 rounded-full`}
                     style={{ width: `${badge.progress}%` }}
                   ></div>
                 </div>
               )}
-              
+
               {!badge.earned && (
                 <div className="text-xs text-[var(--paragraph)]">
                   {badge.progress}% complete

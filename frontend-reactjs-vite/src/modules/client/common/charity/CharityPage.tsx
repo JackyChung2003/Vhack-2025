@@ -14,7 +14,9 @@ import {
   FaListUl,
   FaMoneyBillWave,
   FaCalendarTimes,
-  FaArchive
+  FaArchive,
+  FaCalendarAlt,
+  FaFolderOpen
 } from "react-icons/fa";
 import OrganizationCard from "../../../../components/cards/OrganizationCard";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -486,36 +488,84 @@ const CharityPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Expired Campaigns Section */}
+              {/* Expired Campaigns Section with improved design */}
               {sortedExpiredCampaigns.length > 0 && (
-                <div className="mt-8">
-                  <h3 className="text-xl font-semibold text-[var(--headline)] mb-4 flex items-center gap-2">
-                    <FaCalendarTimes className="text-gray-500" />
-                    Expired Campaigns ({sortedExpiredCampaigns.length})
-                  </h3>
+                <div className="mt-12 pt-8">
+                  {/* Main section header - matching the image */}
+                  <div className="flex items-center gap-2 mb-6">
+                    <FaCalendarTimes className="text-2xl text-[#003d20]" />
+                    <h2 className="text-2xl font-bold text-[#003d20]">
+                      Expired Campaigns ({sortedExpiredCampaigns.length})
+                    </h2>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {sortedExpiredCampaigns.map((campaign) => {
-                      // Use the actual deadline or a default one
-                      const defaultDeadline = new Date();
-                      defaultDeadline.setDate(defaultDeadline.getDate() - 1); // Past date for expired campaigns
+                      // Use the actual deadline
+                      const deadlineDate = campaign.deadline
+                        ? new Date(campaign.deadline)
+                        : new Date(new Date().setDate(new Date().getDate() - 1)); // Fallback to yesterday
+
+                      // Calculate funding percentage
+                      const fundingPercentage = Math.round((campaign.current_amount / campaign.target_amount) * 100);
 
                       return (
-                        <div key={campaign.id} className="relative">
-                          <div className="absolute inset-0 bg-black bg-opacity-10 z-10 pointer-events-none rounded-xl"></div>
-                          <div className="absolute top-4 right-4 z-20">
-                            <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-md font-medium">
-                              Expired
+                        <div
+                          key={campaign.id}
+                          className="relative bg-[#f5f5f5] shadow-md rounded-xl overflow-hidden transform transition-transform hover:scale-[1.01] hover:shadow-lg cursor-pointer"
+                          onClick={() => navigate(`/charity/${campaign.id}`)}
+                        >
+                          {/* Campaign Ended header - exact match to image with lower opacity */}
+                          <div className="absolute top-0 left-0 right-0 z-20 bg-[#e53935] bg-opacity-90 text-white py-2 px-4 flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                              <FaCalendarTimes size={14} />
+                              <span className="font-medium">Campaign Ended</span>
+                            </div>
+                            <span className="bg-white/20 px-2 py-1 rounded text-sm">
+                              {deadlineDate.toLocaleDateString()}
                             </span>
                           </div>
-                          <CampaignCard
-                            id={campaign.id}
-                            name={campaign.title}
-                            description={campaign.description}
-                            goal={campaign.target_amount}
-                            currentContributions={campaign.current_amount}
-                            deadline={campaign.deadline || defaultDeadline.toISOString()}
-                            category={campaign.category}
-                          />
+
+                          {/* Regular Campaign Card - without duplicating content */}
+                          <div className="pt-12">
+                            {/* Campaign title and description - custom styling to match image */}
+                            <div className="px-4 pt-2 pb-4">
+                              <h3 className="text-xl font-bold text-[#003d20] mt-1">
+                                {campaign.title}
+                              </h3>
+                              <p className="text-gray-600 mt-2 line-clamp-2">
+                                {campaign.description}
+                              </p>
+
+                              {/* Progress bar */}
+                              <div className="mt-4 h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-gradient-to-r from-yellow-400 via-orange-400 to-pink-400"
+                                  style={{ width: `${Math.min(fundingPercentage, 100)}%` }}
+                                />
+                              </div>
+
+                              {/* Funding details */}
+                              <div className="flex justify-between items-center mt-2">
+                                <div className="flex items-center gap-1 text-gray-700">
+                                  <FaMoneyBillWave className="text-yellow-500" size={14} />
+                                  <span>RM{campaign.current_amount}</span>
+                                </div>
+                                <span className="text-gray-600">RM{campaign.target_amount} goal</span>
+                              </div>
+
+                              {/* Bottom badges */}
+                              <div className="flex justify-between items-center mt-4">
+                                <div className="flex items-center gap-1 text-gray-600">
+                                  <FaCalendarAlt size={14} />
+                                  <span>0 days left</span>
+                                </div>
+                                <span className="text-xs font-bold px-3 py-1 rounded-full bg-[#f5a623] text-white">
+                                  {fundingPercentage}% funded
+                                </span>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       );
                     })}
