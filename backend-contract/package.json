@@ -1,16 +1,42 @@
 {
-  "name": "hardhat-javascript-starter",
+  "name": "donation-tracker-contract",
+  "version": "1.0.0",
+  "description": "Smart contract for tracking donations on the blockchain",
+  "main": "src/server.js",
   "scripts": {
-    "build": "npx thirdweb@latest detect",
-    "deploy": "npx thirdweb@latest deploy",
-    "publish": "npx thirdweb@latest publish"
-  },
-  "devDependencies": {
-    "@matterlabs/hardhat-zksync-solc": "^0.3.17",
-    "hardhat": "^2.13.0"
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:holesky": "hardhat run scripts/deploy.js --network holesky",
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
   },
   "dependencies": {
-    "@thirdweb-dev/contracts": "^3.8.0",
-    "zksync-web3": "^0.14.3"
+    "@openzeppelin/contracts": "^5.3.0",
+    "@supabase/supabase-js": "^2.38.0",
+    "@thirdweb-dev/sdk": "^3.10.59",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "ethers": "^5.7.2",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
+    "@nomicfoundation/hardhat-ethers": "^3.0.0",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@nomicfoundation/hardhat-verify": "^2.0.0",
+    "@thirdweb-dev/contracts": "^3.10.0",
+    "@typechain/ethers-v6": "^0.5.0",
+    "@typechain/hardhat": "^9.0.0",
+    "@types/chai": "^4.2.0",
+    "@types/mocha": ">=9.1.0",
+    "hardhat": "^2.18.0",
+    "hardhat-gas-reporter": "^1.0.8",
+    "nodemon": "^3.0.1",
+    "solidity-coverage": "^0.8.1",
+    "ts-node": ">=8.0.0",
+    "typechain": "^8.3.0",
+    "typescript": ">=4.5.0"
   }
 }
