@@ -432,7 +432,8 @@ const CharityManagementPage: React.FC = () => {
                       return (
                         <div
                           key={campaign.id}
-                          className="bg-gradient-to-br from-white to-gray-50 p-4 rounded-lg shadow-sm hover:shadow-md transition-all"
+                          className="bg-gradient-to-br from-white to-gray-50 p-4 rounded-lg shadow-sm hover:shadow-md hover:-translate-y-1 active:translate-y-0 transition-all cursor-pointer"
+                          onClick={() => navigate(`/campaign/${campaign.id}/details`)}
                         >
                           <div className="flex justify-between items-start mb-3">
                             <div className="flex items-center">
