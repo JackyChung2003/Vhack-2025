@@ -181,7 +181,7 @@ const SubmitQuotationModal: React.FC<SubmitQuotationModalProps> = ({
           <div className="bg-blue-50 text-blue-800 rounded-lg p-2 mb-3 flex items-start text-xs">
             <FaInfoCircle className="flex-shrink-0 mt-1 mr-2" />
             <p>
-              Your quotation will be visible to the charity organization. Be competitive with your pricing and clear with your details.
+              Your quotation will be visible to the charity organization and other vendors. Be competitive with your pricing and clear with your details.
             </p>
           </div>
           

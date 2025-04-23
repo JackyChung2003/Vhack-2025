@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaChevronLeft, FaCalendarAlt, FaBuilding, FaPaperclip, FaFileAlt, FaQuoteLeft, FaStar, FaComment, FaTrash, FaGraduationCap, FaUser } from "react-icons/fa";
+import { FaChevronLeft, FaCalendarAlt, FaBuilding, FaPaperclip, FaFileAlt, FaQuoteLeft, FaComment, FaTrash, FaGraduationCap, FaUser } from "react-icons/fa";
 import { MdSend } from "react-icons/md";
 import SubmitQuotationModal from "./SubmitQuotationModal";
 import { openMarketService, OpenMarketRequest, Quotation } from "../../../../services/supabase/openMarketService";
@@ -17,21 +17,6 @@ interface VendorRequestDetailProps {
   requestId: string;
   onBack: () => void;
 }
-
-// Generate star rating display
-const StarRating = ({ rating = 0 }: { rating?: number }) => {
-  return (
-    <div className="flex items-center">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <FaStar 
-          key={star} 
-          className={`${star <= rating ? 'text-yellow-500' : 'text-gray-300'} text-xs`}
-        />
-      ))}
-      <span className="ml-1 text-xs">{rating.toFixed(1)}</span>
-    </div>
-  );
-};
 
 const VendorRequestDetail: React.FC<VendorRequestDetailProps> = ({ requestId, onBack }) => {
   const [request, setRequest] = useState<RequestWithUIData | null>(null);
@@ -350,7 +335,6 @@ const VendorRequestDetail: React.FC<VendorRequestDetailProps> = ({ requestId, on
                     <h3 className="font-bold text-gray-800">
                       You (Vendor)
                     </h3>
-                    <StarRating rating={0.0} />
                   </div>
                   <div className="text-xl font-bold text-amber-500">
                     ${userQuotation.price.toFixed(2)}
@@ -424,7 +408,6 @@ const VendorRequestDetail: React.FC<VendorRequestDetailProps> = ({ requestId, on
                     <h3 className="font-bold text-gray-800">
                       {quotation.vendor_name || "Anonymous Vendor"}
                     </h3>
-                    <StarRating rating={quotation.vendor_rating || 0} />
                   </div>
                   <div className="text-xl font-bold text-amber-500">
                     ${quotation.price.toFixed(2)}
