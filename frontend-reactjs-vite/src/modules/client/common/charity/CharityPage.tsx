@@ -12,7 +12,9 @@ import {
   FaChevronUp,
   FaTimes,
   FaListUl,
-  FaMoneyBillWave
+  FaMoneyBillWave,
+  FaCalendarTimes,
+  FaArchive
 } from "react-icons/fa";
 import OrganizationCard from "../../../../components/cards/OrganizationCard";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -112,6 +114,29 @@ const CharityPage: React.FC = () => {
     }
   };
 
+  // Separate active and expired campaigns
+  const separateCampaigns = (campaigns: Campaign[]) => {
+    const today = new Date();
+    const active: Campaign[] = [];
+    const expired: Campaign[] = [];
+
+    campaigns.forEach(campaign => {
+      if (campaign.deadline) {
+        const deadlineDate = new Date(campaign.deadline);
+        if (deadlineDate < today) {
+          expired.push(campaign);
+        } else {
+          active.push(campaign);
+        }
+      } else {
+        // If no deadline is specified, consider it active
+        active.push(campaign);
+      }
+    });
+
+    return { active, expired };
+  };
+
   // Filter campaigns by search term and category
   const filteredCampaigns = campaigns
     .filter(campaign =>
@@ -120,37 +145,45 @@ const CharityPage: React.FC = () => {
       (selectedCategories.length === 0 || (campaign.category && selectedCategories.includes(campaign.category)))
     );
 
-  // Sort campaigns based on selected sort option
-  const sortedCampaigns = [...filteredCampaigns].sort((a, b) => {
-    const today = new Date();
-    const aTimeLeft = a.deadline ? Math.max(0, Math.floor((new Date(a.deadline).getTime() - today.getTime()) / (1000 * 60 * 60 * 24))) : 0;
-    const bTimeLeft = b.deadline ? Math.max(0, Math.floor((new Date(b.deadline).getTime() - today.getTime()) / (1000 * 60 * 60 * 24))) : 0;
-    const aAmountLeft = a.target_amount - a.current_amount;
-    const bAmountLeft = b.target_amount - b.current_amount;
-    const aProgress = (a.current_amount / a.target_amount) * 100;
-    const bProgress = (b.current_amount / b.target_amount) * 100;
+  // Separate filtered campaigns into active and expired
+  const { active: activeCampaigns, expired: expiredCampaigns } = separateCampaigns(filteredCampaigns);
 
-    switch (sortBy) {
-      case "timeLeft":
-        return aTimeLeft - bTimeLeft;
-      case "timeLeftDesc":
-        return bTimeLeft - aTimeLeft;
-      case "amountLeft":
-        return aAmountLeft - bAmountLeft;
-      case "amountLeftDesc":
-        return bAmountLeft - aAmountLeft;
-      case "goalAsc":
-        return a.target_amount - b.target_amount;
-      case "goalDesc":
-        return b.target_amount - a.target_amount;
-      case "progressAsc":
-        return aProgress - bProgress;
-      case "progressDesc":
-        return bProgress - aProgress;
-      default:
-        return 0;
-    }
-  });
+  // Sort campaigns based on selected sort option
+  const sortCampaigns = (campaignsToSort: Campaign[]) => {
+    return [...campaignsToSort].sort((a, b) => {
+      const today = new Date();
+      const aTimeLeft = a.deadline ? Math.max(0, Math.floor((new Date(a.deadline).getTime() - today.getTime()) / (1000 * 60 * 60 * 24))) : 0;
+      const bTimeLeft = b.deadline ? Math.max(0, Math.floor((new Date(b.deadline).getTime() - today.getTime()) / (1000 * 60 * 60 * 24))) : 0;
+      const aAmountLeft = a.target_amount - a.current_amount;
+      const bAmountLeft = b.target_amount - b.current_amount;
+      const aProgress = (a.current_amount / a.target_amount) * 100;
+      const bProgress = (b.current_amount / b.target_amount) * 100;
+
+      switch (sortBy) {
+        case "timeLeft":
+          return aTimeLeft - bTimeLeft;
+        case "timeLeftDesc":
+          return bTimeLeft - aTimeLeft;
+        case "amountLeft":
+          return aAmountLeft - bAmountLeft;
+        case "amountLeftDesc":
+          return bAmountLeft - aAmountLeft;
+        case "goalAsc":
+          return a.target_amount - b.target_amount;
+        case "goalDesc":
+          return b.target_amount - a.target_amount;
+        case "progressAsc":
+          return aProgress - bProgress;
+        case "progressDesc":
+          return bProgress - aProgress;
+        default:
+          return 0;
+      }
+    });
+  };
+
+  const sortedActiveCampaigns = sortCampaigns(activeCampaigns);
+  const sortedExpiredCampaigns = sortCampaigns(expiredCampaigns);
 
   const filteredOrganizations = organizations.filter(org => {
     // Add null checks for name and description
@@ -271,7 +304,7 @@ const CharityPage: React.FC = () => {
                 {/* Results count */}
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-[var(--paragraph)]">
-                    Showing <span className="font-semibold text-[var(--headline)]">{sortedCampaigns.length}</span> campaigns
+                    Showing <span className="font-semibold text-[var(--headline)]">{sortedActiveCampaigns.length + sortedExpiredCampaigns.length}</span> campaigns
                     {selectedCategories.length > 0 && (
                       <> in <span className="font-semibold text-[var(--headline)]">{selectedCategories.length}</span> categories</>
                     )}
@@ -421,26 +454,74 @@ const CharityPage: React.FC = () => {
                 Try Again
               </button>
             </div>
-          ) : sortedCampaigns.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {sortedCampaigns.map((campaign) => {
-                // Calculate a default deadline of 30 days from now if not provided
-                const defaultDeadline = new Date();
-                defaultDeadline.setDate(defaultDeadline.getDate() + 30);
+          ) : sortedActiveCampaigns.length > 0 || sortedExpiredCampaigns.length > 0 ? (
+            <div>
+              {/* Active Campaigns Section */}
+              {sortedActiveCampaigns.length > 0 && (
+                <div className="mb-10">
+                  <h3 className="text-xl font-semibold text-[var(--headline)] mb-4 flex items-center gap-2">
+                    <FaHandHoldingHeart className="text-[var(--highlight)]" />
+                    Active Campaigns ({sortedActiveCampaigns.length})
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {sortedActiveCampaigns.map((campaign) => {
+                      // Calculate a default deadline of 30 days from now if not provided
+                      const defaultDeadline = new Date();
+                      defaultDeadline.setDate(defaultDeadline.getDate() + 30);
 
-                return (
-                  <CampaignCard
-                    key={campaign.id}
-                    id={campaign.id}
-                    name={campaign.title}
-                    description={campaign.description}
-                    goal={campaign.target_amount}
-                    currentContributions={campaign.current_amount}
-                    deadline={campaign.deadline || defaultDeadline.toISOString()}
-                    category={campaign.category}
-                  />
-                );
-              })}
+                      return (
+                        <CampaignCard
+                          key={campaign.id}
+                          id={campaign.id}
+                          name={campaign.title}
+                          description={campaign.description}
+                          goal={campaign.target_amount}
+                          currentContributions={campaign.current_amount}
+                          deadline={campaign.deadline || defaultDeadline.toISOString()}
+                          category={campaign.category}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Expired Campaigns Section */}
+              {sortedExpiredCampaigns.length > 0 && (
+                <div className="mt-8">
+                  <h3 className="text-xl font-semibold text-[var(--headline)] mb-4 flex items-center gap-2">
+                    <FaCalendarTimes className="text-gray-500" />
+                    Expired Campaigns ({sortedExpiredCampaigns.length})
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {sortedExpiredCampaigns.map((campaign) => {
+                      // Use the actual deadline or a default one
+                      const defaultDeadline = new Date();
+                      defaultDeadline.setDate(defaultDeadline.getDate() - 1); // Past date for expired campaigns
+
+                      return (
+                        <div key={campaign.id} className="relative">
+                          <div className="absolute inset-0 bg-black bg-opacity-10 z-10 pointer-events-none rounded-xl"></div>
+                          <div className="absolute top-4 right-4 z-20">
+                            <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-md font-medium">
+                              Expired
+                            </span>
+                          </div>
+                          <CampaignCard
+                            id={campaign.id}
+                            name={campaign.title}
+                            description={campaign.description}
+                            goal={campaign.target_amount}
+                            currentContributions={campaign.current_amount}
+                            deadline={campaign.deadline || defaultDeadline.toISOString()}
+                            category={campaign.category}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="text-center py-10 bg-white rounded-lg border border-[var(--stroke)] shadow-sm">
