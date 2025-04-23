@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { FaCalendarAlt, FaMoneyBillWave, FaArrowLeft, FaHandHoldingHeart, FaUsers, FaChartLine, FaHistory, FaBuilding, FaEdit, FaTrash, FaComments, FaClock, FaThumbsUp, FaPlus, FaMapMarkerAlt, FaShare, FaTrophy, FaExchangeAlt, FaTimes, FaHashtag, FaTags, FaFire, FaUserCircle, FaCheck, FaFileInvoice, FaFlag, FaLock, FaDownload } from "react-icons/fa";
+import { FaCalendarAlt, FaMoneyBillWave, FaArrowLeft, FaHandHoldingHeart, FaUsers, FaChartLine, FaHistory, FaBuilding, FaEdit, FaTrash, FaComments, FaClock, FaThumbsUp, FaPlus, FaMapMarkerAlt, FaShare, FaTrophy, FaExchangeAlt, FaTimes, FaHashtag, FaTags, FaFire, FaUserCircle, FaCheck, FaFileInvoice, FaFlag, FaLock, FaDownload, FaCalendarTimes } from "react-icons/fa";
 import { useRole } from "../../../../contexts/RoleContext";
 import { charityService, Campaign as CampaignType } from "../../../../services/supabase/charityService";
 import DonationModal from "../../../../components/modals/DonationModal";
@@ -118,7 +118,7 @@ const CampaignDetail: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { userRole } = useRole();
-  
+
   // State for campaign data
   const [campaign, setCampaign] = useState<CampaignType | null>(null);
   const [loading, setLoading] = useState(true);
@@ -128,11 +128,11 @@ const CampaignDetail: React.FC = () => {
   const [donationStats, setDonationStats] = useState<any>(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [statsError, setStatsError] = useState<string | null>(null);
-  
+
   const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
   const [showFullLeaderboard, setShowFullLeaderboard] = useState(false);
   const [isContributionPopupOpen, setIsContributionPopupOpen] = useState(false);
-  
+
   // Add state for selected donor ID
   const [selectedDonorId, setSelectedDonorId] = useState<number | null>(null);
 
@@ -154,7 +154,7 @@ const CampaignDetail: React.FC = () => {
         setLoading(false);
         return;
       }
-      
+
       try {
         setLoading(true);
         const campaignData = await charityService.getCampaignById(id);
@@ -163,7 +163,7 @@ const CampaignDetail: React.FC = () => {
         console.log("Campaign charity object:", campaignData.charity);
         setCampaign(campaignData);
         setError(null);
-        
+
         // Fetch donation stats after campaign data is loaded
         fetchDonationStats(id);
       } catch (err: any) {
@@ -176,7 +176,7 @@ const CampaignDetail: React.FC = () => {
 
     fetchCampaign();
   }, [id]);
-  
+
   // Function to fetch donation stats
   const fetchDonationStats = async (campaignId: string) => {
     try {
@@ -275,22 +275,36 @@ const CampaignDetail: React.FC = () => {
 
   // Use charity data from campaign
   const charity = campaign.charity || null;
+
+  // Create mock donor contribution data for all donors
+  const donorContribution: DonorContribution = {
+    totalAmount: 250,
+    contributions: [
+      { id: '1', date: '2023-11-15T10:30:00', amount: 150 },
+      { id: '2', date: '2023-12-20T15:45:00', amount: 100 }
+    ],
+    percentageOfTotal: '8.5'
+  };
+
   
   // Calculate progress percentage
   const progress = (campaign.current_amount / campaign.target_amount) * 100;
-  
+
   // Calculate days left (if deadline exists)
-  const timeLeft = campaign.deadline 
+  const timeLeft = campaign.deadline
     ? Math.max(0, Math.floor((new Date(campaign.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
     : 0;
 
   // Check if campaign is active
   const isCampaignActive = campaign.status === 'active';
 
+  // Check if campaign is expired based on deadline
+  const isCampaignExpired = campaign.deadline ? new Date(campaign.deadline) < new Date() : false;
+
   const handleDonationComplete = async (amount: number, donationPolicy?: string, isAnonymous?: boolean, isRecurring?: boolean, txHash?: string) => {
     try {
       console.log("Full campaign object:", campaign);
-      
+
       // Ensure we have the proper charity ID
       // First check if charity object is available and has an ID
       let charityId;
@@ -306,7 +320,7 @@ const CampaignDetail: React.FC = () => {
       if (!charityId) {
         throw new Error("Unable to determine charity ID for donation");
       }
-      
+
       console.log("Making campaign donation with parameters:", {
         campaignId: campaign.id,
         charityId: charityId,
@@ -328,21 +342,21 @@ const CampaignDetail: React.FC = () => {
 
       // Show success message based on donation policy and recurring status
       let message = `Thank you for your ${isRecurring ? 'monthly' : 'one-time'} donation of RM${amount}!`;
-      
-    if (donationPolicy) {
-      if (donationPolicy === 'campaign-specific') {
+
+      if (donationPolicy) {
+        if (donationPolicy === 'campaign-specific') {
           message += ` You can get a refund if the campaign doesn't reach its goal.`;
-      } else if (donationPolicy === 'always-donate') {
+        } else if (donationPolicy === 'always-donate') {
           message += ` Your donation will support the organization even if the campaign doesn't reach its goal.`;
         }
       }
-      
+
       toast.success(message);
 
       // Refresh the campaign data to reflect the new donation amount
       const updatedCampaign = await charityService.getCampaignById(campaign.id);
       setCampaign(updatedCampaign);
-      
+
       // Also refresh donation stats
       refreshDonationStats();
       // Also refresh user donations
@@ -394,129 +408,167 @@ const CampaignDetail: React.FC = () => {
           Back to Campaigns
         </button>
 
+        {/* Expired campaign banner - only show for expired campaigns */}
+        {isCampaignExpired && (
+          <div className="mb-6 overflow-hidden rounded-lg shadow-md border border-red-200">
+            <div className="bg-gradient-to-r from-red-500 to-orange-400 px-5 py-2 text-white text-sm font-medium">
+              Campaign Status
+            </div>
+            <div className="bg-white p-4 flex items-center gap-4">
+              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                <FaCalendarTimes className="text-red-500 text-xl" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-red-700 font-semibold text-lg flex items-center gap-2">
+                  This campaign has ended
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                    Expired
+                  </span>
+                </h3>
+                <p className="text-gray-600">
+                  This campaign reached its deadline on {new Date(campaign.deadline).toLocaleDateString()} and is no longer accepting donations.
+                  You can still view details and impact information.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Main campaign header - full width */}
-        <div className="bg-gradient-to-r from-[var(--highlight)] to-[var(--secondary)] p-8 text-white rounded-t-xl shadow-lg mb-6">
-          <h1 className="text-3xl font-bold mb-2">{campaign.title}</h1>
-          <p className="text-white text-opacity-90 mb-4">{campaign.description}</p>
+        <div className={`bg-gradient-to-r from-[var(--highlight)] to-[var(--secondary)] p-8 text-white rounded-t-xl shadow-lg mb-6 
+          ${isCampaignExpired ? 'relative' : ''}`}>
 
-          {/* Progress bar */}
-          <div className="mb-6">
-            {/* Enhanced progress bar with donation policy visualization */}
-            <div className="flex justify-between items-center mb-3">
-              {/* Legend */}
-              <div className="flex gap-4 text-sm text-white">
-                {/* Campaign-specific */}
-                <div className="flex items-center gap-2 bg-white bg-opacity-10 px-2 py-1 rounded-lg">
-                  <div className="w-3 h-3 rounded-sm bg-gradient-to-r from-green-600 to-green-400 shadow-sm"></div>
-                  <div className="font-medium flex items-center gap-1">
-                    <FaLock className="text-green-300" size={10} />
-                    <span>Campaign-Specific</span>
+          {/* Status indicator for expired campaigns instead of watermark */}
+          {isCampaignExpired && (
+            <div className="absolute top-4 right-4 z-20 flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1.5 border border-white/30 shadow-sm">
+              <span className="h-2.5 w-2.5 bg-red-500 rounded-full animate-pulse"></span>
+              <span className="text-white font-medium text-sm">Campaign Ended</span>
             </div>
-                </div>
+          )}
 
-                {/* Always-donate */}
-                <div className="flex items-center gap-2 bg-white bg-opacity-10 px-2 py-1 rounded-lg">
-                  <div className="w-3 h-3 rounded-sm bg-gradient-to-r from-blue-500 to-indigo-500 shadow-sm"></div>
-                  <div className="font-medium flex items-center gap-1">
-                    <FaHandHoldingHeart className="text-blue-300" size={10} />
-                    <span>Always-Donate</span>
+          <div className="relative">
+            <h1 className="text-3xl font-bold mb-2">{campaign.title}</h1>
+            <p className="text-white text-opacity-90 mb-4">{campaign.description}</p>
+
+            {/* Progress bar */}
+            <div className="mb-6">
+              {/* Enhanced progress bar with donation policy visualization */}
+              <div className="flex justify-between items-center mb-3">
+                {/* Legend */}
+                <div className="flex gap-4 text-sm text-white">
+                  {/* Campaign-specific */}
+                  <div className="flex items-center gap-2 bg-white bg-opacity-10 px-2 py-1 rounded-lg">
+                    <div className="w-3 h-3 rounded-sm bg-gradient-to-r from-green-600 to-green-400 shadow-sm"></div>
+                    <div className="font-medium flex items-center gap-1">
+                      <FaLock className="text-green-300" size={10} />
+                      <span>Campaign-Specific</span>
+                    </div>
                   </div>
-                </div>
-              </div>
 
-              {/* Goal indicator */}
-              <div className="bg-white/50 px-4 py-1.5 rounded-full text-sm text-black flex items-center gap-2 shadow-md border border-white/30 font-semibold">
-                <span className="text-black/70 font-medium">Goal:</span>
-                <span className="font-bold text-base">RM{campaign.target_amount.toLocaleString()}</span>
-              </div>
-            </div>
-
-            {/* Enhanced progress bar with shadow and glass effect */}
-            <div className="w-full bg-white bg-opacity-20 backdrop-blur-sm rounded-xl h-12 overflow-hidden flex p-1 shadow-inner relative">
-              {/* Campaign-specific portion with gradient */}
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${progress * 0.6}%` }}
-                transition={{ duration: 1, ease: "easeOut" }}
-                className="h-full rounded-l-lg bg-gradient-to-r from-green-600 to-green-400 shadow-lg flex items-center justify-center"
-                style={{
-                  width: `${progress * 0.6}%`,
-                  maxWidth: "100%"
-                }}
-              >
-                {progress * 0.6 > 15 && (
-                  <span className="text-sm font-bold text-white drop-shadow-md px-2">
-                    RM{Math.round(campaign.current_amount * 0.6).toLocaleString()}
-                  </span>
-                )}
-              </motion.div>
-
-              {/* Always-donate portion with gradient */}
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${progress * 0.4}%` }}
-                transition={{ duration: 1, ease: "easeOut", delay: 0.3 }}
-                className={`h-full ${progress * 0.6 > 0 ? "" : "rounded-l-lg"} rounded-r-lg bg-gradient-to-r from-blue-500 to-indigo-500 shadow-lg flex items-center justify-center`}
-                style={{
-                  width: `${progress * 0.4}%`,
-                  maxWidth: `${100 - (progress * 0.6)}%`
-                }}
-              >
-                {progress * 0.4 > 15 && (
-                  <span className="text-sm font-bold text-white drop-shadow-md px-2">
-                    RM{Math.round(campaign.current_amount * 0.4).toLocaleString()}
-                  </span>
-                )}
-              </motion.div>
-
-              {/* Subtle grid overlay for texture */}
-              <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTAgMCBMIDEwIDEwIE0gMTAgMCBMIDAgMTAiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxIiBmaWxsPSJub25lIiAvPjwvc3ZnPg==')]"></div>
-            </div>
-          </div>
-
-          {/* Campaign stats */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-white/60 p-3 rounded-lg text-center backdrop-blur-sm shadow-inner border border-white/20">
-              <div className="text-2xl font-bold text-black">RM{campaign.current_amount.toLocaleString()}</div>
-              <div className="text-sm mt-1 text-black/70 font-medium">Raised</div>
-            </div>
-            <div className="bg-white/60 p-3 rounded-lg text-center backdrop-blur-sm shadow-inner border border-white/20">
-              <div className="text-2xl font-bold text-black">{campaign.deadline ? timeLeft : 'No'}</div>
-              <div className="text-sm mt-1 text-black/70 font-medium">Days Left</div>
-            </div>
-            <div className="bg-white/60 p-3 rounded-lg text-center backdrop-blur-sm shadow-inner border border-white/20">
-              <div className="text-2xl font-bold text-black">42</div>
-              <div className="text-sm mt-1 text-black/70 font-medium">Donors</div>
-            </div>
-          </div>
-
-          {/* User's donation - show for all donors */}
-          {userRole === 'donor' && userDonations && (
-            <div
-              className="mt-4 group bg-white/70 p-3.5 px-5 rounded-lg cursor-pointer hover:bg-white/80 transition-all duration-300 shadow-sm border border-white/30"
-              onClick={() => setIsContributionPopupOpen(true)}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3.5">
-                  <div className="flex items-center justify-center w-9 h-9 rounded-full bg-amber-100 border border-amber-200">
-                    <span className="text-xl" role="img" aria-label="raised hands">🙌</span>
-                  </div>
-                  <div className="text-black">
-                    <div className="font-bold text-base">Thanks for your support!</div>
-                    <div className="text-sm text-black/70 mt-0.5">
-                      {donationStats && donationStats.donations.topDonors.some((d: any) => d.donorId === getCurrentUserDonorId()) ? 
-                        `Top Donor · RM${userDonations.totalAmount} · Last on ${new Date(userDonations.contributions[0].date).toLocaleDateString()}` :
-                        `RM${userDonations.totalAmount} · Last on ${new Date(userDonations.contributions[0].date).toLocaleDateString()}`
-                      }
+                  {/* Always-donate */}
+                  <div className="flex items-center gap-2 bg-white bg-opacity-10 px-2 py-1 rounded-lg">
+                    <div className="w-3 h-3 rounded-sm bg-gradient-to-r from-blue-500 to-indigo-500 shadow-sm"></div>
+                    <div className="font-medium flex items-center gap-1">
+                      <FaHandHoldingHeart className="text-blue-300" size={10} />
+                      <span>Always-Donate</span>
                     </div>
                   </div>
                 </div>
-                <svg className="w-5 h-5 text-black/50 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+
+                {/* Goal indicator */}
+                <div className="bg-white/50 px-4 py-1.5 rounded-full text-sm text-black flex items-center gap-2 shadow-md border border-white/30 font-semibold">
+                  <span className="text-black/70 font-medium">Goal:</span>
+                  <span className="font-bold text-base">RM{campaign.target_amount.toLocaleString()}</span>
+                </div>
+              </div>
+
+              {/* Enhanced progress bar with shadow and glass effect */}
+              <div className="w-full bg-white bg-opacity-20 backdrop-blur-sm rounded-xl h-12 overflow-hidden flex p-1 shadow-inner relative">
+                {/* Campaign-specific portion with gradient */}
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progress * 0.6}%` }}
+                  transition={{ duration: 1, ease: "easeOut" }}
+                  className="h-full rounded-l-lg bg-gradient-to-r from-green-600 to-green-400 shadow-lg flex items-center justify-center"
+                  style={{
+                    width: `${progress * 0.6}%`,
+                    maxWidth: "100%"
+                  }}
+                >
+                  {progress * 0.6 > 15 && (
+                    <span className="text-sm font-bold text-white drop-shadow-md px-2">
+                      RM{Math.round(campaign.current_amount * 0.6).toLocaleString()}
+                    </span>
+                  )}
+                </motion.div>
+
+                {/* Always-donate portion with gradient */}
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progress * 0.4}%` }}
+                  transition={{ duration: 1, ease: "easeOut", delay: 0.3 }}
+                  className={`h-full ${progress * 0.6 > 0 ? "" : "rounded-l-lg"} rounded-r-lg bg-gradient-to-r from-blue-500 to-indigo-500 shadow-lg flex items-center justify-center`}
+                  style={{
+                    width: `${progress * 0.4}%`,
+                    maxWidth: `${100 - (progress * 0.6)}%`
+                  }}
+                >
+                  {progress * 0.4 > 15 && (
+                    <span className="text-sm font-bold text-white drop-shadow-md px-2">
+                      RM{Math.round(campaign.current_amount * 0.4).toLocaleString()}
+                    </span>
+                  )}
+                </motion.div>
+
+                {/* Subtle grid overlay for texture */}
+                <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTAgMCBMIDEwIDEwIE0gMTAgMCBMIDAgMTAiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxIiBmaWxsPSJub25lIiAvPjwvc3ZnPg==')]"></div>
               </div>
             </div>
-          )}
+
+            {/* Campaign stats */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-white/60 p-3 rounded-lg text-center backdrop-blur-sm shadow-inner border border-white/20">
+                <div className="text-2xl font-bold text-black">RM{campaign.current_amount.toLocaleString()}</div>
+                <div className="text-sm mt-1 text-black/70 font-medium">Raised</div>
+              </div>
+              <div className="bg-white/60 p-3 rounded-lg text-center backdrop-blur-sm shadow-inner border border-white/20">
+                <div className="text-2xl font-bold text-black">{campaign.deadline ? timeLeft : 'No'}</div>
+                <div className="text-sm mt-1 text-black/70 font-medium">Days Left</div>
+              </div>
+              <div className="bg-white/60 p-3 rounded-lg text-center backdrop-blur-sm shadow-inner border border-white/20">
+                <div className="text-2xl font-bold text-black">42</div>
+                <div className="text-sm mt-1 text-black/70 font-medium">Donors</div>
+              </div>
+            </div>
+
+            {/* User's donation - show for all donors */}
+            {userRole === 'donor' && userDonations && (
+              <div
+                className="mt-4 group bg-white/70 p-3.5 px-5 rounded-lg cursor-pointer hover:bg-white/80 transition-all duration-300 shadow-sm border border-white/30"
+                onClick={() => setIsContributionPopupOpen(true)}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3.5">
+                    <div className="flex items-center justify-center w-9 h-9 rounded-full bg-amber-100 border border-amber-200">
+                      <span className="text-xl" role="img" aria-label="raised hands">🙌</span>
+                      </div>
+                    <div className="text-black">
+                      <div className="font-bold text-base">Thanks for your support!</div>
+                      <div className="text-sm text-black/70 mt-0.5">
+                        {donationStats && donationStats.donations.topDonors.some((d: any) => d.donorId === getCurrentUserDonorId()) ? 
+                        `Top Donor · RM${userDonations.totalAmount} · Last on ${new Date(userDonations.contributions[0].date).toLocaleDateString()}` :
+                        `RM${userDonations.totalAmount} · Last on ${new Date(userDonations.contributions[0].date).toLocaleDateString()}`
+                      }
+                        </div>
+                    </div>
+                  </div>
+                  <svg className="w-5 h-5 text-black/50 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Two-column layout for main content */}
@@ -701,7 +753,7 @@ const CampaignDetail: React.FC = () => {
                         </div>
                       </div>
 
-                      {isCampaignActive && (
+                      {isCampaignActive && !isCampaignExpired ? (
                         <button
                           onClick={() => setIsDonationModalOpen(true)}
                           className="px-8 py-4 rounded-lg bg-[var(--highlight)] text-white hover:bg-opacity-90 transition-colors flex items-center gap-3 shadow-md"
@@ -712,8 +764,24 @@ const CampaignDetail: React.FC = () => {
                             <span className="block text-xs">Starting from RM10</span>
                           </div>
                         </button>
+                      ) : isCampaignExpired ? (
+                        <div className="px-8 py-4 rounded-lg bg-gray-400 text-white flex items-center gap-3 shadow-md cursor-not-allowed">
+                          <FaCalendarTimes className="text-xl" />
+                          <div>
+                            <span className="font-semibold">Campaign Ended</span>
+                            <span className="block text-xs">No longer accepting donations</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="px-8 py-4 rounded-lg bg-gray-400 text-white flex items-center gap-3 shadow-md cursor-not-allowed">
+                          <FaTimes className="text-xl" />
+                          <div>
+                            <span className="font-semibold">Campaign Inactive</span>
+                            <span className="block text-xs">Donations temporarily disabled</span>
+                          </div>
+                        </div>
                       )}
-                      </div>
+                    </div>
                   )}
                 </div>
               </div>
@@ -730,7 +798,7 @@ const CampaignDetail: React.FC = () => {
                     Donate to this campaign to unlock access to campaign transactions,
                     community discussions, and the donor leaderboard.
                   </p>
-                  {isCampaignActive && (
+                  {isCampaignActive && !isCampaignExpired && (
                     <button
                       className="px-6 py-3 rounded-lg bg-[var(--highlight)] text-white hover:bg-opacity-90 flex items-center gap-2 transition-colors mx-auto"
                       onClick={() => setIsDonationModalOpen(true)}
@@ -756,17 +824,17 @@ const CampaignDetail: React.FC = () => {
                     <div className="flex justify-center py-8">
                       <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[var(--highlight)]"></div>
                     </div>
-                      </div>
+                  </div>
                 ) : statsError ? (
                   <div className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] p-6">
                     <div className="text-red-500 py-2">{statsError}</div>
-                    <button 
+                    <button
                       onClick={refreshDonationStats}
                       className="mt-2 px-4 py-2 rounded-lg bg-[var(--highlight)] text-white hover:bg-opacity-90"
                     >
                       Try Again
                     </button>
-                      </div>
+                  </div>
                 ) : donationStats ? (
                   <DonorLeaderboardAndTracker
                     tracker={{
@@ -789,12 +857,12 @@ const CampaignDetail: React.FC = () => {
                     <div className="flex items-center gap-2 mb-4">
                       <FaTrophy className="text-[var(--highlight)]" />
                       <h3 className="text-lg font-bold text-[var(--headline)]">Donors & Donations</h3>
-                      </div>
+                    </div>
                     <p className="text-[var(--paragraph)] text-center py-4">
                       No donation data available yet.
                     </p>
-                    </div>
-                  )}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] p-6 mb-8">
@@ -806,7 +874,7 @@ const CampaignDetail: React.FC = () => {
                   <p className="text-[var(--paragraph)] mb-4">
                     Donate to this campaign to view the leaderboard and track where your donation ranks!
                   </p>
-                  {isCampaignActive && (
+                  {isCampaignActive && !isCampaignExpired && (
                     <button
                       className="px-4 py-2 rounded-lg bg-[var(--highlight)] text-white hover:bg-opacity-90 text-sm transition-colors"
                       onClick={() => setIsDonationModalOpen(true)}
@@ -843,7 +911,7 @@ const CampaignDetail: React.FC = () => {
       </div>
 
       {/* Floating Donate Now button - only show for active campaigns */}
-      {userRole === 'donor' && isCampaignActive && (
+      {userRole === 'donor' && !isCampaignExpired && isCampaignActive && (
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}

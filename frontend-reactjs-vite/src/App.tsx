@@ -36,6 +36,7 @@ import CharityOpenMarket from "./modules/client/charity/CharityOpenMarket/Charit
 import VendorOpenMarket from "./modules/client/vendor/OpenMarket/OpenMarket";
 import CampaignTransactions from './modules/client/charity/management/CampaignTransactions';
 import AllCampaigns from "./modules/client/donor/AllCampaigns";
+import RecurringDonations from "./modules/client/common/charity/AutoDonation";
 
 export function App() {
 	const { user, loading: authLoading } = useAuth();
@@ -102,7 +103,7 @@ export function App() {
 						<Route path="/Vhack-2025" element={<DonorHomePage />} />
 						<Route path="/login" element={<LoginPage />} />
 						<Route path="/register" element={<RegisterPage />} />
-            <Route path="*" element={<Navigate to="/Vhack-2025" replace />} />
+						<Route path="*" element={<Navigate to="/Vhack-2025" replace />} />
 
 					</>
 				) : (
@@ -119,10 +120,10 @@ export function App() {
 						{/* Role-specific home routes */}
 						<Route path="/" element={
 							userRole === 'charity' ? <Navigate to="/Vhack-2025/charity/home" replace /> :
-							userRole === 'vendor' ? <Navigate to="/Vhack-2025/vendor/dashboard" replace /> :
-							<Navigate to="/donor/dashboard" replace />
+								userRole === 'vendor' ? <Navigate to="/Vhack-2025/vendor/dashboard" replace /> :
+									<Navigate to="/donor/dashboard" replace />
 						} />
-						
+
 						{/* Make DonorHomePage accessible at /Vhack-2025 even when logged in */}
 						<Route path="/Vhack-2025" element={<DonorHomePage />} />
 
@@ -155,17 +156,17 @@ export function App() {
 							<Route path="/donor/dashboard" element={<DonorDashboard />} />
 							<Route path="/donor/profile" element={<DonorProfile />} />
 							<Route path="/donor/all-campaigns" element={<AllCampaigns />} />
-
+							<Route path="/donor/recurring-donations" element={<RecurringDonations />} />
 						</Route>
 
 						<Route path="/register" element={<RegisterPage />} />
 						<Route path="/login" element={<LoginPage />} />
-                    </>
-                )}
-				
-                {/* Default Fallback */}
-                <Route path="*" element={<Navigate to="/Vhack-2025" replace />} />
-            </Routes>
+					</>
+				)}
+
+				{/* Default Fallback */}
+				<Route path="*" element={<Navigate to="/Vhack-2025" replace />} />
+			</Routes>
 
 			{/* Footer */}
 			<footer className="footer">

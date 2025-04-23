@@ -70,6 +70,7 @@ const badges = [
     progress: 50,
   },
 ];
+import DonorDashboardDonationSummary from './dashboard/DonorDashboardDonationSummary';
 
 // Mock announcements with added category and color scheme
 const announcements = [
@@ -239,18 +240,18 @@ const DonorDashboard: React.FC = () => {
             {/* Colorful decorative elements */}
             <div className={`absolute top-0 right-0 w-32 h-32 bg-${currentItem.lightColor} rounded-bl-full opacity-40 z-0`}></div>
             <div className={`absolute bottom-0 left-16 w-24 h-24 bg-${currentItem.lightColor} rounded-tr-full opacity-30 z-0`}></div>
-            
+
             {/* Category Tag */}
             <div className={`absolute top-4 right-4 bg-${currentItem.color} bg-opacity-10 text-${currentItem.color} px-3 py-1 rounded-full text-xs font-semibold`}>
               {currentItem.category}
             </div>
-            
+
             {/* Content with Icon */}
             <div className="flex items-start gap-4 relative z-10">
               <div className={`p-3 bg-${currentItem.color} bg-opacity-15 rounded-full text-${currentItem.color}`}>
                 {currentItem.icon}
               </div>
-              
+
               <div className="flex-1">
                 <h3 className={`text-xl font-bold mb-2 text-${currentItem.color}`}>
                   {currentItem.title}
@@ -260,32 +261,31 @@ const DonorDashboard: React.FC = () => {
                 </p>
               </div>
             </div>
-            
+
             {/* Pagination indicator */}
             <div className="flex justify-center mt-5 gap-2 relative z-10">
               {announcements.map((_, index) => (
-                <div 
-                  key={index} 
-                  className={`w-2.5 h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
-                    index === currentAnnouncement 
-                      ? `bg-${currentItem.color}` 
-                      : 'bg-gray-300 hover:bg-gray-400'
-                  }`}
+                <div
+                  key={index}
+                  className={`w-2.5 h-2.5 rounded-full transition-all duration-300 cursor-pointer ${index === currentAnnouncement
+                    ? `bg-${currentItem.color}`
+                    : 'bg-gray-300 hover:bg-gray-400'
+                    }`}
                   onClick={() => setCurrentAnnouncement(index)}
                 ></div>
               ))}
             </div>
           </div>
-          
+
           {/* Navigation Buttons */}
-          <button 
+          <button
             onClick={prevAnnouncement}
             className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 bg-white rounded-full p-3 shadow-lg hover:bg-gray-100 text-${currentItem.color} transform transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-${currentItem.color}`}
             aria-label="Previous announcement"
           >
             <FaChevronLeft />
           </button>
-          <button 
+          <button
             onClick={nextAnnouncement}
             className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 bg-white rounded-full p-3 shadow-lg hover:bg-gray-100 text-${currentItem.color} transform transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-${currentItem.color}`}
             aria-label="Next announcement"
@@ -294,19 +294,19 @@ const DonorDashboard: React.FC = () => {
           </button>
         </div>
       </div>
-      
+
       {/* Active Campaigns Section */}
       <div className="mb-10">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-[var(--headline)]">Active Campaigns</h2>
-          <button 
+          <button
             onClick={() => navigate('/donor/all-campaigns')}
             className="text-[var(--highlight)] hover:underline flex items-center gap-1 text-sm font-medium bg-transparent border-none cursor-pointer"
           >
             View all campaigns <FaArrowRight size={12} />
           </button>
         </div>
-        
+
         {loading ? (
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[var(--highlight)]"></div>
@@ -314,14 +314,14 @@ const DonorDashboard: React.FC = () => {
         ) : campaigns.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Featured Campaign */}
-            <div 
+            <div
               className="bg-white rounded-xl shadow-md overflow-hidden border border-[var(--stroke)] transition-all hover:shadow-lg hover:translate-y-[-5px] cursor-pointer"
               onClick={() => navigateToCampaign(campaigns[0].id)}
             >
               <div className="relative h-40 overflow-hidden">
-                <img 
-                  src={campaigns[0].image_url || 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&q=80'} 
-                  alt={campaigns[0].title} 
+                <img
+                  src={campaigns[0].image_url || 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&q=80'}
+                  alt={campaigns[0].title}
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
@@ -333,25 +333,25 @@ const DonorDashboard: React.FC = () => {
                   <p className="text-white/80 text-xs">By {campaigns[0].charity?.name || 'Organization'}</p>
                 </div>
               </div>
-              
+
               <div className="p-4">
                 <p className="text-[var(--paragraph)] mb-4 line-clamp-2 text-sm">
                   {campaigns[0].description}
                 </p>
-                
+
                 <div className="mb-2">
                   <div className="flex justify-between text-sm mb-1">
                     <span className="text-[var(--paragraph)]">Progress</span>
                     <span className="font-medium">{Math.round(((campaigns[0].current_amount || 0) / (campaigns[0].target_amount || 1)) * 100)}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-[var(--highlight)] h-2 rounded-full" 
+                    <div
+                      className="bg-[var(--highlight)] h-2 rounded-full"
                       style={{ width: `${((campaigns[0].current_amount || 0) / (campaigns[0].target_amount || 1)) * 100}%` }}
                     ></div>
                   </div>
                 </div>
-                
+
                 <div className="flex justify-between text-sm mt-4">
                   <div>
                     <span className="text-[var(--paragraph)]">Raised</span>
@@ -368,18 +368,18 @@ const DonorDashboard: React.FC = () => {
                 </div>
               </div>
             </div>
-            
+
             {/* Other Campaigns */}
             {campaigns.slice(1, 3).map((campaign) => (
-              <div 
-                key={campaign.id} 
+              <div
+                key={campaign.id}
                 className="bg-white rounded-xl shadow-md overflow-hidden border border-[var(--stroke)] transition-all hover:shadow-lg hover:translate-y-[-5px] cursor-pointer"
                 onClick={() => navigateToCampaign(campaign.id)}
               >
                 <div className="relative h-40 overflow-hidden">
-                  <img 
-                    src={campaign.image_url || 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&q=80'} 
-                    alt={campaign.title} 
+                  <img
+                    src={campaign.image_url || 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&q=80'}
+                    alt={campaign.title}
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
@@ -388,20 +388,20 @@ const DonorDashboard: React.FC = () => {
                     <p className="text-white/80 text-xs">By {campaign.charity?.name || 'Organization'}</p>
                   </div>
                 </div>
-                
+
                 <div className="p-4">
                   <p className="text-[var(--paragraph)] text-sm mb-3 line-clamp-2">
                     {campaign.description}
                   </p>
-                  
+
                   <div className="mb-2">
                     <div className="flex justify-between text-xs mb-1">
                       <span className="text-[var(--paragraph)]">Progress</span>
                       <span className="font-medium">{Math.round(((campaign.current_amount || 0) / (campaign.target_amount || 1)) * 100)}%</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-[var(--highlight)] h-2 rounded-full" 
+                      <div
+                        className="bg-[var(--highlight)] h-2 rounded-full"
                         style={{ width: `${((campaign.current_amount || 0) / (campaign.target_amount || 1)) * 100}%` }}
                       ></div>
                     </div>
@@ -418,12 +418,12 @@ const DonorDashboard: React.FC = () => {
           </div>
         )}
       </div>
-      
+
       {/* Badge Wall Section */}
       <div className="mb-10">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-[var(--headline)]">Your Achievement Badges</h2>
-          <button 
+          <button
             onClick={toggleExpandBadges}
             className="text-[var(--highlight)] hover:underline flex items-center gap-1 text-sm font-medium bg-transparent border-none cursor-pointer"
           >
@@ -433,8 +433,8 @@ const DonorDashboard: React.FC = () => {
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {displayBadges.map((badge) => (
-            <div 
-              key={badge.id} 
+            <div
+              key={badge.id}
               className={`bg-white rounded-xl shadow-md overflow-hidden border border-${badge.color}-200 transition-all hover:shadow-lg text-center p-4 ${!badge.earned && 'opacity-70'}`}
             >
               <div className={`mx-auto w-16 h-16 rounded-full mb-3 flex items-center justify-center bg-${badge.color}-100 relative`}>
@@ -447,23 +447,23 @@ const DonorDashboard: React.FC = () => {
                   </div>
                 )}
               </div>
-              
+
               <h3 className="font-bold text-[var(--headline)] mb-1">{badge.title}</h3>
               <p className="text-xs text-[var(--paragraph)] mb-2">{badge.description}</p>
-              
+
               {badge.earned ? (
                 <div className="text-xs text-green-600 font-medium">
                   Earned {badge.earnedDate ? new Date(badge.earnedDate).toLocaleDateString() : ''}
                 </div>
               ) : (
                 <div className="w-full bg-gray-200 rounded-full h-1.5 mb-1">
-                  <div 
-                    className={`bg-${badge.color}-500 h-1.5 rounded-full`} 
+                  <div
+                    className={`bg-${badge.color}-500 h-1.5 rounded-full`}
                     style={{ width: `${badge.progress}%` }}
                   ></div>
                 </div>
               )}
-              
+
               {!badge.earned && (
                 <div className="text-xs text-[var(--paragraph)]">
                   {badge.progress}% complete
@@ -473,7 +473,7 @@ const DonorDashboard: React.FC = () => {
           ))}
         </div>
       </div>
-      
+
       {/* Advertisement and Content Section */}
       <div className="mb-10">
         <div className="flex flex-col md:flex-row gap-6">
@@ -485,24 +485,24 @@ const DonorDashboard: React.FC = () => {
                 {/* Ad Content */}
                 <div className="w-full">
                   <div className="relative">
-                    <img 
+                    <img
                       src={`${advertisements[currentAd].image}?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80`}
-                      alt={advertisements[currentAd].title} 
+                      alt={advertisements[currentAd].title}
                       className="w-full h-40 object-cover rounded-lg mb-4"
                     />
                     <div className="absolute top-2 right-2 bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded-md">
                       Ad
                     </div>
-                    
+
                     {/* Navigation Buttons */}
-                    <button 
+                    <button
                       onClick={prevAd}
                       className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 rounded-full p-1.5 shadow-md hover:bg-white text-gray-600 transform transition-transform hover:scale-110 focus:outline-none"
                       aria-label="Previous ad"
                     >
                       <FaChevronLeft size={14} />
                     </button>
-                    <button 
+                    <button
                       onClick={nextAd}
                       className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 rounded-full p-1.5 shadow-md hover:bg-white text-gray-600 transform transition-transform hover:scale-110 focus:outline-none"
                       aria-label="Next ad"
@@ -510,7 +510,7 @@ const DonorDashboard: React.FC = () => {
                       <FaChevronRight size={14} />
                     </button>
                   </div>
-                  
+
                   <h3 className="text-center text-lg font-bold text-gray-800 mt-2">{advertisements[currentAd].title}</h3>
                   <p className="text-center text-[var(--paragraph)] text-sm mb-2">{advertisements[currentAd].description}</p>
                   <div className="flex justify-center items-center gap-2 mb-3">
@@ -523,25 +523,24 @@ const DonorDashboard: React.FC = () => {
                   </button>
                 </div>
               </div>
-              
+
               {/* Ad Indicators */}
               <div className="flex justify-center gap-1.5 mb-4">
                 {advertisements.map((_, index) => (
-                  <button 
+                  <button
                     key={index}
                     onClick={() => goToAd(index)}
-                    className={`w-2 h-2 rounded-full transition-all ${
-                      index === currentAd 
-                        ? 'bg-gray-500' 
-                        : 'bg-gray-300'
-                    }`}
+                    className={`w-2 h-2 rounded-full transition-all ${index === currentAd
+                      ? 'bg-gray-500'
+                      : 'bg-gray-300'
+                      }`}
                     aria-label={`Go to ad ${index + 1}`}
                   />
                 ))}
               </div>
-              
+
               <div className="w-full border-t border-gray-200 my-1"></div>
-              
+
               {/* Second Ad - Subscription Service */}
               <div className="w-full mt-1 pt-3 border-t border-gray-200">
                 <div className="flex items-center gap-2 mb-2">
@@ -559,54 +558,14 @@ const DonorDashboard: React.FC = () => {
                   Try Free Trial
                 </button>
               </div>
-              
+
               <p className="text-xs text-gray-400 mt-3">Sponsored content</p>
             </div>
           </div>
-          
-          {/* Content - 3/4 width */}
+
+          {/* Recurring Donations Summary - 3/4 width */}
           <div className="w-full md:w-3/4">
-            <div className="bg-white p-6 rounded-xl shadow-md border border-[var(--stroke)]">
-              <h2 className="text-xl font-bold text-[var(--headline)] mb-4">Recommended For You</h2>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="p-4 bg-[var(--background)] rounded-lg border border-[var(--stroke)] flex items-start gap-3">
-                  <div className="bg-[var(--highlight)] bg-opacity-10 p-3 rounded-full text-[var(--highlight)]">
-                    <FaChartLine />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-[var(--headline)] mb-1">Track Your Impact</h3>
-                    <p className="text-sm text-[var(--paragraph)]">See how your donations are making a difference around the world.</p>
-                  </div>
-                </div>
-                <div className="p-4 bg-[var(--background)] rounded-lg border border-[var(--stroke)] flex items-start gap-3">
-                  <div className="bg-[var(--highlight)] bg-opacity-10 p-3 rounded-full text-[var(--highlight)]">
-                    <FaUsers />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-[var(--headline)] mb-1">Invite Friends</h3>
-                    <p className="text-sm text-[var(--paragraph)]">Share your favorite campaigns with friends and family.</p>
-                  </div>
-                </div>
-                <div className="p-4 bg-[var(--background)] rounded-lg border border-[var(--stroke)] flex items-start gap-3">
-                  <div className="bg-[var(--highlight)] bg-opacity-10 p-3 rounded-full text-[var(--highlight)]">
-                    <FaHandHoldingHeart />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-[var(--headline)] mb-1">Monthly Giving</h3>
-                    <p className="text-sm text-[var(--paragraph)]">Make a recurring impact by setting up monthly donations.</p>
-                  </div>
-                </div>
-                <div className="p-4 bg-[var(--background)] rounded-lg border border-[var(--stroke)] flex items-start gap-3">
-                  <div className="bg-[var(--highlight)] bg-opacity-10 p-3 rounded-full text-[var(--highlight)]">
-                    <FaCreditCard />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-[var(--headline)] mb-1">Payment Methods</h3>
-                    <p className="text-sm text-[var(--paragraph)]">Update your payment information for seamless donating.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <DonorDashboardDonationSummary />
           </div>
         </div>
       </div>

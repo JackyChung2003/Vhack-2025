@@ -78,6 +78,9 @@ const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
         ? Math.min(Math.round((currentAmount / goalAmount) * 100), 100)
         : 0;
 
+    // Check if campaign is expired
+    const isExpired = daysLeft !== undefined && daysLeft <= 0;
+
     // State to track which milestone sections are expanded
     const [expandedMilestones, setExpandedMilestones] = useState<{ [key: string]: boolean }>({});
 
@@ -293,43 +296,52 @@ const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
             }
         ];
 
-        // Always add a Today entry showing current donation progress
-        const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        // Only add Today progress entry if campaign is not expired
+        if (!isExpired) {
+            const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-        // Enhanced Today entry with progress information
-        defaultEntries.push({
-            id: 'today-progress',
-            date: today,
-            title: `Campaign Progress`,
-            description: currentAmount && goalAmount
-                ? `Current funding: RM${currentAmount.toLocaleString()} of RM${goalAmount.toLocaleString()} goal${todayDonations > 0 ? ` (RM${todayDonations.toLocaleString()} donated today)` : ''}`
-                : 'Current funding status',
-            icon: <FaChartLine />,
-            color: 'bg-blue-600',
-            type: 'status',
-            statusTag: {
-                text: 'Today',
-                color: 'bg-blue-100 text-blue-800'
-            },
-            // Add amount to represent the goal for visualization
-            amount: goalAmount
-        });
+            // Enhanced Today entry with progress information
+            defaultEntries.push({
+                id: 'today-progress',
+                date: today,
+                title: `Campaign Progress`,
+                description: currentAmount && goalAmount
+                    ? `Current funding: RM${currentAmount.toLocaleString()} of RM${goalAmount.toLocaleString()} goal${todayDonations > 0 ? ` (RM${todayDonations.toLocaleString()} donated today)` : ''}`
+                    : 'Current funding status',
+                icon: <FaChartLine />,
+                color: 'bg-blue-600',
+                type: 'status',
+                statusTag: {
+                    text: 'Today',
+                    color: 'bg-blue-100 text-blue-800'
+                },
+                // Add amount to represent the goal for visualization
+                amount: goalAmount
+            });
+        }
 
         // Add deadline entry if available
         if (deadline) {
-            defaultEntries.push({
+            // Enhanced deadline entry for expired campaigns
+            const deadlineEntry: TimelineEntry = {
                 id: 'deadline',
                 date: deadline,
-                title: 'Campaign Deadline',
-                description: daysLeft !== undefined ? (daysLeft > 0 ? `${daysLeft} days remaining` : 'Campaign ended') : '',
-                icon: <FaClock />,
+                title: isExpired ? 'Campaign Ended' : 'Campaign Deadline',
+                description: isExpired
+                    ? currentAmount && goalAmount
+                        ? `Final funding: RM${currentAmount.toLocaleString()} of RM${goalAmount.toLocaleString()} goal (${progressPercentage}% achieved)`
+                        : 'Campaign has ended'
+                    : daysLeft !== undefined ? `${daysLeft} days remaining` : '',
+                icon: isExpired ? <FaFlag /> : <FaClock />,
                 color: 'bg-red-500',
                 type: 'status',
                 statusTag: {
-                    text: daysLeft !== undefined ? (daysLeft > 0 ? `${daysLeft} days left` : 'Ended') : 'Deadline',
-                    color: daysLeft !== undefined ? (daysLeft > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800') : 'bg-gray-100 text-gray-800'
+                    text: isExpired ? 'Ended' : `${daysLeft} days left`,
+                    color: isExpired ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
                 }
-            });
+            };
+
+            defaultEntries.push(deadlineEntry);
         }
 
         return defaultEntries;
@@ -354,7 +366,7 @@ const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
 
     // Add this function to determine if the milestone is the current progress indicator
     const isCurrentProgressMilestone = (milestoneId: string) => {
-        return milestoneId === 'today-progress';
+        return !isExpired && milestoneId === 'today-progress';
     };
 
     // Group related activities by their milestone
@@ -563,7 +575,7 @@ const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
                                             </div>
 
                                             {/* Add progress bar for today's entry */}
-                                            {milestone.id === 'today-progress' && (
+                                            {milestone.id === 'today-progress' && !isExpired && (
                                                 <div className="mt-4 border-t border-gray-200 pt-4">
                                                     <div className="flex items-baseline justify-between mb-2">
                                                         <div className="font-medium text-gray-700 flex items-center gap-1.5">
@@ -631,6 +643,61 @@ const CampaignTimeline: React.FC<CampaignTimelineProps> = ({
                                                             <span className="text-xs text-gray-500 mt-1">100%</span>
                                                         </div>
                                                     </div>
+                                                </div>
+                                            )}
+
+                                            {/* Add enhanced expired campaign display for deadline entry */}
+                                            {isExpired && milestone.id === 'deadline' && (
+                                                <div className="mt-4 border-t border-red-200 pt-4">
+                                                    <div className="flex items-baseline justify-between mb-2">
+                                                        <div className="font-medium text-gray-700 flex items-center gap-1.5">
+                                                            <span className="text-lg font-bold text-red-600">Campaign Closed</span>
+                                                        </div>
+                                                        <div className="text-sm text-gray-600">
+                                                            {currentAmount && goalAmount && (
+                                                                <>
+                                                                    <span className="font-semibold text-red-600">RM{currentAmount.toLocaleString()}</span>
+                                                                    <span className="mx-1">of</span>
+                                                                    <span>RM{goalAmount.toLocaleString()}</span>
+                                                                    <span className="ml-1 font-medium">({progressPercentage}%)</span>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Final progress bar for expired campaign */}
+                                                    {currentAmount && goalAmount && (
+                                                        <>
+                                                            <div className="h-3.5 w-full bg-gray-100 rounded-full overflow-hidden shadow-inner">
+                                                                <div
+                                                                    className="h-full bg-gradient-to-r from-red-500 via-red-400 to-red-600 rounded-full shadow-sm"
+                                                                    style={{ width: `${Math.min(progressPercentage, 100)}%` }}
+                                                                />
+                                                            </div>
+                                                            <div className="flex justify-between mt-2">
+                                                                <div className="flex flex-col items-center">
+                                                                    <div className={`h-1.5 w-1.5 rounded-full ${progressPercentage >= 0 ? 'bg-red-500' : 'bg-gray-300'}`}></div>
+                                                                    <span className="text-xs text-gray-500 mt-1">0%</span>
+                                                                </div>
+                                                                <div className="flex flex-col items-center">
+                                                                    <div className={`h-1.5 w-1.5 rounded-full ${progressPercentage >= 25 ? 'bg-red-500' : 'bg-gray-300'}`}></div>
+                                                                    <span className="text-xs text-gray-500 mt-1">25%</span>
+                                                                </div>
+                                                                <div className="flex flex-col items-center">
+                                                                    <div className={`h-1.5 w-1.5 rounded-full ${progressPercentage >= 50 ? 'bg-red-500' : 'bg-gray-300'}`}></div>
+                                                                    <span className="text-xs text-gray-500 mt-1">50%</span>
+                                                                </div>
+                                                                <div className="flex flex-col items-center">
+                                                                    <div className={`h-1.5 w-1.5 rounded-full ${progressPercentage >= 75 ? 'bg-red-500' : 'bg-gray-300'}`}></div>
+                                                                    <span className="text-xs text-gray-500 mt-1">75%</span>
+                                                                </div>
+                                                                <div className="flex flex-col items-center">
+                                                                    <div className={`h-1.5 w-1.5 rounded-full ${progressPercentage >= 100 ? 'bg-red-500' : 'bg-gray-300'}`}></div>
+                                                                    <span className="text-xs text-gray-500 mt-1">100%</span>
+                                                                </div>
+                                                            </div>
+                                                        </>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
