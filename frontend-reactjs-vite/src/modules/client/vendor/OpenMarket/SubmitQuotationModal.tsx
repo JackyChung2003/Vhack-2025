@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FaTimes, FaPaperclip, FaTag } from 'react-icons/fa';
+import { FaTimes, FaPaperclip, FaTag, FaMoneyBillWave, FaInfoCircle } from 'react-icons/fa';
 import { OpenMarketRequest } from '../../../../services/supabase/openMarketService';
 import { toast } from 'react-toastify';
 
@@ -72,34 +72,34 @@ const SubmitQuotationModal: React.FC<SubmitQuotationModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4 z-50">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
         {/* Header */}
-        <div className="bg-[var(--highlight)] text-white px-6 py-4 flex justify-between items-center">
-          <h2 className="text-xl font-bold">Submit Quotation</h2>
+        <div className="bg-green-500 text-white px-4 py-3 flex justify-between items-center">
+          <h2 className="text-lg font-bold">Submit Quotation</h2>
           <button 
             onClick={onClose}
             className="text-white hover:text-gray-200 transition-colors"
           >
-            <FaTimes size={20} />
+            <FaTimes size={18} />
           </button>
         </div>
         
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6">
+        <form onSubmit={handleSubmit} className="p-4">
           {/* Request title */}
-          <div className="mb-4 bg-gray-50 p-3 rounded-lg border border-gray-100">
-            <h3 className="font-medium text-[var(--headline)] mb-1">Request</h3>
+          <div className="mb-3 bg-gray-50 p-2 rounded-lg border border-gray-100">
+            <h3 className="font-medium text-sm text-[var(--headline)] mb-1">Request</h3>
             <p className="text-sm text-[var(--paragraph)]">{request.title}</p>
           </div>
           
           {/* Price input */}
-          <div className="mb-4">
-            <label className="block text-[var(--headline)] font-medium mb-2">
+          <div className="mb-3">
+            <label className="block text-sm text-[var(--headline)] font-medium mb-1">
               Your Price <span className="text-red-500">*</span>
             </label>
             <div className="flex">
               <div className="bg-gray-100 flex items-center px-3 rounded-l-lg border border-r-0 border-[var(--stroke)]">
-                <FaTag className="text-[var(--paragraph-light)]" />
+                <FaMoneyBillWave className="text-green-500 text-sm" />
               </div>
               <input
                 type="number"
@@ -107,7 +107,7 @@ const SubmitQuotationModal: React.FC<SubmitQuotationModalProps> = ({
                 step="0.01"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
-                className="flex-1 border border-[var(--stroke)] rounded-r-lg p-2 focus:outline-none focus:ring-2 focus:ring-[var(--highlight)]"
+                className="flex-1 border border-[var(--stroke)] rounded-r-lg p-2 text-sm focus:outline-none focus:ring-1 focus:ring-green-500"
                 placeholder="Enter amount"
                 required
               />
@@ -115,26 +115,26 @@ const SubmitQuotationModal: React.FC<SubmitQuotationModalProps> = ({
           </div>
           
           {/* Details textarea */}
-          <div className="mb-4">
-            <label className="block text-[var(--headline)] font-medium mb-2">
+          <div className="mb-3">
+            <label className="block text-sm text-[var(--headline)] font-medium mb-1">
               Details <span className="text-red-500">*</span>
             </label>
             <textarea
               value={details}
               onChange={(e) => setDetails(e.target.value)}
-              className="w-full border border-[var(--stroke)] rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-[var(--highlight)] min-h-[150px]"
-              placeholder="Describe your quotation in detail, including product specifications, delivery timeline, payment terms, etc."
+              className="w-full border border-[var(--stroke)] rounded-lg p-2 text-sm focus:outline-none focus:ring-1 focus:ring-green-500 min-h-[100px]"
+              placeholder="Describe your quotation in detail..."
               required
             ></textarea>
           </div>
           
-          {/* File upload */}
-          <div className="mb-6">
-            <label className="block text-[var(--headline)] font-medium mb-2">
+          {/* File upload - condensed version */}
+          <div className="mb-3">
+            <label className="block text-sm text-[var(--headline)] font-medium mb-1">
               Attachments (Optional)
             </label>
             
-            <div className="border-2 border-dashed border-[var(--stroke)] rounded-lg p-4 text-center">
+            <div className="border border-dashed border-[var(--stroke)] rounded-lg p-2 text-center">
               <input
                 type="file"
                 id="fileUpload"
@@ -144,35 +144,32 @@ const SubmitQuotationModal: React.FC<SubmitQuotationModalProps> = ({
               />
               <label 
                 htmlFor="fileUpload"
-                className="cursor-pointer flex flex-col items-center justify-center"
+                className="cursor-pointer flex items-center justify-center text-sm py-1"
               >
-                <FaPaperclip className="text-[var(--paragraph-light)] text-2xl mb-2" />
+                <FaPaperclip className="text-green-500 mr-2" />
                 <span className="text-[var(--paragraph)]">
-                  Click to upload files
-                </span>
-                <span className="text-xs text-[var(--paragraph-light)] mt-1">
-                  (PDF, Word, Excel, Images)
+                  Upload files
                 </span>
               </label>
             </div>
             
             {/* File list */}
             {files.length > 0 && (
-              <div className="mt-3 space-y-2">
+              <div className="mt-2 space-y-1">
                 {files.map((file, index) => (
                   <div 
                     key={index}
-                    className="flex items-center justify-between bg-gray-50 p-2 rounded-lg"
+                    className="flex items-center justify-between bg-gray-50 p-1 px-2 rounded text-xs"
                   >
-                    <span className="truncate max-w-[300px] text-sm">
+                    <span className="truncate max-w-[250px]">
                       {file.name}
                     </span>
                     <button
                       type="button"
                       onClick={() => removeFile(index)}
-                      className="text-red-500 hover:text-red-700"
+                      className="text-red-500 hover:text-red-700 ml-1"
                     >
-                      <FaTimes />
+                      <FaTimes size={12} />
                     </button>
                   </div>
                 ))}
@@ -180,25 +177,33 @@ const SubmitQuotationModal: React.FC<SubmitQuotationModalProps> = ({
             )}
           </div>
           
+          {/* Info callout - more compact */}
+          <div className="bg-blue-50 text-blue-800 rounded-lg p-2 mb-3 flex items-start text-xs">
+            <FaInfoCircle className="flex-shrink-0 mt-1 mr-2" />
+            <p>
+              Your quotation will be visible to the charity organization and other vendors. Be competitive with your pricing and clear with your details.
+            </p>
+          </div>
+          
           {/* Action buttons */}
-          <div className="flex justify-end gap-3">
+          <div className="flex justify-end gap-2 mt-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-[var(--stroke)] rounded-lg hover:bg-gray-100 transition-colors"
+              className="px-3 py-1.5 text-sm border border-[var(--stroke)] rounded-lg hover:bg-gray-100 transition-colors"
               disabled={isSubmitting}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-[var(--highlight)] text-white rounded-lg hover:bg-[var(--highlight-dark)] transition-colors flex items-center"
+              className="px-3 py-1.5 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center"
               disabled={isSubmitting}
             >
               {isSubmitting ? (
                 <>
-                  <span className="mr-2">Submitting...</span>
-                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                  <span className="mr-1">Submitting...</span>
+                  <div className="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full"></div>
                 </>
               ) : (
                 'Submit Quotation'

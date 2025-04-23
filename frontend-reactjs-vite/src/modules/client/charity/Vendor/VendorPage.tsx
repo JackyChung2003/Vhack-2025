@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { 
-  FaSearch, 
   FaComments, 
   FaExchangeAlt, 
   FaUserCircle, 
@@ -15,26 +14,25 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import VendorChats from "./VendorChats";
 import PurchasingTransactions from "./PurchasingTransactions";
-import VendorSearch from "./VendorSearch";
 import CharityOpenMarket from "../../charity/CharityOpenMarket/CharityOpenMarket";
 
 const VendorPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState<'transactions' | 'chats' | 'search' | 'quotations'>('transactions');
+  const [activeTab, setActiveTab] = useState<'transactions' | 'chats' | 'quotations'>('transactions');
 
   // Read tab from URL parameters on component mount and when URL changes
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const tab = params.get('tab');
     
-    if (tab === 'chats' || tab === 'search' || tab === 'transactions' || tab === 'quotations') {
+    if (tab === 'chats' || tab === 'transactions' || tab === 'quotations') {
       setActiveTab(tab);
     }
   }, [location.search]);
 
   // Update URL when tab changes
-  const handleTabChange = (tab: 'transactions' | 'chats' | 'search' | 'quotations') => {
+  const handleTabChange = (tab: 'transactions' | 'chats' | 'quotations') => {
     setActiveTab(tab);
     navigate(`/Vhack-2025/charity/vendor-page?tab=${tab}`, { replace: true });
   };
@@ -112,16 +110,6 @@ const VendorPage: React.FC = () => {
             >
               <FaComments size={14} /> Chats
             </button>
-            <button 
-              onClick={() => handleTabChange('search')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-                activeTab === 'search' 
-                  ? 'bg-white text-[var(--highlight)] shadow-md' 
-                  : 'bg-white bg-opacity-20 text-white hover:bg-opacity-30'
-              }`}
-            >
-              <FaSearch size={14} /> Find Vendors
-            </button>
           </div>
         </div>
       </motion.div>
@@ -145,12 +133,6 @@ const VendorPage: React.FC = () => {
             onClick={() => handleTabChange('chats')}
             icon={<FaComments />}
             label="Vendor Chats"
-          />
-          <TabButton 
-            isActive={activeTab === 'search'} 
-            onClick={() => handleTabChange('search')}
-            icon={<FaSearch />}
-            label="Find Vendors"
           />
         </div>
 
@@ -178,17 +160,6 @@ const VendorPage: React.FC = () => {
               </div>
             </div>
           )}
-          {activeTab === 'search' && (
-            <div className="flex items-center">
-              <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mr-3">
-                <FaSearch className="text-purple-600" />
-              </div>
-              <div>
-                <h2 className="font-medium text-[var(--headline)]">Find Vendors</h2>
-                <p className="text-sm text-[var(--paragraph)]">Search for new vendors to work with your organization</p>
-              </div>
-            </div>
-          )}
         </div>
       </motion.div>
       
@@ -204,7 +175,6 @@ const VendorPage: React.FC = () => {
         >
           {activeTab === 'transactions' && <PurchasingTransactions />}
           {activeTab === 'chats' && <VendorChats />}
-          {activeTab === 'search' && <VendorSearch />}
         </motion.div>
       </AnimatePresence>
     </motion.div>
