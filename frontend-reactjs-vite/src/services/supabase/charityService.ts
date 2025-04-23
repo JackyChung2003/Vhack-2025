@@ -1,4 +1,5 @@
 import supabase from './supabaseClient';
+import blockchainService from '../blockchain/blockchainService';
 
 // Types based on your Supabase schema
 export interface Campaign {
@@ -802,38 +803,49 @@ export const charityService = {
       if (authError) throw authError;
       if (!user) throw new Error('User not authenticated');
 
+      // Transaction hash placeholder that will be updated with the actual hash
+      let transactionHash = '';
+
       // Determine whether this is a campaign donation or a general charity donation
       if (donationData.campaignId) {
         // This is a campaign donation
         console.log(`Processing campaign donation to campaign ID: ${donationData.campaignId}`);
         
         // Verify the campaign exists and get its current amount
-        const { data: campaignData, error: campaignError } = await supabase
+        const { data: fullCampaignData, error: fullCampaignError } = await supabase
           .from('campaigns')
-          .select('charity_id, current_amount')
+          .select(`
+            id, 
+            title,
+            charity_id,
+            current_amount,
+            users:charity_id (
+              id,
+              name
+            )
+          `)
           .eq('id', donationData.campaignId)
           .single();
           
-        if (campaignError) {
-          console.error('Error verifying campaign:', campaignError);
+        if (fullCampaignError) {
+          console.error('Error fetching complete campaign data:', fullCampaignError);
           throw new Error('Campaign not found');
         }
         
         // Create donation record for a campaign donation
         // For campaign donations, we ONLY include campaign_id and NOT charity_id
-        // This is likely what the constraint is enforcing
         const donationRecord = {
           user_id: user.id,
           campaign_id: donationData.campaignId,
           amount: donationData.amount,
           donation_policy: donationData.donationPolicy || null,
-          transaction_hash: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
+          transaction_hash: '',
           message: donationData.message || null,
           donor_name: donationData.donorName || null,
           donor_email: donationData.donorEmail || null,
           is_anonymous: donationData.isAnonymous || false,
           is_recurring: donationData.isRecurring || false,
-          status: 'completed',
+          status: 'pending',
           created_at: new Date().toISOString()
         };
         
@@ -851,11 +863,59 @@ export const charityService = {
           throw error;
         }
         
+        // Record donation on blockchain
+        try {
+          // Prepare additional metadata for blockchain
+          const metadata = {
+            donationId: data.id,
+            policy: donationData.donationPolicy || 'none',
+            message: donationData.message || '',
+            isAnonymous: donationData.isAnonymous || false,
+            isRecurring: donationData.isRecurring || false,
+            charityName: fullCampaignData && fullCampaignData.users ? 
+              (Array.isArray(fullCampaignData.users) ? 
+                (fullCampaignData.users[0]?.name || 'Unknown Charity') : 
+                (fullCampaignData.users as any).name || 'Unknown Charity') : 
+              'Unknown Charity',
+            donorName: donationData.isAnonymous ? 'Anonymous Donor' : (donationData.donorName || 'Donor'),
+            amountInMYR: donationData.amount,
+            campaignTitle: fullCampaignData?.title || 'General Donation',
+            timestamp: new Date().toISOString()
+          };
+          
+          // Record on blockchain
+          const blockchainResult = await blockchainService.recordDonationOnBlockchain(
+            user.id,
+            donationData.campaignId,
+            donationData.amount * 100, // Convert to smallest currency unit (cents)
+            'MYR',
+            'campaign',
+            metadata
+          );
+          
+          // Update the transaction hash in the Supabase record
+          transactionHash = blockchainResult.txHash;
+          await supabase
+            .from('campaign_donations')
+            .update({
+              transaction_hash: transactionHash,
+              status: 'completed',
+              blockchain_donation_id: blockchainResult.donationId.toString()
+            })
+            .eq('id', data.id);
+            
+          console.log('Blockchain donation recorded:', blockchainResult);
+        } catch (blockchainError) {
+          console.error('Error recording donation on blockchain:', blockchainError);
+          // Continue with the Supabase donation even if blockchain recording fails
+          // In a production system, you might want to retry or queue for later
+        }
+        
         // Calculate new amount
-        const newAmount = campaignData.current_amount + donationData.amount;
+        const newAmount = fullCampaignData.current_amount + donationData.amount;
         
         // Try to update the campaign amount using a simple patch operation
-        console.log(`Updating campaign ${donationData.campaignId} amount from ${campaignData.current_amount} to ${newAmount}`);
+        console.log(`Updating campaign ${donationData.campaignId} amount from ${fullCampaignData.current_amount} to ${newAmount}`);
         
         try {
           // Use a basic update (patch) operation that only changes current_amount
@@ -876,23 +936,22 @@ export const charityService = {
           console.warn('Campaign donation was recorded, but campaign amount could not be updated.');
         }
         
-        return data;
+        return { ...data, transaction_hash: transactionHash };
       } 
       else {
         // This is a general charity donation
         console.log(`Processing general charity donation to charity ID: ${donationData.charityId}`);
         
         // Verify the charity exists
-        const { data: charityData, error: charityError } = await supabase
+        const { data: fullCharityData, error: fullCharityError } = await supabase
           .from('users')
-          .select('id')
+          .select('id, name, role')
           .eq('id', donationData.charityId)
           .eq('role', 'charity')
           .single();
           
-        if (charityError) {
-          console.error('Error verifying charity:', charityError);
-          throw new Error('Charity not found');
+        if (fullCharityError) {
+          console.error('Error fetching complete charity data:', fullCharityError);
         }
         
         // Create donation record for a general charity donation
@@ -901,13 +960,13 @@ export const charityService = {
           user_id: user.id,
           charity_id: donationData.charityId,
           amount: donationData.amount,
-          transaction_hash: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
+          transaction_hash: '',
           message: donationData.message || null,
           donor_name: donationData.donorName || null,
           donor_email: donationData.donorEmail || null,
           is_anonymous: donationData.isAnonymous || false,
           is_recurring: donationData.isRecurring || false,
-          status: 'completed',
+          status: 'pending',
           created_at: new Date().toISOString()
         };
         
@@ -925,7 +984,49 @@ export const charityService = {
           throw error;
         }
         
-        return data;
+        // Record donation on blockchain
+        try {
+          // Prepare additional metadata for blockchain
+          const metadata = {
+            donationId: data.id,
+            message: donationData.message || '',
+            isAnonymous: donationData.isAnonymous || false,
+            isRecurring: donationData.isRecurring || false,
+            charityName: fullCharityData?.name || 'Unknown Charity',
+            donorName: donationData.isAnonymous ? 'Anonymous Donor' : (donationData.donorName || 'Donor'),
+            amountInMYR: donationData.amount,
+            campaignTitle: 'General Donation',
+            timestamp: new Date().toISOString()
+          };
+          
+          // Record on blockchain
+          const blockchainResult = await blockchainService.recordDonationOnBlockchain(
+            user.id,
+            donationData.charityId,
+            donationData.amount * 100, // Convert to smallest currency unit (cents)
+            'MYR',
+            'organization',
+            metadata
+          );
+          
+          // Update the transaction hash in the Supabase record
+          transactionHash = blockchainResult.txHash;
+          await supabase
+            .from('campaign_donations')
+            .update({
+              transaction_hash: transactionHash,
+              status: 'completed',
+              blockchain_donation_id: blockchainResult.donationId.toString()
+            })
+            .eq('id', data.id);
+            
+          console.log('Blockchain donation recorded:', blockchainResult);
+        } catch (blockchainError) {
+          console.error('Error recording donation on blockchain:', blockchainError);
+          // Continue with the Supabase donation even if blockchain recording fails
+        }
+        
+        return { ...data, transaction_hash: transactionHash };
       }
     } catch (error) {
       console.error('Error making donation:', error);
