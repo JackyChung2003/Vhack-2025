@@ -1,8 +1,75 @@
 import React, { useState, useEffect } from 'react';
-import { FaChevronLeft, FaChevronRight, FaBullhorn, FaHandHoldingHeart, FaChartLine, FaCreditCard, FaUsers, FaArrowRight } from 'react-icons/fa';
+import { FaChevronLeft, FaChevronRight, FaBullhorn, FaHandHoldingHeart, FaChartLine, FaCreditCard, FaUsers, FaArrowRight, FaMedal, FaTrophy, FaStar, FaHeart, FaHandshake, FaUserFriends, FaLock } from 'react-icons/fa';
 import { charityService, Campaign } from '../../../services/supabase/charityService';
 import { useNavigate } from 'react-router-dom';
 import './DonorDashboard.css';
+
+// Badge mock data
+const badges = [
+  {
+    id: 1,
+    title: "First Donation",
+    description: "Made your first donation to a campaign",
+    icon: <FaMedal className="text-3xl" />,
+    color: "blue",
+    earned: true,
+    earnedDate: "2023-04-15",
+  },
+  {
+    id: 2,
+    title: "Serial Supporter",
+    description: "Donated to 5 different campaigns",
+    icon: <FaTrophy className="text-3xl" />,
+    color: "purple",
+    earned: true,
+    earnedDate: "2023-06-22",
+  },
+  {
+    id: 3,
+    title: "Monthly Hero",
+    description: "Made donations for 3 consecutive months",
+    icon: <FaStar className="text-3xl" />,
+    color: "yellow",
+    earned: true,
+    earnedDate: "2023-07-30",
+  },
+  {
+    id: 6,
+    title: "Early Bird",
+    description: "Donated to a campaign within 24 hours of its launch",
+    icon: <FaHandshake className="text-3xl" />,
+    color: "orange",
+    earned: true,
+    earnedDate: "2023-08-05",
+  },
+  {
+    id: 4,
+    title: "Big Heart",
+    description: "Donated a total of RM1,000",
+    icon: <FaHeart className="text-3xl" />,
+    color: "red",
+    earned: false,
+    progress: 75, // Percentage progress towards earning this badge
+  },
+  {
+    id: 5,
+    title: "Community Builder",
+    description: "Referred 3 friends who made donations",
+    icon: <FaUserFriends className="text-3xl" />,
+    color: "green",
+    earned: false,
+    progress: 33, // Percentage progress towards earning this badge
+  },
+  {
+    id: 7,
+    title: "Long Term Supporter",
+    description: "Followed and donated to the same charity for 6 months",
+    icon: <FaChartLine className="text-3xl" />,
+    color: "teal",
+    earned: false,
+    progress: 50,
+  },
+];
 import DonorDashboardDonationSummary from './dashboard/DonorDashboardDonationSummary';
 
 // Mock announcements with added category and color scheme
@@ -101,6 +168,7 @@ const DonorDashboard: React.FC = () => {
   const [currentAd, setCurrentAd] = useState(0);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandBadges, setExpandBadges] = useState(false);
   const navigate = useNavigate();
 
   // Fetch real campaigns from backend
@@ -144,6 +212,10 @@ const DonorDashboard: React.FC = () => {
     setCurrentAd(index);
   };
 
+  const toggleExpandBadges = () => {
+    setExpandBadges(!expandBadges);
+  };
+
   const currentItem = announcements[currentAnnouncement];
 
   // Calculate days left from deadline
@@ -154,6 +226,9 @@ const DonorDashboard: React.FC = () => {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays > 0 ? diffDays : 0;
   };
+
+  // Get the badges to display
+  const displayBadges = expandBadges ? badges : badges.slice(0, 5);
 
   return (
     <div className="container mx-auto p-6">
@@ -295,9 +370,9 @@ const DonorDashboard: React.FC = () => {
             </div>
 
             {/* Other Campaigns */}
-            {campaigns.slice(1, 5).map((campaign) => (
-              <div
-                key={campaign.id}
+            {campaigns.slice(1, 3).map((campaign) => (
+              <div 
+                key={campaign.id} 
                 className="bg-white rounded-xl shadow-md overflow-hidden border border-[var(--stroke)] transition-all hover:shadow-lg hover:translate-y-[-5px] cursor-pointer"
                 onClick={() => navigateToCampaign(campaign.id)}
               >
@@ -342,6 +417,61 @@ const DonorDashboard: React.FC = () => {
             <p className="text-[var(--paragraph)] mb-4">There are currently no active campaigns available.</p>
           </div>
         )}
+      </div>
+      
+      {/* Badge Wall Section */}
+      <div className="mb-10">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-[var(--headline)]">Your Achievement Badges</h2>
+          <button 
+            onClick={toggleExpandBadges}
+            className="text-[var(--highlight)] hover:underline flex items-center gap-1 text-sm font-medium bg-transparent border-none cursor-pointer"
+          >
+            {expandBadges ? "Show Less" : "View All"} <FaArrowRight size={12} />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          {displayBadges.map((badge) => (
+            <div 
+              key={badge.id} 
+              className={`bg-white rounded-xl shadow-md overflow-hidden border border-${badge.color}-200 transition-all hover:shadow-lg text-center p-4 ${!badge.earned && 'opacity-70'}`}
+            >
+              <div className={`mx-auto w-16 h-16 rounded-full mb-3 flex items-center justify-center bg-${badge.color}-100 relative`}>
+                <div className={`text-${badge.color}-600`}>
+                  {badge.icon}
+                </div>
+                {!badge.earned && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-200 bg-opacity-70 rounded-full">
+                    <FaLock className="text-gray-500 text-xl" />
+                  </div>
+                )}
+              </div>
+              
+              <h3 className="font-bold text-[var(--headline)] mb-1">{badge.title}</h3>
+              <p className="text-xs text-[var(--paragraph)] mb-2">{badge.description}</p>
+              
+              {badge.earned ? (
+                <div className="text-xs text-green-600 font-medium">
+                  Earned {badge.earnedDate ? new Date(badge.earnedDate).toLocaleDateString() : ''}
+                </div>
+              ) : (
+                <div className="w-full bg-gray-200 rounded-full h-1.5 mb-1">
+                  <div 
+                    className={`bg-${badge.color}-500 h-1.5 rounded-full`} 
+                    style={{ width: `${badge.progress}%` }}
+                  ></div>
+                </div>
+              )}
+              
+              {!badge.earned && (
+                <div className="text-xs text-[var(--paragraph)]">
+                  {badge.progress}% complete
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Advertisement and Content Section */}
