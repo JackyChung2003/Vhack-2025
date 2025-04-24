@@ -467,21 +467,22 @@ const CharityPage: React.FC = () => {
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {sortedActiveCampaigns.map((campaign) => {
-                      // Calculate a default deadline of 30 days from now if not provided
+                      // Use a hardcoded default deadline if none is specified
                       const defaultDeadline = new Date();
-                      defaultDeadline.setDate(defaultDeadline.getDate() + 30);
+                      defaultDeadline.setDate(defaultDeadline.getDate() + 30); // 30 days from now
 
                       return (
-                        <CampaignCard
-                          key={campaign.id}
-                          id={campaign.id}
-                          name={campaign.title}
-                          description={campaign.description}
-                          goal={campaign.target_amount}
-                          currentContributions={campaign.current_amount}
-                          deadline={campaign.deadline || defaultDeadline.toISOString()}
-                          category={campaign.category}
-                        />
+                        <div key={campaign.id} className="h-full">
+                          <CampaignCard
+                            id={campaign.id}
+                            name={campaign.title}
+                            description={campaign.description}
+                            goal={campaign.target_amount}
+                            currentContributions={campaign.current_amount}
+                            deadline={campaign.deadline || defaultDeadline.toISOString()}
+                            category={campaign.category}
+                          />
+                        </div>
                       );
                     })}
                   </div>

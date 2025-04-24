@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   FaArrowLeft, FaHandHoldingHeart, FaBuilding, FaUsers, FaHistory, FaChartLine,
-  FaGlobe, FaEnvelope, FaPhone, FaMapMarkerAlt, FaCalendarAlt, FaComments, FaClock, FaPencilAlt, FaTimes, FaPlus, FaFacebook, FaTwitter, FaInstagram, FaCoins, FaChevronLeft, FaGift, FaTrophy
+  FaGlobe, FaEnvelope, FaPhone, FaMapMarkerAlt, FaCalendarAlt, FaComments, FaClock, FaPencilAlt, FaTimes, FaPlus, FaFacebook, FaTwitter, FaInstagram, FaCoins, FaChevronLeft, FaGift, FaTrophy, FaExternalLinkAlt, FaDownload, FaHandHoldingUsd
 } from "react-icons/fa";
 import { motion } from "framer-motion";
 import CampaignCard from "../../../../components/cards/CampaignCard";
@@ -19,6 +19,9 @@ import AddCampaignModal from "../../../../components/modals/AddCampaignModal";
 import CampaignTimeline from "../../../../components/campaign/CampaignTimeline";
 import DonorLeaderboardAndTracker from "../../../../components/donation/DonorLeaderboardAndTracker";
 import { DonationTracker } from "../../../../utils/mockData";
+import { getTransactionExplorerUrl } from "../../../../services/blockchain/blockchainService";
+import supabase from "../../../../services/supabase/supabaseClient";
+import SimpleDonationVerifier from "../../../../components/donation/SimpleDonationVerifier";
 
 const OrganizationDetail: React.FC = () => {
   const { id: organizationIdString } = useParams();
@@ -58,6 +61,11 @@ const OrganizationDetail: React.FC = () => {
   const [goalAmount, setGoalAmount] = useState<number>(100000); // Default goal amount for organization
   const [daysLeft, setDaysLeft] = useState<number>(365); // Default yearly goal
   const [todayDonations, setTodayDonations] = useState<number>(0); // Today's donations
+
+  // Add state for blockchain transactions
+  const [blockchainTransactions, setBlockchainTransactions] = useState<any[]>([]);
+  const [transactionsLoading, setTransactionsLoading] = useState(false);
+  const [transactionsError, setTransactionsError] = useState<string | null>(null);
 
   // Determine if we're viewing as charity's own profile
   const isOwnProfile = userRole === 'charity' && !organizationIdString;
@@ -470,6 +478,118 @@ const OrganizationDetail: React.FC = () => {
       }
     ];
   };
+
+  // Update the fetchOrganizationTransactions function with the correct column name
+  const fetchOrganizationTransactions = async () => {
+    if (!organization || !organization.id) return;
+    
+    try {
+      setTransactionsLoading(true);
+      setTransactionsError(null);
+      
+      // Get all donations to this charity (both general and campaign-specific) from campaign_donations table
+      const { data: allDonations, error: donationsError } = await supabase
+        .from('campaign_donations')
+        .select('id, amount, created_at, user_id, is_anonymous, transaction_hash, donation_policy, message, status, campaign_id')
+        .eq('charity_id', organization.id)
+        .order('created_at', { ascending: false });
+        
+      if (donationsError) throw donationsError;
+      
+      // Separate general donations (where campaign_id is null) from campaign donations
+      const generalDonations = allDonations.filter(donation => donation.campaign_id === null);
+      const campaignDonations = allDonations.filter(donation => donation.campaign_id !== null);
+      
+      // Update filters to use is_anonymous
+      const userIds = [
+        ...generalDonations.filter(d => !d.is_anonymous && d.user_id).map(d => d.user_id),
+        ...campaignDonations.filter(d => !d.is_anonymous && d.user_id).map(d => d.user_id)
+      ];
+      
+      // Collect all campaign IDs 
+      const campaignIds = [...new Set(campaignDonations.filter(d => d.campaign_id).map(d => d.campaign_id))];
+      
+      // Fetch user names
+      let userNames: Record<string, string> = {};
+      if (userIds.length > 0) {
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('id, name')
+          .in('id', userIds);
+          
+        if (!userError && userData) {
+          userNames = userData.reduce((acc: Record<string, string>, user) => {
+            acc[user.id] = user.name;
+            return acc;
+          }, {});
+        }
+      }
+      
+      // Fetch campaign names
+      let campaignInfo: Record<string, {title: string, id: string}> = {};
+      if (campaignIds.length > 0) {
+        const { data: campaignsData, error: campaignsError } = await supabase
+          .from('campaigns')
+          .select('id, title')
+          .in('id', campaignIds);
+          
+        if (!campaignsError && campaignsData) {
+          campaignInfo = campaignsData.reduce((acc: Record<string, {title: string, id: string}>, campaign) => {
+            acc[campaign.id] = { title: campaign.title, id: campaign.id };
+            return acc;
+          }, {});
+        }
+      }
+      
+      // Format general donations
+      const generalTransactions = (generalDonations || []).map((donation: any) => ({
+        id: `general-${donation.id}`,
+        amount: donation.amount,
+        date: donation.created_at,
+        donorName: donation.is_anonymous ? null : (userNames[donation.user_id] || 'Unknown Donor'),
+        donorId: donation.is_anonymous ? null : donation.user_id,
+        transactionHash: donation.transaction_hash,
+        message: donation.message,
+        status: donation.status || 'confirmed',
+        donationType: 'general'
+      }));
+      
+      // Format campaign donations
+      const campaignTransactions = (campaignDonations || []).map((donation: any) => {
+        const campaign = donation.campaign_id ? campaignInfo[donation.campaign_id] : null;
+        
+        return {
+          id: `campaign-${donation.id}`,
+          amount: donation.amount,
+          date: donation.created_at,
+          donorName: donation.is_anonymous ? null : (userNames[donation.user_id] || 'Unknown Donor'),
+          donorId: donation.is_anonymous ? null : donation.user_id,
+          transactionHash: donation.transaction_hash,
+          donationPolicy: donation.donation_policy,
+          message: donation.message,
+          status: donation.status || 'confirmed',
+          donationType: 'campaign',
+          campaignName: campaign ? campaign.title : 'Unknown Campaign',
+          campaignId: donation.campaign_id
+        };
+      });
+      
+      // Combine both types of transactions
+      setBlockchainTransactions([...generalTransactions, ...campaignTransactions]);
+    } catch (err: any) {
+      console.error('Error fetching organization transactions:', err);
+      setTransactionsError(err.message || 'Failed to load transaction data');
+    } finally {
+      setTransactionsLoading(false);
+    }
+  };
+  
+  // Call fetchOrganizationTransactions when organization data is loaded
+  useEffect(() => {
+    if (organization) {
+      fetchOrganizationTransactions();
+    }
+  }, [organization]);
 
   // Conditional rendering after all hooks are called
   // If we're viewing as charity profile and still loading
@@ -941,16 +1061,17 @@ const OrganizationDetail: React.FC = () => {
                   defaultDeadline.setDate(defaultDeadline.getDate() + 30);
 
                   return (
-                    <CampaignCard
-                      key={campaign.id}
-                      id={campaign.id}
-                      name={campaign.title}
-                      description={campaign.description}
-                      goal={campaign.target_amount}
-                      currentContributions={campaign.current_amount}
-                      deadline={campaign.deadline || defaultDeadline.toISOString()}
-                      category={campaign.category}
-                    />
+                    <div key={campaign.id} className="h-full">
+                      <CampaignCard
+                        id={campaign.id}
+                        name={campaign.title}
+                        description={campaign.description}
+                        goal={campaign.target_amount}
+                        currentContributions={campaign.current_amount}
+                        deadline={campaign.deadline || defaultDeadline.toISOString()}
+                        category={campaign.category}
+                      />
+                    </div>
                   );
                 })}
               </div>
@@ -976,16 +1097,17 @@ const OrganizationDetail: React.FC = () => {
                   defaultDeadline.setDate(defaultDeadline.getDate() + 30);
 
                   return (
-                    <CampaignCard
-                      key={campaign.id}
-                      id={campaign.id}
-                      name={campaign.title}
-                      description={campaign.description}
-                      goal={campaign.target_amount}
-                      currentContributions={campaign.current_amount}
-                      deadline={campaign.deadline || defaultDeadline.toISOString()}
-                      category={campaign.category}
-                    />
+                    <div key={campaign.id} className="h-full">
+                      <CampaignCard
+                        id={campaign.id}
+                        name={campaign.title}
+                        description={campaign.description}
+                        goal={campaign.target_amount}
+                        currentContributions={campaign.current_amount}
+                        deadline={campaign.deadline || defaultDeadline.toISOString()}
+                        category={campaign.category}
+                      />
+                    </div>
                   );
                 })}
               </div>
@@ -1126,6 +1248,22 @@ const OrganizationDetail: React.FC = () => {
             )
           ) : null}
         </motion.section>
+
+        {/* Add the BlockchainTransparencyTracker in an appropriate tab or section */}
+        <div className="max-w-7xl mx-auto mt-6">
+          <SimpleDonationVerifier
+            title="Organization Donations"
+            campaignName={organization?.name || "this organization"}
+            transactions={blockchainTransactions.map(tx => ({
+              id: tx.id,
+              amount: tx.amount,
+              date: tx.date,
+              transactionHash: tx.transactionHash,
+              donorName: tx.donorName
+            }))}
+            showDonorNames={true}
+          />
+        </div>
       </div>
 
       {/* Donation Modal */}

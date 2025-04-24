@@ -1,21 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { FaCalendarAlt, FaMoneyBillWave, FaArrowLeft, FaHandHoldingHeart, FaUsers, FaChartLine, FaHistory, FaBuilding, FaEdit, FaTrash, FaComments, FaClock, FaThumbsUp, FaPlus, FaMapMarkerAlt, FaShare, FaTrophy, FaExchangeAlt, FaTimes, FaHashtag, FaTags, FaFire, FaUserCircle, FaCheck, FaFileInvoice, FaFlag, FaLock, FaDownload, FaCalendarTimes } from "react-icons/fa";
+import { FaCalendarAlt, FaMoneyBillWave, FaArrowLeft, FaHandHoldingHeart, FaUsers, FaChartLine, FaHistory, FaBuilding, FaEdit, FaTrash, FaComments, FaClock, FaThumbsUp, FaPlus, FaMapMarkerAlt, FaShare, FaTrophy, FaExchangeAlt, FaTimes, FaHashtag, FaTags, FaFire, FaUserCircle, FaCheck, FaFileInvoice, FaFlag, FaLock, FaDownload, FaCalendarTimes, FaExternalLinkAlt, FaReceipt } from "react-icons/fa";
 import { useRole } from "../../../../contexts/RoleContext";
 import { charityService, Campaign as CampaignType } from "../../../../services/supabase/charityService";
 import DonationModal from "../../../../components/modals/DonationModal";
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
-// Import the community components
 import PostFeed from "../../common/community/components/PostFeed";
 import DonationLeaderboard from "../../common/community/components/DonationLeaderboard";
-import DonationTracker from "../../../../components/donation/DonationTracker";
 import MyContributionPopup from '../../../../components/modals/MyContributionPopup';
-// Import our new CampaignTimeline component
 import CampaignTimeline from "../../../../components/campaign/CampaignTimeline";
-// Add this import
+
 import DonorLeaderboardAndTracker from '../../../../components/donation/DonorLeaderboardAndTracker';
 import supabase from "../../../../services/supabase/supabaseClient";  
+
+import SimpleDonationVerifier from "../../../../components/donation/SimpleDonationVerifier";
 
 // Floating Modal Component for Full Leaderboard
 const LeaderboardModal: React.FC<{
@@ -137,14 +136,18 @@ const CampaignDetail: React.FC = () => {
   const [selectedDonorId, setSelectedDonorId] = useState<number | null>(null);
 
   // Update type definition to include the new tab
-  const [activeMainTab, setActiveMainTab] = useState<'transactions' | 'community' | 'community-temp'>(() => {
+  const [activeMainTab, setActiveMainTab] = useState<'transactions' | 'community'>(() => {
     const params = new URLSearchParams(location.search);
-    return params.get('tab') === 'community' ? 'community' :
-      params.get('tab') === 'community-temp' ? 'community-temp' : 'transactions';
+    return params.get('tab') === 'community' ? 'community' : 'transactions';
   });
 
   // Add to CampaignDetail.tsx
   const [userDonations, setUserDonations] = useState<any>(null);
+
+  // Add state for blockchain transactions
+  const [blockchainTransactions, setBlockchainTransactions] = useState<any[]>([]);
+  const [transactionsLoading, setTransactionsLoading] = useState(false);
+  const [transactionsError, setTransactionsError] = useState<string | null>(null);
 
   // Fetch campaign data
   useEffect(() => {
@@ -243,6 +246,73 @@ const CampaignDetail: React.FC = () => {
     }
   }, [donationStats]);
 
+  // Add useEffect to fetch blockchain transactions when campaign is loaded
+  useEffect(() => {
+    if (campaign) {
+      fetchBlockchainTransactions();
+    }
+  }, [campaign]);
+
+  // Update the fetchBlockchainTransactions function with the correct column name
+  const fetchBlockchainTransactions = async () => {
+    if (!campaign) return;
+    
+    try {
+      setTransactionsLoading(true);
+      setTransactionsError(null);
+      
+      // Use is_anonymous instead of anonymous
+      const { data, error } = await supabase
+        .from('campaign_donations')
+        .select('id, amount, created_at, user_id, is_anonymous, transaction_hash, donation_policy, message, status')
+        .eq('campaign_id', campaign.id)
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
+      
+      // Fix the filter to use is_anonymous
+      const userIds = data
+        .filter(donation => !donation.is_anonymous && donation.user_id)
+        .map(donation => donation.user_id);
+        
+      let userNames: Record<string, string> = {};
+      
+      if (userIds.length > 0) {
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('id, name')
+          .in('id', userIds);
+          
+        if (!userError && userData) {
+          userNames = userData.reduce((acc: Record<string, string>, user) => {
+            acc[user.id] = user.name;
+            return acc;
+          }, {});
+        }
+      }
+      
+      // Fix the donorName to use is_anonymous
+      const transactions = data.map(donation => ({
+        id: donation.id,
+        amount: donation.amount,
+        date: donation.created_at,
+        donorName: donation.is_anonymous ? null : (userNames[donation.user_id] || 'Unknown Donor'),
+        donorId: donation.is_anonymous ? null : donation.user_id,
+        transactionHash: donation.transaction_hash,
+        donationPolicy: donation.donation_policy,
+        message: donation.message,
+        status: donation.status || 'confirmed'
+      }));
+      
+      setBlockchainTransactions(transactions);
+    } catch (err: any) {
+      console.error('Error fetching blockchain transactions:', err);
+      setTransactionsError(err.message || 'Failed to load transaction data');
+    } finally {
+      setTransactionsLoading(false);
+    }
+  };
+
   // Show loading state
   if (loading) {
     return (
@@ -276,17 +346,6 @@ const CampaignDetail: React.FC = () => {
   // Use charity data from campaign
   const charity = campaign.charity || null;
 
-  // Create mock donor contribution data for all donors
-  const donorContribution: DonorContribution = {
-    totalAmount: 250,
-    contributions: [
-      { id: '1', date: '2023-11-15T10:30:00', amount: 150 },
-      { id: '2', date: '2023-12-20T15:45:00', amount: 100 }
-    ],
-    percentageOfTotal: '8.5'
-  };
-
-  
   // Calculate progress percentage
   const progress = (campaign.current_amount / campaign.target_amount) * 100;
 
@@ -381,7 +440,7 @@ const CampaignDetail: React.FC = () => {
   };
 
   // Handle tab change to update URL
-  const handleTabChange = (tab: 'transactions' | 'community' | 'community-temp') => {
+  const handleTabChange = (tab: 'transactions' | 'community') => {
     setActiveMainTab(tab);
     navigate(`/charity/${id}?tab=${tab}`, { replace: true });
   };
@@ -648,26 +707,13 @@ const CampaignDetail: React.FC = () => {
                       <FaUsers />
                       Community
                     </button>
-                    <button
-                      onClick={() => handleTabChange('community-temp')}
-                      className={`px-6 py-4 flex items-center gap-2 text-sm font-medium ${activeMainTab === 'community-temp'
-                        ? 'bg-[var(--highlight)] text-white'
-                        : 'hover:bg-[var(--background)]'
-                        }`}
-                    >
-                      <FaUsers />
-                      Community (Temp)
-                    </button>
                   </div>
                 </div>
 
                 <div className="p-6">
                   {activeMainTab === 'transactions' && (
-                    <>
-                      <h2 className="text-xl font-bold text-[var(--headline)] mb-2">Campaign Transactions</h2>
-                      <p className="text-[var(--paragraph)] text-sm mb-4">
-                        Track how funds are being used in this campaign
-                      </p>
+                    <>                     
+                      {/* Keep the existing CampaignTimeline component */}
                       <CampaignTimeline
                         campaignName={campaign.title}
                         currentAmount={campaign.current_amount}
@@ -699,89 +745,6 @@ const CampaignDetail: React.FC = () => {
                       {/* Post feed component */}
                       <PostFeed communityId={campaign.id} communityType="campaign" />
                     </>
-                  )}
-
-                  {activeMainTab === 'community-temp' && (
-                    <div className="flex flex-col items-center py-12">
-                      <div className="w-20 h-20 bg-[var(--highlight)] bg-opacity-10 rounded-full flex items-center justify-center mb-6">
-                        <FaLock className="text-[var(--highlight)] text-3xl" />
-                      </div>
-
-                      <h2 className="text-2xl font-bold text-[var(--headline)] mb-3 text-center">
-                        Join the Campaign Community
-                      </h2>
-
-                      <p className="text-[var(--paragraph)] mb-8 max-w-md text-center">
-                        To access the community discussions, donor leaderboard, and campaign updates, please support this campaign with a donation first.
-                      </p>
-
-                      <div className="bg-[var(--background)] rounded-lg border border-[var(--stroke)] p-6 mb-8 max-w-md w-full">
-                        <div className="flex items-center gap-4 mb-4">
-                          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                            <FaUsers className="text-blue-600" />
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-[var(--headline)]">Connect with 42 supporters</h3>
-                            <p className="text-sm text-[var(--paragraph)]">
-                              Share updates and join meaningful discussions
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-4 mb-4">
-                          <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                            <FaTrophy className="text-green-600" />
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-[var(--headline)]">See your impact</h3>
-                            <p className="text-sm text-[var(--paragraph)]">
-                              Track your contribution rank among other donors
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                            <FaChartLine className="text-purple-600" />
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-[var(--headline)]">Get insider updates</h3>
-                            <p className="text-sm text-[var(--paragraph)]">
-                              Receive exclusive updates on campaign progress
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {isCampaignActive && !isCampaignExpired ? (
-                        <button
-                          onClick={() => setIsDonationModalOpen(true)}
-                          className="px-8 py-4 rounded-lg bg-[var(--highlight)] text-white hover:bg-opacity-90 transition-colors flex items-center gap-3 shadow-md"
-                        >
-                          <FaHandHoldingHeart className="text-xl" />
-                          <div>
-                            <span className="font-semibold">Donate Now</span>
-                            <span className="block text-xs">Starting from RM10</span>
-                          </div>
-                        </button>
-                      ) : isCampaignExpired ? (
-                        <div className="px-8 py-4 rounded-lg bg-gray-400 text-white flex items-center gap-3 shadow-md cursor-not-allowed">
-                          <FaCalendarTimes className="text-xl" />
-                          <div>
-                            <span className="font-semibold">Campaign Ended</span>
-                            <span className="block text-xs">No longer accepting donations</span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="px-8 py-4 rounded-lg bg-gray-400 text-white flex items-center gap-3 shadow-md cursor-not-allowed">
-                          <FaTimes className="text-xl" />
-                          <div>
-                            <span className="font-semibold">Campaign Inactive</span>
-                            <span className="block text-xs">Donations temporarily disabled</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
                   )}
                 </div>
               </div>
@@ -884,6 +847,41 @@ const CampaignDetail: React.FC = () => {
                   )}
                 </div>
               </div>
+            )}
+
+            {/* Donation Verifier - shows recent transactions with blockchain verification */}
+            {(userRole === 'charity' || userRole === 'donor') && (
+              <>
+                {blockchainTransactions.length > 0 ? (
+                  <SimpleDonationVerifier
+                    title="Blockchain Verification"
+                    campaignName={campaign.title}
+                    transactions={blockchainTransactions.map(tx => ({
+                      id: tx.id,
+                      amount: tx.amount,
+                      date: tx.date,
+                      transactionHash: tx.transactionHash || '',
+                      donorName: tx.donorName
+                    }))}
+                    showDonorNames={true}
+                  />
+                ) : (
+                  <div className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] p-6 mb-8">
+                    <div className="flex items-center gap-2 mb-4">
+                      <FaReceipt className="text-[var(--highlight)]" />
+                      <h3 className="text-lg font-bold text-[var(--headline)]">Blockchain Verification</h3>
+                    </div>
+                    <p className="text-[var(--paragraph)] text-center py-4">
+                      No verified transactions available yet.
+                    </p>
+                    <div className="mt-2 border-t border-[var(--stroke)] pt-4 text-center">
+                      <p className="text-sm text-[var(--paragraph)] italic">
+                        All donations are securely verified on the blockchain for complete transparency
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
             {/* Donation Tracker - temporarily disabled until real data is available */}

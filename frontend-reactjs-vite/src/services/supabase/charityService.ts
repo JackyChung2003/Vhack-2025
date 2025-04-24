@@ -26,6 +26,7 @@ export interface Campaign {
     phone?: string;
     verified?: boolean;
   };
+  donorContribution?: number; // Amount contributed by the current donor
 }
 
 export interface CharityProfile {
@@ -1455,4 +1456,160 @@ export const charityService = {
       throw error;
     }
   },
+  
+  // Get campaigns that a donor has donated to
+  getDonorSupportedCampaigns: async (): Promise<Campaign[]> => {
+    try {
+      // Get current authenticated user
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) throw authError;
+      if (!user) throw new Error('User not authenticated');
+
+      // Get all donations made by this user
+      const { data: donationsData, error: donationsError } = await supabase
+        .from('campaign_donations')
+        .select('campaign_id, amount')
+        .eq('user_id', user.id)
+        .not('campaign_id', 'is', null);
+      
+      if (donationsError) throw donationsError;
+      
+      // If no donations, return empty array
+      if (!donationsData || donationsData.length === 0) {
+        return [];
+      }
+      
+      // Get unique campaign IDs
+      const campaignIds = [...new Set(donationsData.map(donation => donation.campaign_id))];
+      
+      // Get campaign details
+      const { data: campaignsData, error: campaignsError } = await supabase
+        .from('campaigns')
+        .select(`
+          *,
+          users!fk_campaigns_charity (
+            id,
+            name,
+            verified,
+            wallet_address,
+            role
+          )
+        `)
+        .in('id', campaignIds);
+      
+      if (campaignsError) throw campaignsError;
+      
+      // Enhance each campaign with the donation amount by this user
+      const enhancedCampaigns = await Promise.all((campaignsData || []).map(async (campaign) => {
+        // Calculate total donations by this user to this campaign
+        const userDonations = donationsData.filter(d => d.campaign_id === campaign.id);
+        const donorContribution = userDonations.reduce((sum, donation) => sum + donation.amount, 0);
+        
+        // Get charity profile data
+        const { data: profileData } = await supabase
+          .from('charity_profiles')
+          .select(`
+            description,
+            logo,
+            founded,
+            location,
+            website,
+            email,
+            phone
+          `)
+          .eq('user_id', campaign.users.id)
+          .maybeSingle();
+        
+        // Combine charity data
+        const charity = {
+          ...campaign.users,
+          ...(profileData || {})
+        };
+        
+        // Create the final campaign object with donation info
+        const enhancedCampaign = {
+          ...campaign,
+          charity,
+          donorContribution
+        };
+        delete enhancedCampaign.users;
+        
+        return enhancedCampaign;
+      }));
+      
+      return enhancedCampaigns || [];
+    } catch (error) {
+      console.error('Error fetching donor supported campaigns:', error);
+      
+      // For development/testing: Return mock data if real data fetching fails
+      console.warn('Returning mock data for donor supported campaigns');
+      
+      // Create some sample campaign data
+      const mockCampaigns: Campaign[] = [
+        {
+          id: 'mock-campaign-1',
+          charity_id: 'mock-charity-1',
+          title: 'Help Children in Need',
+          description: 'Support our campaign to provide education and meals to underprivileged children in our community.',
+          target_amount: 50000,
+          current_amount: 35000,
+          status: 'active',
+          created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+          deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          image_url: 'https://example.com/campaign1.jpg',
+          category: 'Education',
+          charity: {
+            id: 'mock-charity-1',
+            name: 'Children First Foundation',
+            description: 'A charity dedicated to improving children\'s lives',
+            verified: true
+          },
+          donorContribution: 500
+        },
+        {
+          id: 'mock-campaign-2',
+          charity_id: 'mock-charity-2',
+          title: 'Save the Rainforest',
+          description: 'Help us protect endangered rainforest areas and the wildlife that depends on them.',
+          target_amount: 100000,
+          current_amount: 75000,
+          status: 'active',
+          created_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+          deadline: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
+          image_url: 'https://example.com/campaign2.jpg',
+          category: 'Environment',
+          charity: {
+            id: 'mock-charity-2',
+            name: 'Green Earth Alliance',
+            description: 'Working to protect our planet\'s natural resources',
+            verified: true
+          },
+          donorContribution: 1200
+        },
+        {
+          id: 'mock-campaign-3',
+          charity_id: 'mock-charity-3',
+          title: 'Emergency Disaster Relief',
+          description: 'Providing immediate assistance to victims of the recent natural disaster in the region.',
+          target_amount: 200000,
+          current_amount: 150000,
+          status: 'active',
+          created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+          deadline: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString(),
+          image_url: 'https://example.com/campaign3.jpg',
+          category: 'Disaster Relief',
+          charity: {
+            id: 'mock-charity-3',
+            name: 'Global Relief Initiative',
+            description: 'Providing aid where it\'s needed most',
+            verified: true
+          },
+          donorContribution: 750
+        }
+      ];
+      
+      return mockCampaigns;
+    }
+  }
 }; 

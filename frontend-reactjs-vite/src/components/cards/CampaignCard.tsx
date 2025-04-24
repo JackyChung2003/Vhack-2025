@@ -23,26 +23,28 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ id, name, description, goal
 
   return (
     <div 
-      className="bg-[var(--main)] p-6 rounded-lg shadow-xl border border-[var(--stroke)] transition-all transform hover:translate-y-[-8px] hover:shadow-2xl cursor-pointer overflow-hidden"
+      className="bg-[var(--main)] p-6 rounded-lg shadow-xl border border-[var(--stroke)] transition-all transform hover:translate-y-[-8px] hover:shadow-2xl cursor-pointer overflow-hidden flex flex-col h-full"
       onClick={handleClick}
       style={{ position: 'relative' }}
     >
       {/* Decorative corner accent */}
       <div className="absolute top-0 right-0 w-20 h-20 bg-[var(--highlight)] opacity-20 rounded-bl-full"></div>
       
-      <h2 className="text-xl font-bold text-[var(--headline)] mb-3 pr-16">{name}</h2>
-      <p className="mb-5 text-[var(--paragraph)] line-clamp-2">{description}</p>
+      <h2 className="text-xl font-bold text-[var(--headline)] mb-3 pr-16 line-clamp-1 h-7">{name}</h2>
+      <p className="mb-5 text-[var(--paragraph)] line-clamp-2 min-h-[40px]">{description}</p>
       
-      {category && (
-        <div className="mb-3 flex items-center gap-1 text-sm">
-          <FaTag className="text-[var(--highlight)]" />
-          <span className="px-2 py-1 bg-[var(--highlight)] bg-opacity-10 rounded-full text-xs font-semibold text-[var(--headline)]">
-            {category}
-          </span>
-        </div>
-      )}
+      <div className="flex-grow">
+        {category && (
+          <div className="mb-3 flex items-center gap-1 text-sm">
+            <FaTag className="text-[var(--highlight)]" />
+            <span className="px-2 py-1 bg-[var(--highlight)] bg-opacity-10 rounded-full text-xs font-semibold text-[var(--headline)]">
+              {category}
+            </span>
+          </div>
+        )}
+      </div>
       
-      <div className="mb-4">
+      <div className="mb-4 mt-auto">
         <div className="w-full bg-gray-200 rounded-full h-3 mb-2 overflow-hidden">
           <div 
             className="h-full rounded-full transition-all duration-500 ease-out"
