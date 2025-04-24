@@ -71,6 +71,19 @@ const CharityManagementPage: React.FC = () => {
   const [charityProfile, setCharityProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [campaigns, setCampaigns] = useState<FormattedCampaign[]>([]);
+  const [fundData, setFundData] = useState({
+    totalFunds: 0,
+    generalFundBalance: 0,
+    campaignFundsRaised: 0
+  });
+  
+  // Add state for campaign fund allocation
+  const [campaignFundAllocation, setCampaignFundAllocation] = useState<{ 
+    campaignId: string;
+    name: string;
+    amount: number;
+    percentage: number;
+  }[]>([]);
   
   // Fetch charity profile data from database
   useEffect(() => {
@@ -79,6 +92,10 @@ const CharityManagementPage: React.FC = () => {
         setIsLoading(true);
         const profileData = await charityService.getCharityProfile();
         setCharityProfile(profileData);
+        
+        // Fetch funds data
+        const fundsData = await charityService.getTotalFunds();
+        setFundData(fundsData);
       } catch (error) {
         console.error("Error fetching charity profile:", error);
         toast.error("Failed to fetch charity profile data");
@@ -110,6 +127,32 @@ const CharityManagementPage: React.FC = () => {
         }));
         
         setCampaigns(formattedCampaigns);
+        
+        // Update fund data when campaigns change
+        const fundsData = await charityService.getTotalFunds();
+        setFundData(fundsData);
+        
+        // Calculate campaign fund allocation for active campaigns
+        const activeCampaigns = formattedCampaigns.filter(
+          campaign => campaign.status === 'active' && new Date(campaign.deadline) > new Date()
+        );
+        
+        // Total contributions from active campaigns
+        const totalActiveCampaignFunds = activeCampaigns.reduce(
+          (sum, campaign) => sum + campaign.currentContributions, 0
+        );
+        
+        // Calculate percentages for each campaign
+        const allocation = activeCampaigns.map(campaign => ({
+          campaignId: campaign.id.toString(),
+          name: campaign.name,
+          amount: campaign.currentContributions,
+          percentage: totalActiveCampaignFunds > 0 
+            ? Math.round((campaign.currentContributions / totalActiveCampaignFunds) * 100) 
+            : 0
+        })).sort((a, b) => b.amount - a.amount);
+        
+        setCampaignFundAllocation(allocation);
       } catch (error) {
         console.error("Error fetching campaigns:", error);
         toast.error("Failed to fetch campaigns");
@@ -183,32 +226,21 @@ const CharityManagementPage: React.FC = () => {
     return 0;
   });
   
-  // Calculate fund statistics
-  const campaignFundsRaised = organizationCampaigns.reduce(
-    (sum, campaign) => sum + campaign.currentContributions, 0
-  );
-  
-  // Get general fund from organization data
-  const generalFundBalance = currentOrganization?.totalRaised || 0;
-  
-  // Calculate total funds (general + campaign specific)
-  const totalFunds = generalFundBalance + campaignFundsRaised;
-
   // Get donation tracker data for this organization
   const donationTracker = mockDonationTrackers.find(
     tracker => tracker.recipientId === CURRENT_CHARITY_ORG_ID && tracker.recipientType === 'organization'
   );
 
   // Calculate percentages for the fund allocation chart
-  const generalFundPercentage = Math.round((generalFundBalance / totalFunds) * 100) || 0;
-  const campaignFundPercentage = Math.round((campaignFundsRaised / totalFunds) * 100) || 0;
+  const generalFundPercentage = Math.round((fundData.generalFundBalance / fundData.totalFunds) * 100) || 0;
+  const campaignFundPercentage = Math.round((fundData.campaignFundsRaised / fundData.totalFunds) * 100) || 0;
 
   // Calculate individual campaign percentages of total campaign funds
   const campaignPercentages = organizationCampaigns.map(campaign => ({
     id: campaign.id,
     name: campaign.name,
     amount: campaign.currentContributions,
-    percentage: Math.round((campaign.currentContributions / campaignFundsRaised) * 100) || 0
+    percentage: Math.round((campaign.currentContributions / fundData.campaignFundsRaised) * 100) || 0
   })).sort((a, b) => b.amount - a.amount);
 
   // Handle creating a new campaign
@@ -218,8 +250,48 @@ const CharityManagementPage: React.FC = () => {
       await charityService.createCampaign(campaignData);
       toast.success("Campaign created successfully!");
       setShowAddCampaignModal(false);
-      // Refresh campaigns
+      
+      // Refresh campaigns and fund data
       window.dispatchEvent(new CustomEvent('refreshCampaigns'));
+      
+      // Also directly update fund data
+      const fundsData = await charityService.getTotalFunds();
+      setFundData(fundsData);
+      
+      // Get updated campaigns to recalculate fund allocation
+      const campaignsData = await charityService.getCharityCampaigns();
+      const formattedCampaigns = campaignsData.map(campaign => ({
+        id: campaign.id,
+        name: campaign.title,
+        organizationId: campaign.charity_id,
+        goal: campaign.target_amount,
+        currentContributions: campaign.current_amount,
+        deadline: campaign.deadline,
+        description: campaign.description,
+        status: campaign.status
+      }));
+      
+      // Calculate campaign fund allocation for active campaigns
+      const activeCampaigns = formattedCampaigns.filter(
+        campaign => campaign.status === 'active' && new Date(campaign.deadline) > new Date()
+      );
+      
+      // Total contributions from active campaigns
+      const totalActiveCampaignFunds = activeCampaigns.reduce(
+        (sum, campaign) => sum + campaign.currentContributions, 0
+      );
+      
+      // Calculate percentages for each campaign
+      const allocation = activeCampaigns.map(campaign => ({
+        campaignId: campaign.id.toString(),
+        name: campaign.name,
+        amount: campaign.currentContributions,
+        percentage: totalActiveCampaignFunds > 0 
+          ? Math.round((campaign.currentContributions / totalActiveCampaignFunds) * 100) 
+          : 0
+      })).sort((a, b) => b.amount - a.amount);
+      
+      setCampaignFundAllocation(allocation);
     } catch (err: any) {
       console.error("Error creating campaign:", err);
       toast.error(err.message || "Failed to create campaign. Please try again.");
@@ -512,7 +584,7 @@ const CharityManagementPage: React.FC = () => {
                 <div className="p-4 border-b border-[var(--stroke)] bg-gradient-to-r from-[#004D99] to-[#0066CC] text-white">
                   <div className="text-center">
                     <h3 className="text-lg font-medium mb-2 text-[#92C5F9]">Total Funds</h3>
-                    <p className="text-4xl font-bold">RM{totalFunds.toLocaleString()}</p>
+                    <p className="text-4xl font-bold">RM{fundData.totalFunds.toLocaleString()}</p>
                     <p className="text-sm mt-2 text-[#92C5F9]">Combined General and Campaign Funds</p>
                   </div>
                 </div>
@@ -528,7 +600,7 @@ const CharityManagementPage: React.FC = () => {
                       </span>
                     </div>
                       <p className="text-2xl font-bold text-[var(--headline)]">
-                      RM{generalFundBalance.toLocaleString()}
+                      RM{fundData.generalFundBalance.toLocaleString()}
                     </p>
                       <p className="text-sm text-[var(--paragraph)] mt-2">
                       Available for any charitable purpose
@@ -542,7 +614,7 @@ const CharityManagementPage: React.FC = () => {
                       </span>
                     </div>
                       <p className="text-2xl font-bold text-[var(--headline)]">
-                      RM{campaignFundsRaised.toLocaleString()}
+                      RM{fundData.campaignFundsRaised.toLocaleString()}
                     </p>
                       <p className="text-sm text-[var(--paragraph)] mt-2">
                       Designated for specific campaigns
@@ -557,18 +629,17 @@ const CharityManagementPage: React.FC = () => {
                   <div className="relative flex justify-center">
                     {/* Legend positioned absolutely */}
                     <div className="absolute left-12 top-0 flex flex-col gap-2">
-                      {sortedCampaigns
-                        .filter(campaign => new Date(campaign.deadline) > new Date())
+                      {campaignFundAllocation
+                        .filter((campaign, index) => index < 4) // Limit to 4 campaigns to avoid overcrowding
                         .map((campaign, index) => {
-                          const percentage = Math.round((campaign.currentContributions / campaignFundsRaised) * 100) || 0;
                           const color = [
                             '#fd7979', '#ffa77f', '#ffcc8f', '#7dc9ff'
                           ][index % 4];
                           
                           return (
-                            <div key={campaign.id} className="flex items-center hover:scale-105 transition-transform duration-300">
+                            <div key={campaign.campaignId} className="flex items-center hover:scale-105 transition-transform duration-300">
                               <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: color }}></div>
-                              <span className="text-sm whitespace-nowrap">{campaign.name} ({percentage}%)</span>
+                              <span className="text-sm whitespace-nowrap">{campaign.name} ({campaign.percentage}%)</span>
                           </div>
                           );
                       })}
@@ -579,17 +650,9 @@ const CharityManagementPage: React.FC = () => {
                         const radius = 40;
                         const circumference = 2 * Math.PI * radius;
                         
-                        // Get active campaigns and their percentages
-                        const activeCampaigns = sortedCampaigns
-                          .filter(campaign => new Date(campaign.deadline) > new Date())
-                          .map(campaign => ({
-                            id: campaign.id,
-                            name: campaign.name,
-                            amount: campaign.currentContributions,
-                            percentage: Math.round((campaign.currentContributions / campaignFundsRaised) * 100) || 0
-                          }))
-                          .sort((a, b) => b.amount - a.amount);
-
+                        // Get active campaigns and their percentages, limited to 4 for the donut
+                        const activeAllocation = campaignFundAllocation.slice(0, 4);
+                        
                         // Define campaign colors
                         const campaignColors = [
                           '#fd7979', // coral red
@@ -614,14 +677,14 @@ const CharityManagementPage: React.FC = () => {
                                 strokeWidth="10"
                               />
                               {/* Campaign segments */}
-                              {activeCampaigns.map((campaign, index) => {
+                              {activeAllocation.map((campaign, index) => {
                                 const strokeDasharray = `${(campaign.percentage * circumference) / 100} ${circumference}`;
                                 const strokeDashoffset = `${-(cumulativePercentage * circumference) / 100}`;
                                 cumulativePercentage += campaign.percentage;
                                 
                                 return (
                                   <circle
-                                    key={campaign.id}
+                                    key={campaign.campaignId}
                                     cx="50"
                                     cy="50"
                                     r={radius}
@@ -636,21 +699,40 @@ const CharityManagementPage: React.FC = () => {
                               })}
                             </svg>
                             {/* Fund amounts */}
-                            {activeCampaigns.map((campaign, index) => {
-                              // Calculate the angle for this segment
+                            {activeAllocation.length > 0 ? (
+                              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                <span className="text-2xl font-bold text-[var(--headline)]">RM{fundData.campaignFundsRaised.toLocaleString()}</span>
+                                <span className="text-sm text-[var(--paragraph)]">Campaign Funds</span>
+                              </div>
+                            ) : (
+                              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                <span className="text-sm text-[var(--paragraph)]">No active campaigns</span>
+                              </div>
+                            )}
+                            
+                            {/* Money labels for each segment */}
+                            {activeAllocation.map((campaign, index) => {
+                              // Calculate position for money labels
                               let segmentStart = 0;
                               for (let i = 0; i < index; i++) {
-                                segmentStart += activeCampaigns[i].percentage;
+                                segmentStart += activeAllocation[i].percentage;
                               }
+                              
+                              // Position the label in the middle of the segment
+                              // -90 degrees is the starting position (top of the circle)
+                              // Then we add the segmentStart and half the current segment's percentage
+                              // Multiply by 3.6 to convert percentage to degrees
                               const angle = -90 + (segmentStart + campaign.percentage / 2) * 3.6;
-                              const radius = 70;
-                              const x = 50 + radius * Math.cos(angle * Math.PI / 180);
-                              const y = 50 + radius * Math.sin(angle * Math.PI / 180);
+                              
+                              // Label positioning - outer edge of the donut
+                              const labelRadius = 70; // Slightly outside the donut
+                              const x = 50 + labelRadius * Math.cos(angle * Math.PI / 180);
+                              const y = 50 + labelRadius * Math.sin(angle * Math.PI / 180);
                               
                               return (
                                 <div
-                                  key={campaign.id}
-                                  className="absolute transform -translate-x-1/2 -translate-y-1/2 text-sm font-bold bg-white px-2 py-1 rounded-md shadow-sm"
+                                  key={`label-${campaign.campaignId}`}
+                                  className="absolute transform -translate-x-1/2 -translate-y-1/2 text-xs font-bold bg-white px-2 py-1 rounded-md shadow-sm whitespace-nowrap"
                                   style={{
                                     left: `${x}%`,
                                     top: `${y}%`,
@@ -664,10 +746,6 @@ const CharityManagementPage: React.FC = () => {
                           </div>
                         );
                       })()}
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-2xl font-bold text-[var(--headline)]">RM{campaignFundsRaised.toLocaleString()}</span>
-                        <span className="text-sm text-[var(--paragraph)]">Campaign Funds</span>
-                      </div>
                     </div>
                   </div>
                 </div>
