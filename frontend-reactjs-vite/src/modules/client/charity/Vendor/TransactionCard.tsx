@@ -6,19 +6,25 @@ type TransactionStatus = 'pending' | 'shipping' | 'delivered' | 'completed' | 'r
 
 interface TransactionCardProps {
   transaction: {
-    id: number;
-    items: Array<{
+    id: string;
+    campaign_id: string | null;
+    vendor_id: string;
+    vendor_name: string;
+    amount: number;
+    status: TransactionStatus;
+    description: string;
+    created_at: string;
+    details: string;
+    quotation_id: string;
+    request_id: string;
+    charity_id: string;
+    campaign_name?: string;
+    items?: Array<{
       id: number;
       name: string;
       quantity: number;
       price: number;
     }>;
-    totalPrice: number;
-    vendor: string;
-    status: TransactionStatus;
-    fundSource: string;
-    createdBy: 'charity' | 'vendor';
-    date: string;
     deliveryPhoto?: string; // URL to delivery confirmation photo
   };
   onClose: () => void;
@@ -47,6 +53,19 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
   const currentStep = currentStepIndex !== -1 ? currentStepIndex : 
                      (transaction.status === 'rejected' ? -1 : 0);
   
+  // Try to parse items from details if they exist
+  let items = transaction.items || [];
+  if (!items.length && transaction.details) {
+    try {
+      const parsedDetails = JSON.parse(transaction.details);
+      if (parsedDetails.items && Array.isArray(parsedDetails.items)) {
+        items = parsedDetails.items;
+      }
+    } catch (e) {
+      console.error('Error parsing transaction details:', e);
+    }
+  }
+  
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
       <div className="bg-[var(--background)] p-6 rounded-lg shadow-xl border border-[var(--card-border)] max-w-md w-full">
@@ -54,7 +73,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         
         <div className="mb-4">
           <div className="flex justify-between items-center">
-            <p className="text-[var(--headline)] font-semibold">{transaction.vendor}</p>
+            <p className="text-[var(--headline)] font-semibold">{transaction.vendor_name}</p>
             <span className={`text-sm px-2 py-1 rounded-full ${
               transaction.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
               transaction.status === 'shipping' ? 'bg-indigo-100 text-indigo-800' :
@@ -62,12 +81,12 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
               transaction.status === 'completed' ? 'bg-green-100 text-green-800' :
               'bg-red-100 text-red-800'
             }`}>
-              {transaction.status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+              {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
             </span>
           </div>
-          <p className="text-sm text-[var(--paragraph)]">Created by: {transaction.createdBy === 'charity' ? 'You' : transaction.vendor}</p>
-          <p className="text-sm text-[var(--paragraph)]">Date: {transaction.date}</p>
-          <p className="text-sm text-[var(--paragraph)]">Fund Source: {transaction.fundSource}</p>
+          <p className="text-sm text-[var(--paragraph)]">Date: {new Date(transaction.created_at).toLocaleDateString()}</p>
+          <p className="text-sm text-[var(--paragraph)]">Fund Source: {transaction.campaign_name || 'General Fund'}</p>
+          <p className="text-sm text-[var(--paragraph)]">Description: {transaction.description}</p>
         </div>
         
         {/* Delivery Photo (if available) */}
@@ -124,24 +143,36 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         </div>
         
         {/* Items List */}
-        <div className="mb-6">
-          <h3 className="text-md font-semibold text-[var(--headline)] mb-2">Items</h3>
-          <div className="bg-[var(--card-background)] rounded-lg border border-[var(--card-border)]">
-            {transaction.items.map((item) => (
-              <div key={item.id} className="p-3 flex justify-between">
-                <div>
-                  <p className="text-[var(--headline)]">{item.name}</p>
-                  <p className="text-xs text-[var(--paragraph)]">Quantity: {item.quantity}</p>
+        {items.length > 0 ? (
+          <div className="mb-6">
+            <h3 className="text-md font-semibold text-[var(--headline)] mb-2">Items</h3>
+            <div className="bg-[var(--card-background)] rounded-lg border border-[var(--card-border)]">
+              {items.map((item, index) => (
+                <div key={index} className="p-3 flex justify-between">
+                  <div>
+                    <p className="text-[var(--headline)]">{item.name}</p>
+                    <p className="text-xs text-[var(--paragraph)]">Quantity: {item.quantity}</p>
+                  </div>
+                  <p className="text-[var(--headline)]">RM{(item.price * item.quantity).toLocaleString()}</p>
                 </div>
-                <p className="text-[var(--headline)]">RM{(item.price * item.quantity).toLocaleString()}</p>
+              ))}
+              <div className="p-3 flex justify-between font-bold">
+                <p>Total</p>
+                <p>RM{transaction.amount.toLocaleString()}</p>
               </div>
-            ))}
-            <div className="p-3 flex justify-between font-bold">
-              <p>Total</p>
-              <p>RM{transaction.totalPrice.toLocaleString()}</p>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="mb-6">
+            <h3 className="text-md font-semibold text-[var(--headline)] mb-2">Total Amount</h3>
+            <div className="bg-[var(--card-background)] rounded-lg border border-[var(--card-border)] p-3">
+              <div className="flex justify-between font-bold">
+                <p>Total</p>
+                <p>RM{transaction.amount.toLocaleString()}</p>
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* Action Buttons */}
         <div className="mt-6 flex justify-end space-x-4">

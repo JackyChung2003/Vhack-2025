@@ -1339,16 +1339,52 @@ export const charityService = {
           status,
           created_at,
           description,
-          vendor_id,
-          vendors:vendor_id (
-            id,
-            name
-          )
+          vendor_id
         `)
         .eq('campaign_id', campaignId)
         .order('created_at', { ascending: false });
         
       if (expensesError) throw expensesError;
+      
+      // Get vendor information for the expenses
+      const vendorIds = (expensesData || [])
+        .map(expense => expense.vendor_id)
+        .filter(id => id != null);
+      
+      // Vendor map to store vendor names
+      const vendorMap = new Map();
+      
+      if (vendorIds.length > 0) {
+        // Try to get vendor names from users table
+        try {
+          const { data: vendorsData } = await supabase
+            .from('users')
+            .select('id, name')
+            .in('id', vendorIds)
+            .eq('role', 'vendor');
+          
+          // Add vendor names to map
+          (vendorsData || []).forEach(vendor => {
+            vendorMap.set(vendor.id, vendor.name);
+          });
+          
+          // Try to get additional vendor information from vendor_profiles
+          const { data: vendorProfilesData } = await supabase
+            .from('vendor_profiles')
+            .select('user_id, company_name')
+            .in('user_id', vendorIds);
+          
+          // Add company names to map (overriding user names if company_name exists)
+          (vendorProfilesData || []).forEach(profile => {
+            if (profile.company_name) {
+              vendorMap.set(profile.user_id, profile.company_name);
+            }
+          });
+        } catch (vendorError) {
+          console.error('Error fetching vendor data:', vendorError);
+          // Continue without vendor data if there's an error
+        }
+      }
       
       // Convert donations to transaction format
       const donationTransactions = (donationsData || []).map(donation => ({
@@ -1373,8 +1409,7 @@ export const charityService = {
         amount: expense.amount,
         status: expense.status,
         description: expense.description || 'Campaign expense',
-        vendor: expense.vendors && typeof expense.vendors === 'object' && 'name' in expense.vendors ?
-          String(expense.vendors.name) : 'Unknown Vendor'
+        vendor: expense.vendor_id ? (vendorMap.get(expense.vendor_id) || `Vendor #${expense.vendor_id}`) : 'Unknown Vendor'
       }));
       
       // Combine and sort all transactions by date (newest first)
@@ -1395,8 +1430,10 @@ export const charityService = {
       const currentAmount = campaign?.current_amount || 0;
       
       // Calculate expense totals by status
+      // On Hold includes pending, shipping, and delivered statuses
       const onHoldTotal = expensesData?.reduce((sum, expense) => 
-        sum + ((expense.status === 'on-hold' ? expense.amount : 0) || 0), 0) || 0;
+        sum + (((expense.status === 'pending' || expense.status === 'shipping' || expense.status === 'delivered') ? expense.amount : 0) || 0), 0) || 0;
+      // Used includes only completed status
       const usedTotal = expensesData?.reduce((sum, expense) => 
         sum + ((expense.status === 'completed' ? expense.amount : 0) || 0), 0) || 0;
       
@@ -1610,6 +1647,288 @@ export const charityService = {
       ];
       
       return mockCampaigns;
+    }
+  },
+  
+  // Get campaign fund allocation for active campaigns
+  getCampaignFundAllocation: async (): Promise<Array<{
+    campaignId: string;
+    name: string;
+    amount: number;
+    percentage: number;
+  }>> => {
+    try {
+      // Get current authenticated user
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) throw authError;
+      if (!user) throw new Error('User not authenticated');
+
+      // Get the charity ID
+      const { data: userData, error: profileError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', user.id)
+        .eq('role', 'charity')
+        .single();
+
+      if (profileError || !userData) {
+        throw new Error('Charity profile not found');
+      }
+
+      // Get active campaigns for this charity
+      const { data: campaignsData, error: campaignsError } = await supabase
+        .from('campaigns')
+        .select('id, title, current_amount, deadline, status')
+        .eq('charity_id', userData.id)
+        .eq('status', 'active')
+        .gte('deadline', new Date().toISOString());
+      
+      if (campaignsError) throw campaignsError;
+      
+      // If no active campaigns, return empty array
+      if (!campaignsData || campaignsData.length === 0) {
+        return [];
+      }
+      
+      // Calculate total funds across all active campaigns
+      const totalActiveCampaignFunds = campaignsData.reduce(
+        (sum, campaign) => sum + (campaign.current_amount || 0), 0
+      );
+      
+      // Calculate percentages for each campaign
+      const allocation = campaignsData.map(campaign => ({
+        campaignId: campaign.id.toString(),
+        name: campaign.title,
+        amount: campaign.current_amount,
+        percentage: totalActiveCampaignFunds > 0 
+          ? Math.round((campaign.current_amount / totalActiveCampaignFunds) * 100) 
+          : 0
+      })).sort((a, b) => b.amount - a.amount);
+      
+      return allocation;
+    } catch (error) {
+      console.error('Error fetching campaign fund allocation:', error);
+      throw error;
+    }
+  },
+  
+  // Get transactions for charity (from campaign_expenses)
+  getCharityTransactions: async (): Promise<Array<{
+    id: string;
+    campaign_id: string | null;
+    vendor_id: string;
+    vendor_name: string;
+    amount: number;
+    status: string;
+    description: string;
+    created_at: string;
+    quotation_id: string;
+    request_id: string;
+    charity_id: string;
+    details: string;
+    campaign_name?: string;
+  }>> => {
+    try {
+      // Get current authenticated user
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) throw authError;
+      if (!user) throw new Error('User not authenticated');
+
+      // Get transactions for this charity
+      const { data, error } = await supabase
+        .from('campaign_expenses')
+        .select('*')
+        .eq('charity_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      if (!data || data.length === 0) {
+        return [];
+      }
+      
+      // Get campaign names for campaigns referenced in transactions
+      const campaignIds = data
+        .filter(tx => tx.campaign_id)
+        .map(tx => tx.campaign_id);
+      
+      let campaignMap: Record<string, string> = {};
+      
+      if (campaignIds.length > 0) {
+        const { data: campaignsData, error: campaignsError } = await supabase
+          .from('campaigns')
+          .select('id, title')
+          .in('id', campaignIds);
+          
+        if (!campaignsError && campaignsData) {
+          campaignMap = campaignsData.reduce((map: Record<string, string>, campaign) => {
+            map[campaign.id] = campaign.title;
+            return map;
+          }, {});
+        }
+      }
+      
+      // Add campaign names to the transactions
+      const enhancedTransactions = data.map(tx => ({
+        ...tx,
+        campaign_name: tx.campaign_id ? (campaignMap[tx.campaign_id] || 'Unknown Campaign') : 'General Fund'
+      }));
+      
+      return enhancedTransactions;
+    } catch (error) {
+      console.error('Error fetching charity transactions:', error);
+      throw error;
+    }
+  },
+  
+  // Get vendor transactions (from campaign_expenses)
+  getVendorTransactions: async (): Promise<Array<{
+    id: string;
+    campaign_id: string | null;
+    vendor_id: string;
+    vendor_name: string;
+    amount: number;
+    status: string;
+    description: string;
+    created_at: string;
+    quotation_id: string;
+    request_id: string;
+    charity_id: string;
+    details: string;
+    charity_name?: string;
+    campaign_name?: string;
+  }>> => {
+    try {
+      // Get current authenticated user
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) throw authError;
+      if (!user) throw new Error('User not authenticated');
+
+      // Get transactions for this vendor
+      const { data, error } = await supabase
+        .from('campaign_expenses')
+        .select('*')
+        .eq('vendor_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      if (!data || data.length === 0) {
+        return [];
+      }
+      
+      // Get charity names
+      const charityIds = [...new Set(data.map(tx => tx.charity_id))];
+      
+      let charityMap: Record<string, string> = {};
+      
+      if (charityIds.length > 0) {
+        const { data: charitiesData, error: charitiesError } = await supabase
+          .from('users')
+          .select('id, name')
+          .in('id', charityIds);
+          
+        if (!charitiesError && charitiesData) {
+          charityMap = charitiesData.reduce((map: Record<string, string>, charity) => {
+            map[charity.id] = charity.name;
+            return map;
+          }, {});
+        }
+      }
+      
+      // Get campaign names for campaigns referenced in transactions
+      const campaignIds = data
+        .filter(tx => tx.campaign_id)
+        .map(tx => tx.campaign_id);
+      
+      let campaignMap: Record<string, string> = {};
+      
+      if (campaignIds.length > 0) {
+        const { data: campaignsData, error: campaignsError } = await supabase
+          .from('campaigns')
+          .select('id, title')
+          .in('id', campaignIds);
+          
+        if (!campaignsError && campaignsData) {
+          campaignMap = campaignsData.reduce((map: Record<string, string>, campaign) => {
+            map[campaign.id] = campaign.title;
+            return map;
+          }, {});
+        }
+      }
+      
+      // Add charity and campaign names to the transactions
+      const enhancedTransactions = data.map(tx => ({
+        ...tx,
+        charity_name: charityMap[tx.charity_id] || 'Unknown Charity',
+        campaign_name: tx.campaign_id ? (campaignMap[tx.campaign_id] || 'Unknown Campaign') : 'General Fund'
+      }));
+      
+      return enhancedTransactions;
+    } catch (error) {
+      console.error('Error fetching vendor transactions:', error);
+      throw error;
+    }
+  },
+  
+  // Update transaction status (for both charity and vendor)
+  updateTransactionStatus: async (transactionId: string, newStatus: string): Promise<void> => {
+    try {
+      // Get current authenticated user
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) throw authError;
+      if (!user) throw new Error('User not authenticated');
+
+      // Get transaction to check permissions
+      const { data: transactionData, error: transactionError } = await supabase
+        .from('campaign_expenses')
+        .select('vendor_id, charity_id')
+        .eq('id', transactionId)
+        .single();
+
+      if (transactionError) throw transactionError;
+      if (!transactionData) throw new Error('Transaction not found');
+      
+      // Verify the user is either the vendor or charity for this transaction
+      if (transactionData.vendor_id !== user.id && transactionData.charity_id !== user.id) {
+        throw new Error('You do not have permission to update this transaction');
+      }
+      
+      // Add validation for status transitions based on user role
+      // For example, only vendors can mark as shipping, only charities can mark as completed
+      const { data: userRoleData } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      
+      const userRole = userRoleData?.role;
+      
+      // Validate status changes based on role
+      if (userRole === 'vendor') {
+        if (!['shipping', 'delivered'].includes(newStatus)) {
+          throw new Error('Vendors can only update to shipping or delivered status');
+        }
+      } else if (userRole === 'charity') {
+        if (!['completed', 'rejected'].includes(newStatus)) {
+          throw new Error('Charities can only update to completed or rejected status');
+        }
+      }
+
+      // Update the transaction status
+      const { error: updateError } = await supabase
+        .from('campaign_expenses')
+        .update({ status: newStatus })
+        .eq('id', transactionId);
+
+      if (updateError) throw updateError;
+    } catch (error) {
+      console.error('Error updating transaction status:', error);
+      throw error;
     }
   }
 }; 
