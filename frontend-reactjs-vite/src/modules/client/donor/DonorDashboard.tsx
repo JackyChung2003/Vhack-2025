@@ -309,7 +309,7 @@ const DonorDashboard: React.FC = () => {
 
         {loading ? (
           <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[var(--highlight)]"></div>
+            <div className="h-10 w-10 border-t-2 border-b-2 border-[var(--highlight)]"></div>
           </div>
         ) : campaigns.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
