@@ -6,6 +6,7 @@ import { openMarketService, OpenMarketRequest, Quotation } from "../../../../ser
 import { useAuth } from "../../../../contexts/AuthContext";
 import { toast } from "react-toastify";
 import { charityService, Campaign } from "../../../../services/supabase/charityService";
+import QuotationCard from "../../charity/CharityOpenMarket/QuotationCard";
 
 // Extended interface for Request with UI-specific properties
 interface RequestWithUIData extends OpenMarketRequest {
@@ -184,6 +185,9 @@ const VendorRequestDetail: React.FC<VendorRequestDetailProps> = ({ requestId, on
   // Determine if this is an education campaign
   const isEducationCampaign = request.campaign?.category === 'education';
 
+  // Inside the VendorRequestDetail component, add this check
+  const acceptedQuotation = quotations.find(q => q.is_accepted);
+
   return (
     <div className="bg-[var(--main)] rounded-xl shadow-lg p-6">
       {/* Back button */}
@@ -316,153 +320,30 @@ const VendorRequestDetail: React.FC<VendorRequestDetailProps> = ({ requestId, on
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* User's quotation (if any) */}
           {userQuotation && (
-            <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm relative">
-              {/* Status header */}
-              <div className="bg-blue-600 text-white py-2 px-4 text-center font-medium">
-                Open for Acceptance
-              </div>
-              
-              {/* Your quotation badge */}
-              <div className="absolute top-2 right-2 bg-blue-700 text-white text-xs px-2 py-1 rounded-full flex items-center">
+            <div className="relative">
+              <div className="absolute top-8 right-2 z-10 bg-blue-700 text-white text-xs px-2 py-1 rounded-full flex items-center">
                 <FaUser className="mr-1" size={10} /> Your Quote
               </div>
-              
-              {/* Quotation content */}
-              <div className="p-4 bg-white">
-                {/* Header with vendor/charity and price */}
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h3 className="font-bold text-gray-800">
-                      You (Vendor)
-                    </h3>
-                  </div>
-                  <div className="text-xl font-bold text-amber-500">
-                    ${userQuotation.price.toFixed(2)}
-                  </div>
-                </div>
-                
-                {/* Description */}
-                <div className="bg-gray-50 p-3 rounded-lg mb-3 min-h-[80px]">
-                  <p className="text-gray-700">{userQuotation.details}</p>
-                  
-                  {isEducationCampaign && (
-                    <div className="mt-2 flex items-center">
-                      <FaGraduationCap className="text-blue-600 mr-1" />
-                      <span className="text-xs text-blue-700">Education Campaign Quotation</span>
-                    </div>
-                  )}
-                  
-                  {userQuotation.attachment_url && (
-                    <div className="mt-2">
-                      <a 
-                        href={userQuotation.attachment_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-[var(--highlight)] hover:underline flex items-center text-sm"
-                      >
-                        <FaPaperclip className="mr-1" /> View Attachment
-                      </a>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Dates */}
-                <div className="flex items-center justify-between text-sm mb-4">
-                  <div className="flex items-center">
-                    <FaCalendarAlt className="text-gray-400 mr-2" />
-                    <span className="text-gray-600">
-                      {formatDate(userQuotation.created_at)}
-                    </span>
-                  </div>
-                  <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
-                    Active
-                  </span>
-                </div>
-                
-                {/* Action buttons */}
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => handleDeleteQuotation(userQuotation.id)}
-                    className="col-span-2 flex items-center justify-center text-red-600 bg-red-50 hover:bg-red-100 px-3 py-2 rounded-lg transition-colors"
-                  >
-                    <FaTrash className="mr-1" /> Delete Quotation
-                  </button>
-                </div>
-              </div>
+              <QuotationCard 
+                quotation={userQuotation}
+                requestDeadline={request.deadline}
+                onDelete={!userQuotation.is_accepted ? () => handleDeleteQuotation(userQuotation.id) : undefined}
+                isVendor={true}
+                hasAcceptedQuotation={!!acceptedQuotation && acceptedQuotation.id !== userQuotation.id}
+              />
             </div>
           )}
           
           {/* Other vendors' quotations */}
           {otherQuotations.map((quotation) => (
-            <div key={quotation.id} className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-              {/* Status header */}
-              <div className="bg-blue-600 text-white py-2 px-4 text-center font-medium">
-                Open for Acceptance
-              </div>
-              
-              {/* Quotation content */}
-              <div className="p-4 bg-white">
-                {/* Header with vendor/charity and price */}
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h3 className="font-bold text-gray-800">
-                      {quotation.vendor_name || "Anonymous Vendor"}
-                    </h3>
-                  </div>
-                  <div className="text-xl font-bold text-amber-500">
-                    ${quotation.price.toFixed(2)}
-                  </div>
-                </div>
-                
-                {/* Description */}
-                <div className="bg-gray-50 p-3 rounded-lg mb-3 min-h-[80px]">
-                  <p className="text-gray-700">{quotation.details}</p>
-                  
-                  {isEducationCampaign && (
-                    <div className="mt-2 flex items-center">
-                      <FaGraduationCap className="text-blue-600 mr-1" />
-                      <span className="text-xs text-blue-700">Education Campaign Quotation</span>
-                    </div>
-                  )}
-                  
-                  {quotation.attachment_url && (
-                    <div className="mt-2">
-                      <a 
-                        href={quotation.attachment_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-[var(--highlight)] hover:underline flex items-center text-sm"
-                      >
-                        <FaPaperclip className="mr-1" /> View Attachment
-                      </a>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Dates */}
-                <div className="flex items-center justify-between text-sm mb-4">
-                  <div className="flex items-center">
-                    <FaCalendarAlt className="text-gray-400 mr-2" />
-                    <span className="text-gray-600">
-                      {formatDate(quotation.created_at)}
-                    </span>
-                  </div>
-                  <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
-                    Active
-                  </span>
-                </div>
-                
-                {/* Action buttons for other vendors' quotations */}
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => handleDeleteQuotation(quotation.id)}
-                    className="col-span-2 flex items-center justify-center text-red-600 bg-red-50 hover:bg-red-100 px-3 py-2 rounded-lg transition-colors"
-                  >
-                    <FaTrash className="mr-1" /> Delete Quotation
-                  </button>
-                </div>
-              </div>
-            </div>
+            <QuotationCard 
+              key={quotation.id}
+              quotation={quotation}
+              requestDeadline={request.deadline}
+              onDelete={!quotation.is_accepted && !acceptedQuotation ? () => handleDeleteQuotation(quotation.id) : undefined}
+              isVendor={true}
+              hasAcceptedQuotation={!!acceptedQuotation && acceptedQuotation.id !== quotation.id}
+            />
           ))}
           
           {/* Empty state if no quotations */}
