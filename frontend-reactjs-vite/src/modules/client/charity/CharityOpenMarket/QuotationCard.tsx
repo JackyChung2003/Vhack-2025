@@ -9,6 +9,7 @@ interface QuotationCardProps {
   onDelete?: () => void;
   onChat?: () => void;
   isVendor?: boolean;
+  hasAcceptedQuotation?: boolean;
 }
 
 const QuotationCard: React.FC<QuotationCardProps> = ({ 
@@ -17,7 +18,8 @@ const QuotationCard: React.FC<QuotationCardProps> = ({
   onAccept,
   onDelete,
   onChat,
-  isVendor = false
+  isVendor = false,
+  hasAcceptedQuotation = false
 }) => {
   // Format date
   const formatDate = (dateString: string) => {
@@ -58,23 +60,24 @@ const QuotationCard: React.FC<QuotationCardProps> = ({
 
   return (
     <div className="rounded-lg overflow-hidden shadow-md border border-[var(--stroke)]">
-      {/* Status header */}
-      {!quotation.is_accepted && !isExpired ? (
-        <div className="py-3 px-4 text-center text-white bg-green-500">
-          Open for Acceptance
-        </div>
-      ) : quotation.is_accepted ? (
+      {/* Status header - always show but might be empty for consistent sizing */}
+      {quotation.is_accepted ? (
         <div className="py-3 px-4 text-center text-white bg-blue-500">
           Accepted
         </div>
-      ) : (
+      ) : (hasAcceptedQuotation || isExpired) ? (
         <div className="py-3 px-4 text-center text-white bg-gray-500">
           Closed
+        </div>
+      ) : (
+        <div className="py-3 px-4 text-center text-transparent">
+          {/* Empty header to maintain consistent card height */}
+          Placeholder
         </div>
       )}
       
       {/* Quotation content */}
-      <div className="p-4 bg-white">
+      <div className="p-4 bg-white h-full flex flex-col">
         {/* Header with vendor/charity and price */}
         <div className="flex justify-between items-start mb-2">
           <div>
@@ -88,7 +91,7 @@ const QuotationCard: React.FC<QuotationCardProps> = ({
           </div>
         </div>
         
-        {/* Description */}
+        {/* Description - set minimum height */}
         <div className="bg-gray-50 p-3 rounded-lg mb-3 min-h-[80px]">
           <p className="text-[var(--paragraph)]">{quotation.details}</p>
         </div>
@@ -104,72 +107,84 @@ const QuotationCard: React.FC<QuotationCardProps> = ({
             <div className="flex items-center">
               <span className="text-[var(--paragraph)]">Due by: {requestDeadline ? formatDate(requestDeadline) : 'N/A'}</span>
             </div>
-            {!isExpired && !quotation.is_accepted && (
+            {!isExpired && !hasAcceptedQuotation && !quotation.is_accepted && (
               <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
                 Active
+              </span>
+            )}
+            {quotation.is_accepted && (
+              <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                Accepted
               </span>
             )}
           </div>
         </div>
         
-        {/* Action buttons */}
-        {!quotation.is_accepted && !isExpired ? (
-          <div className="flex justify-between mt-4 space-x-2">
-            {/* For charity view */}
-            {!isVendor && (
-              <>
-                {onChat && (
-                  <button
-                    onClick={onChat}
-                    className="flex-1 flex items-center justify-center text-blue-600 bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-lg transition-colors"
-                  >
-                    <FaComment className="mr-2" /> Chat with Vendor
-                  </button>
-                )}
-                {onAccept && (
-                  <button
-                    onClick={onAccept}
-                    className="flex-1 flex items-center justify-center text-green-600 bg-green-50 hover:bg-green-100 px-4 py-2 rounded-lg transition-colors"
-                  >
-                    Accept Quotation
-                  </button>
-                )}
-              </>
-            )}
-            
-            {/* For vendor view */}
-            {isVendor && onDelete && (
-              <button
-                onClick={onDelete}
-                className="flex-1 py-2 px-4 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg flex items-center justify-center"
-              >
-                <FaTrash className="mr-2" />
-                Delete Quotation
-              </button>
-            )}
-          </div>
-        ) : (
-          quotation.is_accepted && (
-            <div className="flex items-center justify-center py-2 px-4 mt-4 bg-blue-50 text-blue-600 rounded-lg">
-              <FaCheckCircle className="mr-2" />
-              <span className="font-medium">This quotation has been accepted</span>
+        {/* Action area - ensure consistent height */}
+        <div className="mt-auto">
+          {/* Action buttons */}
+          {!quotation.is_accepted && !isExpired && !hasAcceptedQuotation ? (
+            <div className="flex justify-between mt-4 space-x-2">
+              {/* For charity view */}
+              {!isVendor && (
+                <>
+                  {onChat && (
+                    <button
+                      onClick={onChat}
+                      className="flex-1 flex items-center justify-center text-blue-600 bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-lg transition-colors"
+                    >
+                      <FaComment className="mr-2" /> Chat with Vendor
+                    </button>
+                  )}
+                  {onAccept && (
+                    <button
+                      onClick={onAccept}
+                      className="flex-1 flex items-center justify-center text-green-600 bg-green-50 hover:bg-green-100 px-4 py-2 rounded-lg transition-colors"
+                    >
+                      Accept Quotation
+                    </button>
+                  )}
+                </>
+              )}
+              
+              {/* For vendor view */}
+              {isVendor && onDelete && (
+                <button
+                  onClick={onDelete}
+                  className="flex-1 py-2 px-4 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg flex items-center justify-center"
+                >
+                  <FaTrash className="mr-2" />
+                  Delete Quotation
+                </button>
+              )}
             </div>
-          )
-        )}
-        
-        {/* Attachment link */}
-        {quotation.attachment_url && (
-          <div className="mt-3 text-center">
-            <a 
-              href={quotation.attachment_url} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-[var(--highlight)] hover:underline text-sm flex items-center justify-center"
-            >
-              View Attachment <FaExternalLinkAlt className="ml-1 h-2.5 w-2.5" />
-            </a>
-          </div>
-        )}
+          ) : (
+            quotation.is_accepted ? (
+              <div className="flex items-center justify-center py-2 px-4 mt-4 bg-blue-50 text-blue-600 rounded-lg">
+                <FaCheckCircle className="mr-2" />
+                <span className="font-medium">This quotation has been accepted</span>
+              </div>
+            ) : (
+              <div className="py-2 px-4 mt-4 opacity-0">
+                {/* Empty div to maintain consistent height */}
+              </div>
+            )
+          )}
+          
+          {/* Attachment link */}
+          {quotation.attachment_url && (
+            <div className="mt-3 text-center">
+              <a 
+                href={quotation.attachment_url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-[var(--highlight)] hover:underline text-sm flex items-center justify-center"
+              >
+                View Attachment <FaExternalLinkAlt className="ml-1 h-2.5 w-2.5" />
+              </a>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
