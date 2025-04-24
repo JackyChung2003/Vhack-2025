@@ -845,14 +845,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
                       Your donation has been recorded on the blockchain for transparency.
                     </p>
                     <div className="mt-2">
-                      <a 
-                        href={getTransactionExplorerUrl('pending')} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800 text-sm flex items-center"
-                      >
-                        View on Blockchain Explorer <FaExternalLinkAlt className="ml-1 text-xs" />
-                      </a>
+                      
                       <p className="text-xs text-gray-500 mt-1">
                         Note: It may take a few minutes for the transaction to appear on the blockchain.
                       </p>

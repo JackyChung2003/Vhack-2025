@@ -120,47 +120,7 @@ const VendorPage: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.2 }}
         className="bg-[var(--main)] rounded-xl shadow-md border border-[var(--stroke)] mb-6 overflow-hidden"
-      >
-        <div className="flex border-b border-[var(--stroke)] flex-wrap">
-          <TabButton 
-            isActive={activeTab === 'transactions'} 
-            onClick={() => handleTabChange('transactions')}
-            icon={<FaExchangeAlt />}
-            label="Purchasing Transactions"
-          />
-          <TabButton 
-            isActive={activeTab === 'chats'} 
-            onClick={() => handleTabChange('chats')}
-            icon={<FaComments />}
-            label="Vendor Chats"
-          />
-        </div>
-
-        {/* Tab Description */}
-        <div className="p-4 bg-[var(--background)] bg-opacity-50">
-          {activeTab === 'transactions' && (
-            <div className="flex items-center">
-              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                <FaExchangeAlt className="text-blue-600" />
-              </div>
-              <div>
-                <h2 className="font-medium text-[var(--headline)]">Purchase Transactions</h2>
-                <p className="text-sm text-[var(--paragraph)]">View and manage your organization's transactions with vendors</p>
-              </div>
-            </div>
-          )}
-          {activeTab === 'chats' && (
-            <div className="flex items-center">
-              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
-                <FaComments className="text-green-600" />
-              </div>
-              <div>
-                <h2 className="font-medium text-[var(--headline)]">Vendor Communications</h2>
-                <p className="text-sm text-[var(--paragraph)]">Connect and chat with your suppliers and vendors</p>
-              </div>
-            </div>
-          )}
-        </div>
+      >  
       </motion.div>
       
       {/* Content based on active tab */}

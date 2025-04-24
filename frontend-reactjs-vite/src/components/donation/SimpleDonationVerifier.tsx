@@ -36,7 +36,7 @@ const SimpleDonationVerifier: React.FC<SimpleDonationVerifierProps> = ({
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'MYR',
       minimumFractionDigits: 2,
     }).format(amount);
   };
