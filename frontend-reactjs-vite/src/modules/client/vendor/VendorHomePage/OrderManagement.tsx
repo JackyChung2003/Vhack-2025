@@ -1,13 +1,34 @@
-import React, { useState } from "react";
-import { FaCheckCircle, FaFilter, FaBuilding, FaTruck, FaMoneyBillWave, FaBoxOpen, FaCamera } from "react-icons/fa";
+import React, { useState, useEffect } from "react";
+import { FaCheckCircle, FaFilter, FaBuilding, FaTruck, FaMoneyBillWave, FaBoxOpen, FaCamera, FaExclamationTriangle, FaTimes } from "react-icons/fa";
 import TransactionCard from "./TransactionCard";
-import { mockOrganizations } from "../../../../utils/mockData";
+import { charityService } from "../../../../services/supabase/charityService";
+import { toast } from "react-toastify";
+import supabase from "../../../../services/supabase/supabaseClient";
+import { mockOrganizations } from "../../../../utils/mockData"; // Keep for organization data
 
 // Define transaction status type
 type TransactionStatus = 'pending' | 'shipping' | 'delivered' | 'completed' | 'rejected';
 
-// Define a Transaction type
-type Transaction = {
+// Define a Transaction type matching our database structure
+type DatabaseTransaction = {
+  id: string;
+  campaign_id: string | null;
+  vendor_id: string;
+  vendor_name: string;
+  amount: number;
+  status: string;
+  description: string;
+  created_at: string;
+  details: string;
+  quotation_id: string;
+  request_id: string;
+  charity_id: string;
+  charity_name?: string;
+  campaign_name?: string;
+};
+
+// Define the TransactionCard props type that matches what the component expects
+type TransactionCardType = {
   id: number;
   items: Array<{
     id: number;
@@ -21,117 +42,153 @@ type Transaction = {
   fundSource: string;
   createdBy: 'charity' | 'vendor';
   date: string;
-  quotationId?: number; // Reference to original quotation
-  deliveryPhoto?: string; // URL to delivery confirmation photo
+  quotationId?: number;
+  requestId?: number;
+  deliveryPhoto?: string;
 };
 
 const OrderManagement: React.FC = () => {
-  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [selectedTransaction, setSelectedTransaction] = useState<TransactionCardType | null>(null);
   const [filter, setFilter] = useState<'all' | TransactionStatus>('all');
   const [showDeliveryModal, setShowDeliveryModal] = useState(false);
   const [deliveryPhoto, setDeliveryPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [transactions, setTransactions] = useState<DatabaseTransaction[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [currentTransactionId, setCurrentTransactionId] = useState<number | null>(null);
 
-  // Mock data for transactions with updated statuses
-  const transactions: Transaction[] = [
-    {
-      id: 1,
-      items: [
-        { id: 1, name: "Water Filter X200", quantity: 100, price: 50 }
-      ],
-      totalPrice: 5000,
-      organizationId: 1, // Global Relief
-      status: 'completed',
-      fundSource: "Clean Water Initiative",
-      createdBy: 'charity',
-      date: "2023-05-15",
-      quotationId: 101 // Reference to original quotation
-    },
-    {
-      id: 2,
-      items: [
-        { id: 2, name: "Water Filters", quantity: 100, price: 5 },
-        { id: 3, name: "Water Testing Kits", quantity: 50, price: 10 }
-      ],
-      totalPrice: 1000,
-      organizationId: 1, // Global Relief
-      status: 'pending',
-      fundSource: "Clean Water Initiative",
-      createdBy: 'charity',
-      date: "2023-05-15",
-      quotationId: 102
-    },
-    {
-      id: 3,
-      items: [
-        { id: 4, name: "School Supplies Kit", quantity: 200, price: 6 }
-      ],
-      totalPrice: 1200,
-      organizationId: 2, // EduCare
-      status: 'pending',
-      fundSource: "Education for All",
-      createdBy: 'vendor',
-      date: "2023-05-10",
-      quotationId: 103
-    },
-    {
-      id: 4,
-      items: [
-        { id: 5, name: "Medical Kits", quantity: 80, price: 10 }
-      ],
-      totalPrice: 800,
-      organizationId: 4, // Health Alliance
-      status: 'shipping',
-      fundSource: "General Fund",
-      createdBy: 'charity',
-      date: "2023-04-28",
-      quotationId: 104
-    },
-    {
-      id: 5,
-      items: [
-        { id: 6, name: "Food Packages", quantity: 150, price: 10 }
-      ],
-      totalPrice: 1500,
-      organizationId: 3, // Nature First
-      status: 'shipping',
-      fundSource: "Hunger Relief",
-      createdBy: 'vendor',
-      date: "2023-04-20",
-      quotationId: 105
-    },
-    {
-      id: 6,
-      items: [
-        { id: 7, name: "Hygiene Kits", quantity: 120, price: 8 }
-      ],
-      totalPrice: 960,
-      organizationId: 1, // Global Relief
-      status: 'delivered',
-      fundSource: "Emergency Response",
-      createdBy: 'charity',
-      date: "2023-04-15",
-      quotationId: 106,
-      deliveryPhoto: "https://placehold.co/600x400?text=Delivery+Photo"
-    },
-    {
-      id: 7,
-      items: [
-        { id: 8, name: "Tent Supplies", quantity: 20, price: 150 }
-      ],
-      totalPrice: 3000,
-      organizationId: 1, // Global Relief
-      status: 'rejected',
-      fundSource: "Shelter Project",
-      createdBy: 'charity',
-      date: "2023-04-10",
-      quotationId: 107
+  // Fetch transactions when component mounts
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        setLoading(true);
+        console.log("Fetching vendor transactions...");
+        
+        // Check if the campaign_expenses table exists by making a test query
+        try {
+          const { count, error: tableError } = await supabase
+            .from('campaign_expenses')
+            .select('*', { count: 'exact', head: true });
+          
+          if (tableError) {
+            console.error("Error checking campaign_expenses table:", tableError);
+            toast.error(`Table error: ${tableError.message}`);
+            setLoading(false);
+            return;
+          }
+          
+          console.log(`campaign_expenses table exists with ${count} records`);
+        } catch (tableCheckError) {
+          console.error("Exception checking table:", tableCheckError);
+          toast.error("Failed to verify database table: " + 
+            (tableCheckError instanceof Error ? tableCheckError.message : String(tableCheckError)));
+          setLoading(false);
+          return;
+        }
+        
+        // Now try to fetch the transactions
+        const data = await charityService.getVendorTransactions();
+        console.log("Vendor transaction data received:", data);
+        setTransactions(data);
+      } catch (error) {
+        console.error('Error fetching transactions:', error);
+        
+        // More detailed error information
+        if (error instanceof Error) {
+          console.error('Error message:', error.message);
+          console.error('Error stack:', error.stack);
+          toast.error(`Failed to load transactions: ${error.message}`);
+        } else {
+          toast.error('Failed to load transactions: Unknown error');
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchTransactions();
+  }, []);
+
+  // Transform database transaction to the format expected by TransactionCard component
+  const transformTransaction = (tx: DatabaseTransaction): TransactionCardType => {
+    // Parse items from details if present
+    let items: Array<{id: number; name: string; quantity: number; price: number;}> = [];
+    let deliveryPhoto: string | undefined = undefined;
+    let parsedDetails: any = {}; // Initialize parsedDetails
+    
+    try {
+      if (tx.details && tx.details !== '{}') {
+        // Attempt to parse JSON only if details looks like it might be JSON
+        if (tx.details.trim().startsWith('{') && tx.details.trim().endsWith('}')) {
+          parsedDetails = JSON.parse(tx.details);
+          if (parsedDetails.items && Array.isArray(parsedDetails.items)) {
+            items = parsedDetails.items;
+          }
+          // Extract delivery photo URL if it exists
+          if (parsedDetails.deliveryPhoto) {
+            deliveryPhoto = parsedDetails.deliveryPhoto;
+          }
+        } else {
+           console.warn(`Transaction details for ID ${tx.id} might not be JSON:`, tx.details);
+        }
+      }
+    } catch (e) {
+      console.error(`Error parsing transaction details for ID ${tx.id}:`, e, 'Details:', tx.details);
+      // Reset items and deliveryPhoto if parsing fails
+      items = []; 
+      deliveryPhoto = undefined;
     }
-  ];
+
+    // If no items were parsed, use a default item based on the description
+    if (items.length === 0) {
+      items = [{
+        id: 1,
+        name: tx.description || 'Unlisted items',
+        quantity: 1,
+        price: tx.amount
+      }];
+    }
+
+    // Generate a numeric ID by taking the last segment of the UUID
+    const numericId = parseInt(tx.id.split('-').pop() || '0', 16);
+    
+    // Check localStorage for a saved delivery photo if not found in details
+    if (!deliveryPhoto) {
+      const storedPhoto = localStorage.getItem(`delivery-photo-${numericId}`);
+      if (storedPhoto) {
+        deliveryPhoto = storedPhoto;
+      }
+    }
+    
+    // Find a mock organization ID to match the charity
+    let orgId = 1; // Default organization ID
+    if (tx.charity_name) {
+      const matchingOrg = mockOrganizations.find(
+        org => org.name.toLowerCase().includes(tx.charity_name?.toLowerCase() || '')
+      );
+      if (matchingOrg) {
+        orgId = matchingOrg.id;
+      }
+    }
+
+    return {
+      id: numericId,
+      items: items,
+      totalPrice: tx.amount,
+      organizationId: orgId,
+      status: tx.status as TransactionStatus,
+      fundSource: tx.campaign_name || 'General Fund',
+      createdBy: 'charity',
+      date: new Date(tx.created_at).toLocaleDateString(),
+      quotationId: tx.quotation_id ? parseInt(tx.quotation_id) : undefined,
+      requestId: tx.request_id ? parseInt(tx.request_id) : undefined,
+      deliveryPhoto: deliveryPhoto
+    };
+  };
 
   // Sort transactions by status
-  const sortTransactions = (transactions: Transaction[]) => {
-    const statusOrder: Record<TransactionStatus, number> = { 
+  const sortTransactions = (transactions: DatabaseTransaction[]) => {
+    const statusOrder: Record<string, number> = { 
       'pending': 0, 
       'shipping': 1, 
       'delivered': 2, 
@@ -140,9 +197,9 @@ const OrderManagement: React.FC = () => {
     };
     
     return [...transactions].sort((a, b) => {
-      const statusDiff = statusOrder[a.status] - statusOrder[b.status];
+      const statusDiff = (statusOrder[a.status] || 0) - (statusOrder[b.status] || 0);
       if (statusDiff !== 0) return statusDiff;
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
   };
 
@@ -151,112 +208,160 @@ const OrderManagement: React.FC = () => {
     ? sortTransactions(transactions)
     : sortTransactions(transactions.filter(t => t.status === filter));
 
-  const handleTransactionClick = (transaction: Transaction) => {
-    setSelectedTransaction(transaction);
+  const handleTransactionClick = (transaction: DatabaseTransaction) => {
+    const transformedTransaction = transformTransaction(transaction);
+    setSelectedTransaction(transformedTransaction);
   };
 
   const handleCloseCard = () => {
     setSelectedTransaction(null);
   };
 
-  const handleMarkAsShipped = () => {
+  const handleMarkAsShipped = async () => {
     if (selectedTransaction) {
-      console.log(`Started shipping for transaction ID: ${selectedTransaction.id}`);
-      // Update the transaction status locally (in real app, call API)
-      const updatedTransaction = {
-        ...selectedTransaction,
-        status: 'shipping' as TransactionStatus
-      };
-      setSelectedTransaction(updatedTransaction);
-      
-      console.log("Order marked as shipping. Waiting for delivery confirmation.");
+      try {
+        // Get original transaction ID from database transactions
+        const originalTx = transactions.find(
+          tx => parseInt(tx.id.split('-').pop() || '0', 16) === selectedTransaction.id
+        );
+        
+        if (!originalTx) {
+          toast.error("Could not find the original transaction");
+          return;
+        }
+        
+        // Update transaction status to shipping
+        await charityService.updateTransactionStatus(originalTx.id, 'shipping');
+        
+        toast.success('Order marked as shipped');
+        
+        // Update transaction in state
+        setTransactions(prev => 
+          prev.map(tx => 
+            tx.id === originalTx.id 
+              ? { ...tx, status: 'shipping' } 
+              : tx
+          )
+        );
+        
+        // Close the transaction card
+        setSelectedTransaction(null);
+      } catch (error) {
+        console.error('Error updating transaction:', error);
+        toast.error('Failed to update transaction status');
+      }
     }
   };
 
-  // Open the delivery confirmation modal
   const handleShowDeliveryConfirmation = () => {
+    // Save current transaction ID before closing the card
+    if (selectedTransaction) {
+      setCurrentTransactionId(selectedTransaction.id);
+    }
     setShowDeliveryModal(true);
+    handleCloseCard();
   };
 
-  // Handle photo file selection
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDeliveryPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setDeliveryPhoto(file);
       
-      // Create a preview URL
+      // Show preview
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhotoPreview(reader.result as string);
+      reader.onload = (event) => {
+        if (event.target) {
+          setPhotoPreview(event.target.result as string);
+        }
       };
       reader.readAsDataURL(file);
     }
   };
 
-  // Mark as delivered with photo proof
-  const handleMarkAsDelivered = () => {
-    if (selectedTransaction && deliveryPhoto) {
-      console.log(`Marked as delivered transaction ID: ${selectedTransaction.id} with photo proof`);
+  const handleConfirmDelivery = async () => {
+    if (!deliveryPhoto) {
+      toast.error('Please upload a delivery confirmation photo');
+      return;
+    }
+    
+    try {
+      // Get original transaction ID from database transactions using currentTransactionId
+      const originalTx = transactions.find(
+        tx => parseInt(tx.id.split('-').pop() || '0', 16) === currentTransactionId
+      );
       
-      // In a real app, you would upload the photo to a server and get a URL back
-      const photoUrl = URL.createObjectURL(deliveryPhoto); // For demo purposes
+      if (!originalTx) {
+        toast.error("Could not find the original transaction");
+        return;
+      }
       
-      // Update the transaction status locally (in real app, call API)
-      const updatedTransaction = {
-        ...selectedTransaction,
-        status: 'delivered' as TransactionStatus,
-        deliveryPhoto: photoUrl
+      // FAKE UPLOAD: Instead of uploading to Supabase, just use the local preview URL
+      // This creates an object URL that will persist until page reload
+      const fakePhotoUrl = photoPreview || URL.createObjectURL(deliveryPhoto);
+      
+      // Save to localStorage for persistence between reloads
+      localStorage.setItem(`delivery-photo-${currentTransactionId}`, fakePhotoUrl);
+      
+      // Safely parse existing details
+      let existingDetails = {};
+      try {
+         if (originalTx.details && originalTx.details !== '{}' && originalTx.details.trim().startsWith('{') && originalTx.details.trim().endsWith('}')) {
+          existingDetails = JSON.parse(originalTx.details);
+        } else if (originalTx.details) {
+           console.warn(`Original transaction details for ID ${originalTx.id} might not be JSON:`, originalTx.details);
+        }
+      } catch(e) {
+         console.error(`Error parsing original transaction details for ID ${originalTx.id}:`, e, 'Details:', originalTx.details);
+      }
+
+      // Create a fake details object with the photo URL, merging safely
+      const detailsObj = {
+        ...existingDetails,
+        deliveryPhoto: fakePhotoUrl
       };
       
-      setSelectedTransaction(updatedTransaction);
-      setShowDeliveryModal(false);
+      // Skip actual database update, just update local state
+      console.log('FAKE UPLOAD: Would have updated database with:', {
+        id: originalTx.id,
+        status: 'delivered',
+        details: JSON.stringify(detailsObj)
+      });
+      
+      toast.success('Delivery confirmed successfully (DEMO MODE - not saved to database)');
+      
+      // Update transaction in local state only
+      setTransactions(prev => 
+        prev.map(tx => 
+          tx.id === originalTx.id 
+            ? { 
+                ...tx, 
+                status: 'delivered', 
+                details: JSON.stringify(detailsObj) // Ensure details is stringified here
+              } 
+            : tx
+        )
+      );
+      
+      // Reset state and close modal
       setDeliveryPhoto(null);
       setPhotoPreview(null);
-      
-      console.log("Order marked as delivered with photo proof. Waiting for payment release.");
+      setShowDeliveryModal(false);
+    } catch (error) {
+      console.error('Error confirming delivery:', error);
+      toast.error('Failed to confirm delivery: ' + (error instanceof Error ? error.message : String(error)));
     }
   };
 
-  // Get status icon based on transaction status
-  const getStatusIcon = (status: TransactionStatus) => {
-    switch(status) {
-      case 'pending':
-        return <FaBoxOpen className="w-5 h-5 text-yellow-500" />;
-      case 'shipping':
-        return <FaTruck className="w-5 h-5 text-indigo-500" />;
-      case 'delivered':
-        return <FaCheckCircle className="w-5 h-5 text-teal-500" />;
-      case 'completed':
-        return <FaMoneyBillWave className="w-5 h-5 text-green-500" />;
-      case 'rejected':
-        return <FaCheckCircle className="w-5 h-5 text-red-500" />;
-      default:
-        return <FaCheckCircle className="w-5 h-5 opacity-30 text-gray-400" />;
-    }
-  };
-
-  // Function to get progress percentage based on status
-  const getProgressPercentage = (status: TransactionStatus) => {
-    switch(status) {
-      case 'pending': return 10;
-      case 'shipping': return 40;
-      case 'delivered': return 70;
-      case 'completed': return 100;
-      case 'rejected': return 0;
-      default: return 0;
-    }
-  };
-
-  // Function to get step value based on status
-  const getStepValue = (status: TransactionStatus): number => {
-    const stepMap: Record<TransactionStatus, number> = {
+  // Helper function to get the step number for status display
+  const getStatusStep = (status: string): number => {
+    const stepMap: Record<string, number> = {
       'pending': 0,
       'shipping': 1,
       'delivered': 2,
       'completed': 3,
       'rejected': -1
     };
-    return stepMap[status];
+    return stepMap[status] || 0;
   };
 
   return (
@@ -282,81 +387,54 @@ const OrderManagement: React.FC = () => {
 
       {/* Orders List */}
       <div className="space-y-4">
-        {filteredTransactions.length > 0 ? (
-          filteredTransactions.map((transaction) => {
-            const organization = mockOrganizations.find(org => org.id === transaction.organizationId);
-            return (
-              <div
-                key={transaction.id}
-                onClick={() => handleTransactionClick(transaction)}
-                className="bg-[var(--card-background)] p-4 rounded-lg shadow-md border border-[var(--card-border)] cursor-pointer hover:bg-[var(--background)] transition-all"
-              >
-                <div className="flex items-center">
-                  <div className="flex-1">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <FaBuilding className="text-[var(--highlight)]" />
-                        <p className={`text-[var(--headline)] font-semibold ${
-                          transaction.status === 'completed' ? 'line-through' : ''
-                        }`}>
-                          {organization?.name || 'Unknown Organization'} - {transaction.items.length} item(s)
-                        </p>
-                      </div>
-                      <span className={`text-sm px-2 py-1 rounded-full ${
-                        transaction.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                        transaction.status === 'shipping' ? 'bg-indigo-100 text-indigo-800' :
-                        transaction.status === 'delivered' ? 'bg-teal-100 text-teal-800' :
-                        transaction.status === 'completed' ? 'bg-green-100 text-green-800' :
-                        'bg-red-100 text-red-800'
+        {loading ? (
+          <div className="text-center py-8">
+            <p>Loading transactions...</p>
+          </div>
+        ) : transactions.length === 0 ? (
+          <div className="text-center py-8 bg-[var(--card-background)] rounded-lg border border-[var(--card-border)]">
+            <FaExclamationTriangle className="mx-auto text-4xl text-yellow-500 mb-2" />
+            <p className="font-medium text-[var(--headline)]">No Orders Found</p>
+            <p className="text-sm text-[var(--paragraph)]">You don't have any orders from organizations yet.</p>
+          </div>
+        ) : (
+          filteredTransactions.map((transaction) => (
+            <div
+              key={transaction.id}
+              onClick={() => handleTransactionClick(transaction)}
+              className="bg-[var(--card-background)] p-4 rounded-lg shadow-md border border-[var(--card-border)] cursor-pointer hover:bg-[var(--background)] transition-all"
+            >
+              <div className="flex items-center">
+                <div className="flex-1">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <FaBuilding className="text-[var(--highlight)]" />
+                      <p className={`text-[var(--headline)] font-semibold ${
+                        transaction.status === 'completed' ? 'line-through' : ''
                       }`}>
-                        {transaction.status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-                      </span>
+                        {transaction.charity_name || 'Unknown Organization'} - {transaction.description}
+                      </p>
                     </div>
-                    <p className="text-sm text-[var(--paragraph)]">
-                      Total: RM{transaction.totalPrice.toLocaleString()} | Fund: {transaction.fundSource}
-                    </p>
-                    <p className="text-sm text-[var(--paragraph)]">
-                      Created by: {transaction.createdBy === 'vendor' ? 'You' : organization?.name} | Date: {transaction.date}
-                    </p>
-                    <p className="text-sm text-[var(--paragraph)]">
-                      Quotation ID: {transaction.quotationId || 'N/A'}
-                    </p>
-                    
-                    {/* Compact step indicators */}
-                    <div className="flex mt-3 space-x-1">
-                      {['pending', 'shipping', 'delivered', 'completed'].map((step, index) => {
-                        if (transaction.status === 'rejected') return null;
-
-                        const currentStepValue = getStepValue(transaction.status);
-                        const isActive = currentStepValue >= index;
-                        const isCurrentStep = currentStepValue === index;
-                        
-                        return (
-                          <div 
-                            key={index}
-                            className={`h-1.5 flex-1 rounded-full ${
-                              isActive ? 
-                                (isCurrentStep ? 'bg-[var(--highlight)]' : 'bg-[var(--highlight)] bg-opacity-60') : 
-                                'bg-gray-200'
-                            }`}
-                          />
-                        );
-                      })}
-                    </div>
+                    <span className={`text-sm px-2 py-1 rounded-full ${
+                      transaction.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                      transaction.status === 'shipping' ? 'bg-indigo-100 text-indigo-800' :
+                      transaction.status === 'delivered' ? 'bg-teal-100 text-teal-800' :
+                      transaction.status === 'completed' ? 'bg-green-100 text-green-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
+                    </span>
                   </div>
-                  
-                  {/* Status icon */}
-                  <div className="ml-4">
-                    {getStatusIcon(transaction.status)}
-                  </div>
+                  <p className="text-sm text-[var(--paragraph)]">
+                    Total: RM{transaction.amount.toLocaleString()} | Fund: {transaction.campaign_name || 'General Fund'}
+                  </p>
+                  <p className="text-xs text-[var(--paragraph)]">
+                    {new Date(transaction.created_at).toLocaleDateString()}
+                  </p>
                 </div>
               </div>
-            );
-          })
-        ) : (
-          <div className="p-4 text-center text-gray-500">
-            No orders found matching the filter.
-          </div>
+            </div>
+          ))
         )}
       </div>
 
@@ -383,59 +461,68 @@ const OrderManagement: React.FC = () => {
               <label className="block text-sm font-medium text-[var(--headline)] mb-2">
                 Delivery Photo
               </label>
-              <div className="flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-4 cursor-pointer hover:bg-gray-50 transition-all">
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  id="delivery-photo"
-                  onChange={handlePhotoChange}
-                />
-                <label htmlFor="delivery-photo" className="cursor-pointer w-full">
-                  {photoPreview ? (
-                    <div className="relative">
-                      <img 
-                        src={photoPreview} 
-                        alt="Delivery preview" 
-                        className="w-full h-64 object-cover rounded-lg"
-                      />
-                      <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 text-white font-medium rounded-lg opacity-0 hover:opacity-100 transition-opacity">
-                        Click to change
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-6">
-                      <FaCamera className="text-[var(--highlight)] text-4xl mb-2" />
-                      <p className="text-sm text-center text-[var(--paragraph)]">
-                        Click to select a photo
-                      </p>
-                    </div>
-                  )}
-                </label>
+              <div className="border-2 border-dashed border-[var(--stroke)] rounded-lg p-4 flex flex-col items-center justify-center">
+                {photoPreview ? (
+                  <div className="relative w-full">
+                    <img 
+                      src={photoPreview} 
+                      alt="Delivery preview" 
+                      className="w-full h-48 object-cover rounded-md"
+                    />
+                    <button
+                      onClick={() => {
+                        setPhotoPreview(null);
+                        setDeliveryPhoto(null);
+                      }}
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
+                    >
+                      <FaTimes />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <FaCamera className="text-4xl text-[var(--stroke)] mb-2" />
+                    <p className="text-sm text-[var(--paragraph)] mb-2">Upload a delivery photo</p>
+                    <p className="text-xs text-[var(--paragraph)] mb-4">PNG, JPG or JPEG (max. 5MB)</p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      id="delivery-photo"
+                      onChange={handleDeliveryPhotoChange}
+                    />
+                    <label
+                      htmlFor="delivery-photo"
+                      className="px-4 py-2 bg-[var(--highlight)] text-white rounded-md cursor-pointer hover:bg-opacity-90 transition-all"
+                    >
+                      Select Photo
+                    </label>
+                  </>
+                )}
               </div>
             </div>
 
-            <div className="flex justify-end space-x-4">
+            <div className="flex justify-end space-x-3 mt-6">
               <button
                 onClick={() => {
                   setShowDeliveryModal(false);
-                  setDeliveryPhoto(null);
                   setPhotoPreview(null);
+                  setDeliveryPhoto(null);
                 }}
-                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg shadow-md hover:bg-gray-400 transition-all"
+                className="px-4 py-2 border border-[var(--stroke)] rounded-md"
               >
                 Cancel
               </button>
               <button
-                onClick={handleMarkAsDelivered}
+                onClick={handleConfirmDelivery}
                 disabled={!deliveryPhoto}
-                className={`px-4 py-2 rounded-lg shadow-md transition-all flex items-center gap-2 ${
-                  deliveryPhoto
-                    ? 'bg-teal-500 text-white hover:bg-teal-600'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                className={`px-4 py-2 rounded-md text-white ${
+                  deliveryPhoto 
+                    ? 'bg-[var(--highlight)] hover:bg-opacity-90' 
+                    : 'bg-gray-400 cursor-not-allowed'
                 }`}
               >
-                <FaCheckCircle /> Confirm Delivery
+                Confirm Delivery
               </button>
             </div>
           </div>

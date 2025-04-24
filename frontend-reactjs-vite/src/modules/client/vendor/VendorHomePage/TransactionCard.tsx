@@ -50,6 +50,19 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
   const currentStep = currentStepIndex !== -1 ? currentStepIndex : 
                      (transaction.status === 'rejected' ? -1 : 0);
   
+  // Check for delivery photo in transaction
+  let deliveryPhoto = transaction.deliveryPhoto;
+  
+  // If no delivery photo from props but status is delivered or completed, 
+  // data might be in the local storage from the fake upload
+  if (!deliveryPhoto && (transaction.status === 'delivered' || transaction.status === 'completed')) {
+    // Try to get photo from localStorage by transaction ID
+    const storedPhoto = localStorage.getItem(`delivery-photo-${transaction.id}`);
+    if (storedPhoto) {
+      deliveryPhoto = storedPhoto;
+    }
+  }
+  
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
       <div className="bg-[var(--background)] p-6 rounded-lg shadow-xl border border-[var(--card-border)] max-w-md w-full">
@@ -86,12 +99,12 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
           )}
 
           {/* Delivery Photo (if available) */}
-          {transaction.deliveryPhoto && transaction.status !== 'pending' && (
+          {deliveryPhoto && transaction.status !== 'pending' && (
             <div className="mt-3">
               <p className="text-sm font-medium text-[var(--headline)] mb-1">Delivery Confirmation Photo:</p>
               <div className="relative group cursor-pointer">
                 <img 
-                  src={transaction.deliveryPhoto} 
+                  src={deliveryPhoto} 
                   alt="Delivery confirmation" 
                   className="w-full h-48 object-cover rounded-lg border border-gray-200"
                 />

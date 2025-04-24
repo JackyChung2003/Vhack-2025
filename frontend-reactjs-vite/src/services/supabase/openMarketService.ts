@@ -485,10 +485,15 @@ export const openMarketService = {
       if (authError) throw authError;
       if (!user) throw new Error('User not authenticated');
 
-      // Get quotation details to get request_id
+      // Get quotation details to get request_id and other details needed for creating a transaction
       const { data: quotationData, error: getQuotationError } = await supabase
         .from('OpenMarketQuotation')
-        .select('request_id')
+        .select(`
+          request_id, 
+          vendor_id, 
+          price, 
+          details
+        `)
         .eq('id', quotationId)
         .single();
 
@@ -498,13 +503,25 @@ export const openMarketService = {
       // Verify that the user owns the request (is the charity that created it)
       const { data: requestData, error: requestError } = await supabase
         .from('OpenMarketRequest')
-        .select('created_by')
+        .select('created_by, campaign_id, fund_type, title')
         .eq('id', quotationData.request_id)
         .single();
 
       if (requestError) throw requestError;
       if (!requestData) throw new Error('Request not found');
       if (requestData.created_by !== user.id) throw new Error('You are not authorized to accept this quotation');
+
+      // Get vendor name for the transaction record
+      const { data: vendorData, error: vendorError } = await supabase
+        .from('users')
+        .select('name')
+        .eq('id', quotationData.vendor_id)
+        .single();
+        
+      if (vendorError) {
+        console.error('Error fetching vendor data:', vendorError);
+        // Continue without vendor name if there's an error
+      }
 
       // Update all quotations for this request to ensure only one is accepted
       // First, set all to false
@@ -533,6 +550,30 @@ export const openMarketService = {
         .eq('id', quotationData.request_id);
 
       if (requestUpdateError) throw requestUpdateError;
+      
+      // Create a transaction record in campaign_expenses
+      const transactionData = {
+        campaign_id: requestData.fund_type === 'campaign' ? requestData.campaign_id : null,
+        vendor_id: quotationData.vendor_id,
+        vendor_name: vendorData?.name || 'Unknown Vendor',
+        amount: quotationData.price,
+        status: 'pending', // Initial status
+        description: `Order from quotation: ${requestData.title}`,
+        created_at: new Date().toISOString(),
+        quotation_id: quotationId,
+        request_id: quotationData.request_id,
+        charity_id: user.id,  // Store who created this transaction
+        details: quotationData.details || ''
+      };
+      
+      const { error: transactionError } = await supabase
+        .from('campaign_expenses')
+        .insert(transactionData);
+        
+      if (transactionError) {
+        console.error('Error creating transaction:', transactionError);
+        throw new Error('Failed to create transaction record');
+      }
       
     } catch (error) {
       console.error('Error accepting quotation:', error);

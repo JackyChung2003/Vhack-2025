@@ -67,7 +67,7 @@ const CharityManagementPage: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [showFilters, setShowFilters] = useState(false);
   const [showFundDetails, setShowFundDetails] = useState(true);
-  const [activeTab, setActiveTab] = useState<'campaigns' | 'funds' | 'vendors'>('campaigns');
+  const [activeTab, setActiveTab] = useState<'campaigns' | 'funds'>('campaigns');
   const [charityProfile, setCharityProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [campaigns, setCampaigns] = useState<FormattedCampaign[]>([]);
@@ -77,6 +77,10 @@ const CharityManagementPage: React.FC = () => {
     campaignFundsRaised: 0
   });
   
+  // Add state for detailed campaign fund allocation
+  const [campaignFundDetails, setCampaignFundDetails] = useState<Record<string, { available: number; onHold: number; used: number; }>>({});
+  const [detailsLoading, setDetailsLoading] = useState(false);
+
   // Add state for campaign fund allocation
   const [campaignFundAllocation, setCampaignFundAllocation] = useState<{ 
     campaignId: string;
@@ -109,9 +113,10 @@ const CharityManagementPage: React.FC = () => {
   
   // Fetch campaigns data from database
   useEffect(() => {
-    const fetchCampaigns = async () => {
+    const fetchCampaignsAndDetails = async () => {
       try {
         setIsLoading(true);
+        setDetailsLoading(true); // Start details loading
         const campaignsData = await charityService.getCharityCampaigns();
         
         // Format campaigns to match the structure expected by the UI
@@ -127,47 +132,51 @@ const CharityManagementPage: React.FC = () => {
         }));
         
         setCampaigns(formattedCampaigns);
+        setIsLoading(false); // Campaigns list is loaded
+
+        // Fetch fund details for each campaign
+        const detailsMap: Record<string, { available: number; onHold: number; used: number; }> = {};
+        await Promise.all(formattedCampaigns.map(async (campaign) => {
+          try {
+            const { fundAllocation } = await charityService.getCampaignTransactions(campaign.id.toString());
+            const totalAvailable = fundAllocation.availableCampaignSpecific + fundAllocation.availableAlwaysDonate;
+            detailsMap[campaign.id] = {
+              available: totalAvailable, 
+              onHold: fundAllocation.onHold,
+              used: fundAllocation.used
+            };
+          } catch (detailsError) {
+            console.error(`Error fetching fund details for campaign ${campaign.id}:`, detailsError);
+            // Set default/error state for this campaign's details
+            detailsMap[campaign.id] = { available: 0, onHold: 0, used: 0 };
+          }
+        }));
+        setCampaignFundDetails(detailsMap);
+        setDetailsLoading(false); // Details are loaded
         
-        // Update fund data when campaigns change
+        // Update overall fund data
         const fundsData = await charityService.getTotalFunds();
         setFundData(fundsData);
         
-        // Calculate campaign fund allocation for active campaigns
-        const activeCampaigns = formattedCampaigns.filter(
-          campaign => campaign.status === 'active' && new Date(campaign.deadline) > new Date()
-        );
-        
-        // Total contributions from active campaigns
-        const totalActiveCampaignFunds = activeCampaigns.reduce(
-          (sum, campaign) => sum + campaign.currentContributions, 0
-        );
-        
-        // Calculate percentages for each campaign
-        const allocation = activeCampaigns.map(campaign => ({
-          campaignId: campaign.id.toString(),
-          name: campaign.name,
-          amount: campaign.currentContributions,
-          percentage: totalActiveCampaignFunds > 0 
-            ? Math.round((campaign.currentContributions / totalActiveCampaignFunds) * 100) 
-            : 0
-        })).sort((a, b) => b.amount - a.amount);
-        
-        setCampaignFundAllocation(allocation);
+        // Fetch aggregated campaign fund allocation for the chart
+        const allocationChartData = await charityService.getCampaignFundAllocation();
+        setCampaignFundAllocation(allocationChartData);
+
       } catch (error) {
-        console.error("Error fetching campaigns:", error);
-        toast.error("Failed to fetch campaigns");
-      } finally {
-        setIsLoading(false);
+        console.error("Error fetching campaigns or details:", error);
+        toast.error("Failed to fetch campaigns or fund details");
+        setIsLoading(false); // Ensure loading is off on error
+        setDetailsLoading(false);
       }
     };
     
-    fetchCampaigns();
+    fetchCampaignsAndDetails();
     
     // Add event listener for refreshing campaigns
-    window.addEventListener('refreshCampaigns', fetchCampaigns);
+    window.addEventListener('refreshCampaigns', fetchCampaignsAndDetails);
     
     return () => {
-      window.removeEventListener('refreshCampaigns', fetchCampaigns);
+      window.removeEventListener('refreshCampaigns', fetchCampaignsAndDetails);
     };
   }, []);
   
@@ -175,8 +184,8 @@ const CharityManagementPage: React.FC = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const tabParam = params.get('tab');
-    if (tabParam && ['campaigns', 'funds', 'vendors'].includes(tabParam)) {
-      setActiveTab(tabParam as 'campaigns' | 'funds' | 'vendors');
+    if (tabParam && ['campaigns', 'funds'].includes(tabParam)) {
+      setActiveTab(tabParam as 'campaigns' | 'funds');
       // Scroll to top of the page
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -258,39 +267,8 @@ const CharityManagementPage: React.FC = () => {
       const fundsData = await charityService.getTotalFunds();
       setFundData(fundsData);
       
-      // Get updated campaigns to recalculate fund allocation
-      const campaignsData = await charityService.getCharityCampaigns();
-      const formattedCampaigns = campaignsData.map(campaign => ({
-        id: campaign.id,
-        name: campaign.title,
-        organizationId: campaign.charity_id,
-        goal: campaign.target_amount,
-        currentContributions: campaign.current_amount,
-        deadline: campaign.deadline,
-        description: campaign.description,
-        status: campaign.status
-      }));
-      
-      // Calculate campaign fund allocation for active campaigns
-      const activeCampaigns = formattedCampaigns.filter(
-        campaign => campaign.status === 'active' && new Date(campaign.deadline) > new Date()
-      );
-      
-      // Total contributions from active campaigns
-      const totalActiveCampaignFunds = activeCampaigns.reduce(
-        (sum, campaign) => sum + campaign.currentContributions, 0
-      );
-      
-      // Calculate percentages for each campaign
-      const allocation = activeCampaigns.map(campaign => ({
-        campaignId: campaign.id.toString(),
-        name: campaign.name,
-        amount: campaign.currentContributions,
-        percentage: totalActiveCampaignFunds > 0 
-          ? Math.round((campaign.currentContributions / totalActiveCampaignFunds) * 100) 
-          : 0
-      })).sort((a, b) => b.amount - a.amount);
-      
+      // Fetch updated campaign fund allocation from service
+      const allocation = await charityService.getCampaignFundAllocation();
       setCampaignFundAllocation(allocation);
     } catch (err: any) {
       console.error("Error creating campaign:", err);
@@ -317,10 +295,17 @@ const CharityManagementPage: React.FC = () => {
   };
 
   // Handle tab changes
-  const handleTabChange = (tab: 'campaigns' | 'funds' | 'vendors') => {
+  const handleTabChange = (tab: 'campaigns' | 'funds') => {
     setActiveTab(tab);
     // Scroll to top of the page
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  
+  // Handle viewing campaign transactions
+  const handleViewCampaignTransactions = (campaignId: string) => {
+    // Scroll to top of the page
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    navigate(`/campaign/${campaignId}/transactions`);
   };
 
   return (
@@ -385,22 +370,6 @@ const CharityManagementPage: React.FC = () => {
               <span className="font-bold">Funds</span>
             </div>
             {activeTab === 'funds' && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FFA726]"></div>
-            )}
-          </button>
-          <button
-            onClick={() => handleTabChange('vendors')}
-            className={`py-4 px-6 relative font-medium text-base transition-all flex-1 text-center ${
-              activeTab === 'vendors'
-                ? 'text-[#004D40]'
-                : 'text-gray-500 hover:text-[#004D40]'
-            }`}
-          >
-            <div className="flex items-center justify-center gap-2">
-              <FaBuilding className={activeTab === 'vendors' ? 'text-[#004D40]' : 'text-gray-500'} />
-              <span className="font-bold">Vendors</span>
-            </div>
-            {activeTab === 'vendors' && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FFA726]"></div>
             )}
           </button>
@@ -753,193 +722,112 @@ const CharityManagementPage: React.FC = () => {
                 {/* Campaign Fund Details */}
                 <div className="p-4">
                   <h3 className="text-lg font-medium text-[var(--headline)] mb-4">Campaign Fund Details</h3>
-                  <div className="space-y-6">
-                    {sortedCampaigns
-                      .filter(campaign => new Date(campaign.deadline) > new Date())
-                      .map((campaign) => {
-                        // Mock data for fund status - Replace with actual data later
-                        const availableFunds = campaign.currentContributions * 0.4;
-                        const onHoldFunds = campaign.currentContributions * 0.3;
-                        const usedFunds = campaign.currentContributions * 0.3;
-                        const remainingTarget = campaign.goal - campaign.currentContributions;
+                  {detailsLoading ? (
+                    <div className="text-center py-6">Loading fund details...</div>
+                  ) : (
+                    <div className="space-y-6">
+                      {sortedCampaigns
+                        .filter(campaign => new Date(campaign.deadline) > new Date()) // Keep filtering active campaigns if desired
+                        .map((campaign) => {
+                          // Get actual fund details for this campaign
+                          const details = campaignFundDetails[campaign.id] || { available: 0, onHold: 0, used: 0 };
+                          const { available, onHold, used } = details;
+                          const totalAllocated = available + onHold + used;
+                          const remainingTarget = Math.max(0, campaign.goal - campaign.currentContributions);
+                          const goal = campaign.goal > 0 ? campaign.goal : 1; // Avoid division by zero
 
-                        // Calculate percentages for the progress bar
-                        const availablePercentage = (availableFunds / campaign.goal * 100);
-                        const onHoldPercentage = (onHoldFunds / campaign.goal * 100);
-                        const usedPercentage = (usedFunds / campaign.goal * 100);
+                          // Calculate percentages based on the campaign GOAL
+                          const availablePercentage = (available / goal * 100);
+                          const onHoldPercentage = (onHold / goal * 100);
+                          const usedPercentage = (used / goal * 100);
+                          const remainingPercentage = Math.max(0, 100 - availablePercentage - onHoldPercentage - usedPercentage);
 
-                        return (
-                          <div 
-                            key={campaign.id} 
-                            className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer transform hover:-translate-y-1 active:translate-y-0"
-                            onClick={() => navigate(`/campaign/${campaign.id}/transactions`)}
-                          >
-                            <div className="flex items-center gap-3 mb-3">
-                              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                                <FaChartPie className="text-blue-600" />
-                              </div>
-                    <div>
-                                <h4 className="font-medium text-[var(--headline)]">{campaign.name}</h4>
-                                <div className="flex items-center text-sm text-[var(--paragraph)]">
-                                  <FaCalendarAlt className="mr-1" />
-                                  <span>Ends: {new Date(campaign.deadline).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                              <div className="ml-auto text-right">
-                                <p className="font-bold text-[var(--headline)]">
-                                  RM{campaign.currentContributions.toLocaleString()}
-                                </p>
-                                <p className="text-sm text-[var(--paragraph)]">
-                                  of RM{campaign.goal.toLocaleString()}
-                                </p>
-                      </div>
-                    </div>
-                    
-                            {/* Fund Status Bar */}
-                            <div className="h-4 bg-gray-200 rounded-full overflow-hidden flex">
-                              <div 
-                                className="h-full bg-green-500 transition-all duration-300"
-                                style={{ width: `${availablePercentage}%` }}
-                                title={`Available: RM${availableFunds.toLocaleString()}`}
-                              />
-                              <div 
-                                className="h-full bg-[#FFF44F] transition-all duration-300 rounded-none"
-                                style={{ width: `${onHoldPercentage}%` }}
-                                title={`On Hold: RM${onHoldFunds.toLocaleString()}`}
-                              />
-                              <div 
-                                className="h-full bg-red-500 transition-all duration-300 rounded-r-full"
-                                style={{ width: `${usedPercentage}%` }}
-                                title={`Used: RM${usedFunds.toLocaleString()}`}
-                              />
-                  </div>
-                  
-                            {/* Fund Status Legend */}
-                            <div className="mt-3 flex items-center gap-6 text-sm">
-                              <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 bg-green-500 rounded-full" />
-                                <span>Available: RM{availableFunds.toLocaleString()}</span>
-                          </div>
-                              <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 bg-[#FFF44F] rounded-none" />
-                                <span>On Hold: RM{onHoldFunds.toLocaleString()}</span>
-                          </div>
-                              <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 bg-red-500 rounded-full" />
-                                <span>Used: RM{usedFunds.toLocaleString()}</span>
-                        </div>
-                              {remainingTarget > 0 && (
-                                <div className="flex items-center gap-2">
-                                  <div className="w-3 h-3 bg-gray-200 rounded-full" />
-                                  <span>Remaining: RM{remainingTarget.toLocaleString()}</span>
+                          return (
+                            <div 
+                              key={campaign.id} 
+                              className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer transform hover:-translate-y-1 active:translate-y-0"
+                              onClick={() => handleViewCampaignTransactions(campaign.id.toString())}
+                            >
+                              <div className="flex items-center gap-3 mb-3">
+                                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                  <FaChartPie className="text-blue-600" />
                                 </div>
-                              )}
-                    </div>
+                                <div>
+                                  <h4 className="font-medium text-[var(--headline)]">{campaign.name}</h4>
+                                  <div className="flex items-center text-sm text-[var(--paragraph)]">
+                                    <FaCalendarAlt className="mr-1" />
+                                    <span>Ends: {new Date(campaign.deadline).toLocaleDateString()}</span>
+                                  </div>
+                                </div>
+                                <div className="ml-auto text-right">
+                                  <p className="font-bold text-[var(--headline)]">
+                                    RM{campaign.currentContributions.toLocaleString()}
+                                  </p>
+                                  <p className="text-sm text-[var(--paragraph)]">
+                                    of RM{campaign.goal.toLocaleString()}
+                                  </p>
+                                </div>
                               </div>
-                            );
-                          })}
-                        </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-        {activeTab === 'vendors' && (
-      <motion.div
-            key="vendors"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            {/* Vendor Management Section */}
-            <div className="bg-white rounded-xl shadow-md border border-[var(--stroke)] overflow-hidden">
-              <div className="p-4 border-b border-[var(--stroke)]">
-                <h2 className="text-xl font-bold text-[var(--headline)]">Vendor Management</h2>
-              </div>
-
-              {/* Vendor Search */}
-              <div className="p-4 border-b border-[var(--stroke)]">
-                <div className="relative">
-              <input
-                type="text"
-                    placeholder="Search vendors..."
-                    className="w-full pl-10 pr-4 py-2 border border-[var(--stroke)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--highlight)]"
-                  />
-                  <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            </div>
-          </div>
-          
-              {/* Vendor List */}
-              <div className="p-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* Mock vendor data */}
-                  <div className="bg-gradient-to-br from-white to-blue-50 p-4 rounded-lg shadow-sm">
-                    <div className="flex items-center mb-3">
-                      <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium mr-3">
-                        MS
-                  </div>
-                  <div>
-                        <h3 className="font-medium text-[var(--headline)]">Medical Supplies Co.</h3>
-                        <p className="text-sm text-[var(--paragraph)]">Medical Equipment</p>
-                  </div>
-                </div>
-                    <div className="flex items-center gap-2 text-sm text-[var(--paragraph)]">
-                      <FaEnvelope className="text-gray-400" />
-                      <span>contact@medicalsupplies.com</span>
-        </div>
-                    <div className="flex items-center gap-2 text-sm text-[var(--paragraph)] mt-1">
-                      <FaPhone className="text-gray-400" />
-                      <span>+60 12-345-6789</span>
-                      </div>
-                    <div className="flex items-center gap-2 text-sm text-[var(--paragraph)] mt-1">
-                      <FaMapMarkerAlt className="text-gray-400" />
-                      <span>Kuala Lumpur, Malaysia</span>
-                        </div>
-                    <div className="mt-3 flex gap-2">
-                      <button className="px-3 py-1 bg-[var(--highlight)] text-white rounded-lg text-sm hover:bg-opacity-90 transition-all">
-                        Message
-                      </button>
-                      <button className="px-3 py-1 border border-[var(--stroke)] rounded-lg text-sm hover:bg-[var(--highlight)] hover:bg-opacity-10 transition-all">
-                        View Profile
-                      </button>
-                        </div>
-                      </div>
                       
-                  <div className="bg-gradient-to-br from-white to-green-50 p-4 rounded-lg shadow-sm">
-                    <div className="flex items-center mb-3">
-                      <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-600 font-medium mr-3">
-                        FD
-                      </div>
-                      <div>
-                        <h3 className="font-medium text-[var(--headline)]">Food Distribution Inc.</h3>
-                        <p className="text-sm text-[var(--paragraph)]">Food Supplies</p>
-                      </div>
+                              {/* Fund Status Bar - Updated with actual percentages */}
+                              <div className="h-4 bg-gray-200 rounded-full overflow-hidden flex" title={`Available: ${availablePercentage.toFixed(1)}%, On Hold: ${onHoldPercentage.toFixed(1)}%, Used: ${usedPercentage.toFixed(1)}%, Remaining Goal: ${remainingPercentage.toFixed(1)}%`}>
+                                <div 
+                                  className="h-full bg-green-500 transition-all duration-300 flex items-center justify-center text-white text-xs font-bold"
+                                  style={{ width: `${availablePercentage}%` }}
+                                  title={`Available: RM${available.toLocaleString()}`}
+                                >
+                                  {availablePercentage > 10 ? `${availablePercentage.toFixed(0)}%` : ''}
+                                </div>
+                                <div 
+                                  className="h-full bg-yellow-400 transition-all duration-300 flex items-center justify-center text-black text-xs font-bold"
+                                  style={{ width: `${onHoldPercentage}%` }}
+                                  title={`On Hold: RM${onHold.toLocaleString()}`}
+                                >
+                                 {onHoldPercentage > 10 ? `${onHoldPercentage.toFixed(0)}%` : ''}
+                                </div>
+                                <div 
+                                  className="h-full bg-red-500 transition-all duration-300 flex items-center justify-center text-white text-xs font-bold"
+                                  style={{ width: `${usedPercentage}%` }}
+                                  title={`Used: RM${used.toLocaleString()}`}
+                                >
+                                 {usedPercentage > 10 ? `${usedPercentage.toFixed(0)}%` : ''}
+                                </div>
+                                {/* Optional: Show remaining goal visually */}
+                                <div 
+                                  className="h-full bg-gray-200 transition-all duration-300"
+                                  style={{ width: `${remainingPercentage}%` }}
+                                  title={`Remaining Goal: RM${remainingTarget.toLocaleString()}`}
+                                />
+                              </div>
+                    
+                              {/* Fund Status Legend - Updated with actual amounts */}
+                              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-3 h-3 bg-green-500 rounded-full" />
+                                  <span>Available: RM{available.toLocaleString()}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-3 h-3 bg-yellow-400 rounded-sm" />
+                                  <span>On Hold: RM{onHold.toLocaleString()}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-3 h-3 bg-red-500 rounded-full" />
+                                  <span>Used: RM{used.toLocaleString()}</span>
+                                </div>
+                                {remainingTarget > 0 && (
+                                  <div className="flex items-center gap-2 text-gray-500">
+                                    <div className="w-3 h-3 bg-gray-200 rounded-full" />
+                                    <span>Goal Remaining: RM{remainingTarget.toLocaleString()}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-[var(--paragraph)]">
-                      <FaEnvelope className="text-gray-400" />
-                      <span>info@fooddist.com</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-[var(--paragraph)] mt-1">
-                      <FaPhone className="text-gray-400" />
-                      <span>+60 12-987-6543</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-[var(--paragraph)] mt-1">
-                      <FaMapMarkerAlt className="text-gray-400" />
-                      <span>Penang, Malaysia</span>
-                    </div>
-                    <div className="mt-3 flex gap-2">
-                      <button className="px-3 py-1 bg-[var(--highlight)] text-white rounded-lg text-sm hover:bg-opacity-90 transition-all">
-                        Message
-                      </button>
-                      <button className="px-3 py-1 border border-[var(--stroke)] rounded-lg text-sm hover:bg-[var(--highlight)] hover:bg-opacity-10 transition-all">
-                        View Profile
-                      </button>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
-            </div>
             </motion.div>
           )}
       </AnimatePresence>
