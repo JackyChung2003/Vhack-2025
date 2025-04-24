@@ -543,41 +543,53 @@ const CampaignDetail: React.FC = () => {
 
               {/* Enhanced progress bar with shadow and glass effect */}
               <div className="w-full bg-white bg-opacity-20 backdrop-blur-sm rounded-xl h-12 overflow-hidden flex p-1 shadow-inner relative">
-                {/* Campaign-specific portion with gradient */}
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progress * 0.6}%` }}
-                  transition={{ duration: 1, ease: "easeOut" }}
-                  className="h-full rounded-l-lg bg-gradient-to-r from-green-600 to-green-400 shadow-lg flex items-center justify-center"
-                  style={{
-                    width: `${progress * 0.6}%`,
-                    maxWidth: "100%"
-                  }}
-                >
-                  {progress * 0.6 > 15 && (
-                    <span className="text-sm font-bold text-white drop-shadow-md px-2">
-                      RM{Math.round(campaign.current_amount * 0.6).toLocaleString()}
-                    </span>
-                  )}
-                </motion.div>
+                {donationStats && campaign.target_amount > 0 && (
+                  <>
+                    {/* Campaign-specific portion with gradient */}
+                    {donationStats.donations.campaignSpecificTotal > 0 && (
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(donationStats.donations.campaignSpecificTotal / campaign.target_amount) * 100}%` }}
+                        transition={{ duration: 1, ease: "easeOut" }}
+                        className="h-full rounded-l-lg bg-gradient-to-r from-green-600 to-green-400 shadow-lg flex items-center justify-center"
+                        style={{
+                          width: `${(donationStats.donations.campaignSpecificTotal / campaign.target_amount) * 100}%`,
+                          maxWidth: "100%"
+                        }}
+                      >
+                        {((donationStats.donations.campaignSpecificTotal / campaign.target_amount) * 100) > 10 && (
+                          <span className="text-sm font-bold text-white drop-shadow-md px-2">
+                            RM{Math.round(donationStats.donations.campaignSpecificTotal).toLocaleString()}
+                          </span>
+                        )}
+                      </motion.div>
+                    )}
 
-                {/* Always-donate portion with gradient */}
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progress * 0.4}%` }}
-                  transition={{ duration: 1, ease: "easeOut", delay: 0.3 }}
-                  className={`h-full ${progress * 0.6 > 0 ? "" : "rounded-l-lg"} rounded-r-lg bg-gradient-to-r from-blue-500 to-indigo-500 shadow-lg flex items-center justify-center`}
-                  style={{
-                    width: `${progress * 0.4}%`,
-                    maxWidth: `${100 - (progress * 0.6)}%`
-                  }}
-                >
-                  {progress * 0.4 > 15 && (
-                    <span className="text-sm font-bold text-white drop-shadow-md px-2">
-                      RM{Math.round(campaign.current_amount * 0.4).toLocaleString()}
-                    </span>
-                  )}
-                </motion.div>
+                    {/* Always-donate portion with gradient */}
+                    {donationStats.donations.alwaysDonateTotal > 0 && (
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(donationStats.donations.alwaysDonateTotal / campaign.target_amount) * 100}%` }}
+                        transition={{ duration: 1, ease: "easeOut", delay: 0.3 }}
+                        className={`h-full ${donationStats.donations.campaignSpecificTotal > 0 ? "" : "rounded-l-lg"} rounded-r-lg bg-gradient-to-r from-blue-500 to-indigo-500 shadow-lg flex items-center justify-center`}
+                        style={{
+                          width: `${(donationStats.donations.alwaysDonateTotal / campaign.target_amount) * 100}%`,
+                          maxWidth: `${100 - ((donationStats.donations.campaignSpecificTotal / campaign.target_amount) * 100)}%`
+                        }}
+                      >
+                        {((donationStats.donations.alwaysDonateTotal / campaign.target_amount) * 100) > 10 && (
+                          <span className="text-sm font-bold text-white drop-shadow-md px-2">
+                            RM{Math.round(donationStats.donations.alwaysDonateTotal).toLocaleString()}
+                          </span>
+                        )}
+                      </motion.div>
+                    )}
+                  </>
+                )}
+                {/* Fallback or loading state for progress bar if needed */}
+                {!donationStats && (
+                  <div className="h-full w-full bg-gray-300 rounded-lg animate-pulse"></div>
+                )}
 
                 {/* Subtle grid overlay for texture */}
                 <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTAgMCBMIDEwIDEwIE0gMTAgMCBMIDAgMTAiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxIiBmaWxsPSJub25lIiAvPjwvc3ZnPg==')]"></div>
