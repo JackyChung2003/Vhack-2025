@@ -1056,6 +1056,77 @@ export const charityService = {
     }
   },
   
+  // Get total funds for a charity including campaign funds and general fund
+  getTotalFunds: async (): Promise<{ 
+    totalFunds: number, 
+    generalFundBalance: number, 
+    campaignFundsRaised: number 
+  }> => {
+    try {
+      // Get current authenticated user 
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) throw authError;
+      if (!user) throw new Error('User not authenticated');
+
+      // Get the charity ID
+      const { data: userData, error: profileError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', user.id)
+        .eq('role', 'charity')
+        .single();
+
+      if (profileError || !userData) {
+        throw new Error('Charity profile not found');
+      }
+      
+      // Get general fund donations (where campaign_id is null)
+      const { data: generalDonations, error: generalError } = await supabase
+        .from('campaign_donations')
+        .select('amount')
+        .eq('charity_id', userData.id)
+        .is('campaign_id', null);
+      
+      if (generalError) throw generalError;
+      
+      // Calculate general fund total
+      const generalFundBalance = generalDonations?.reduce((sum, donation) => 
+        sum + (donation.amount || 0), 0) || 0;
+      
+      // Get campaigns to calculate their current amounts
+      const { data: campaignsData, error: campaignsError } = await supabase
+        .from('campaigns')
+        .select('id, current_amount')
+        .eq('charity_id', userData.id);
+        
+      if (campaignsError) throw campaignsError;
+      
+      // Calculate campaign funds total from campaigns' current_amount
+      const campaignFundsRaised = campaignsData?.reduce((sum, campaign) => 
+        sum + (campaign.current_amount || 0), 0) ||
+        0;
+      
+      // Total funds is the sum of general fund and campaign funds
+      const totalFunds = generalFundBalance + campaignFundsRaised;
+      
+      console.log('Fund data fetched from database:', {
+        generalFundBalance,
+        campaignFundsRaised,
+        totalFunds
+      });
+      
+      return {
+        totalFunds,
+        generalFundBalance,
+        campaignFundsRaised
+      };
+    } catch (error) {
+      console.error('Error fetching total funds:', error);
+      throw error;
+    }
+  },
+  
   // Get campaign donation statistics including leaderboard
   getCampaignDonationStats: async (campaignId: string): Promise<{
     donations: {
