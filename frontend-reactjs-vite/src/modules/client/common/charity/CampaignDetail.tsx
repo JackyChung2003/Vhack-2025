@@ -707,7 +707,7 @@ const CampaignDetail: React.FC = () => {
                         }`}
                     >
                       <FaExchangeAlt />
-                      Transactions
+                      Timeline
                     </button>
                     <button
                       onClick={() => handleTabChange('community')}
