@@ -136,6 +136,7 @@ export function App() {
 							<Route path="/charity-management" element={<CharityManagementPage />} />
 							<Route path="/charity/open-market" element={<CharityOpenMarket />} />
 							<Route path="/campaign/:id/transactions" element={<CampaignTransactions />} />
+							<Route path="/general-fund/transactions" element={<CampaignTransactions />} />
 						</Route>
 
 						{/* Vendor-Specific Routes */}

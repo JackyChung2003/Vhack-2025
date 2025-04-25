@@ -1713,6 +1713,89 @@ export const charityService = {
     }
   },
   
+  // Get general fund allocation
+  getGeneralFundAllocation: async (): Promise<{
+    available: number;
+    onHold: number;
+    used: number;
+    total: number;
+  }> => {
+    try {
+      // Get current authenticated user
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) throw authError;
+      if (!user) throw new Error('User not authenticated');
+
+      // Get the charity ID
+      const { data: userData, error: profileError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', user.id)
+        .eq('role', 'charity')
+        .single();
+
+      if (profileError || !userData) {
+        throw new Error('Charity profile not found');
+      }
+      
+      // Get general fund donations (where campaign_id is null)
+      const { data: generalDonations, error: generalError } = await supabase
+        .from('campaign_donations')
+        .select('amount')
+        .eq('charity_id', userData.id)
+        .is('campaign_id', null);
+      
+      if (generalError) throw generalError;
+      
+      // Calculate general fund total
+      const total = generalDonations?.reduce((sum, donation) => 
+        sum + (donation.amount || 0), 0) || 0;
+      
+      // Get general fund expenses (where campaign_id is null)
+      // On Hold includes pending, shipping, and delivered statuses
+      const { data: onHoldExpenses, error: onHoldError } = await supabase
+        .from('campaign_expenses')
+        .select('amount')
+        .eq('charity_id', userData.id)
+        .is('campaign_id', null)
+        .in('status', ['pending', 'shipping', 'delivered']);
+      
+      if (onHoldError) throw onHoldError;
+      
+      // Calculate on hold total
+      const onHold = onHoldExpenses?.reduce((sum, expense) => 
+        sum + (expense.amount || 0), 0) || 0;
+      
+      // Get used expenses (completed status)
+      const { data: usedExpenses, error: usedError } = await supabase
+        .from('campaign_expenses')
+        .select('amount')
+        .eq('charity_id', userData.id)
+        .is('campaign_id', null)
+        .eq('status', 'completed');
+      
+      if (usedError) throw usedError;
+      
+      // Calculate used total
+      const used = usedExpenses?.reduce((sum, expense) => 
+        sum + (expense.amount || 0), 0) || 0;
+      
+      // Calculate available funds
+      const available = Math.max(0, total - onHold - used);
+      
+      return {
+        available,
+        onHold,
+        used,
+        total
+      };
+    } catch (error) {
+      console.error('Error fetching general fund allocation:', error);
+      throw error;
+    }
+  },
+  
   // Get transactions for charity (from campaign_expenses)
   getCharityTransactions: async (): Promise<Array<{
     id: string;

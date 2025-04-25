@@ -78,7 +78,12 @@ const CharityManagementPage: React.FC = () => {
   });
   
   // Add state for detailed campaign fund allocation
-  const [campaignFundDetails, setCampaignFundDetails] = useState<Record<string, { available: number; onHold: number; used: number; }>>({});
+  const [campaignFundDetails, setCampaignFundDetails] = useState<Record<string, { 
+    availableCampaignSpecific: number; 
+    availableAlwaysDonate: number; 
+    onHold: number; 
+    used: number; 
+  }>>({});
   const [detailsLoading, setDetailsLoading] = useState(false);
 
   // Add state for campaign fund allocation
@@ -88,6 +93,13 @@ const CharityManagementPage: React.FC = () => {
     amount: number;
     percentage: number;
   }[]>([]);
+  
+  const [generalFundAllocation, setGeneralFundAllocation] = useState({
+    available: 0,
+    onHold: 0,
+    used: 0,
+    total: 0
+  });
   
   // Fetch charity profile data from database
   useEffect(() => {
@@ -100,6 +112,10 @@ const CharityManagementPage: React.FC = () => {
         // Fetch funds data
         const fundsData = await charityService.getTotalFunds();
         setFundData(fundsData);
+        
+        // Fetch general fund allocation data
+        const generalAllocation = await charityService.getGeneralFundAllocation();
+        setGeneralFundAllocation(generalAllocation);
       } catch (error) {
         console.error("Error fetching charity profile:", error);
         toast.error("Failed to fetch charity profile data");
@@ -135,20 +151,26 @@ const CharityManagementPage: React.FC = () => {
         setIsLoading(false); // Campaigns list is loaded
 
         // Fetch fund details for each campaign
-        const detailsMap: Record<string, { available: number; onHold: number; used: number; }> = {};
+        const detailsMap: Record<string, { 
+          availableCampaignSpecific: number; 
+          availableAlwaysDonate: number; 
+          onHold: number; 
+          used: number; 
+        }> = {};
         await Promise.all(formattedCampaigns.map(async (campaign) => {
           try {
             const { fundAllocation } = await charityService.getCampaignTransactions(campaign.id.toString());
-            const totalAvailable = fundAllocation.availableCampaignSpecific + fundAllocation.availableAlwaysDonate;
+            // Store the detailed breakdown
             detailsMap[campaign.id] = {
-              available: totalAvailable, 
+              availableCampaignSpecific: fundAllocation.availableCampaignSpecific, 
+              availableAlwaysDonate: fundAllocation.availableAlwaysDonate,
               onHold: fundAllocation.onHold,
               used: fundAllocation.used
             };
           } catch (detailsError) {
             console.error(`Error fetching fund details for campaign ${campaign.id}:`, detailsError);
             // Set default/error state for this campaign's details
-            detailsMap[campaign.id] = { available: 0, onHold: 0, used: 0 };
+            detailsMap[campaign.id] = { availableCampaignSpecific: 0, availableAlwaysDonate: 0, onHold: 0, used: 0 };
           }
         }));
         setCampaignFundDetails(detailsMap);
@@ -306,6 +328,13 @@ const CharityManagementPage: React.FC = () => {
     // Scroll to top of the page
     window.scrollTo({ top: 0, behavior: 'smooth' });
     navigate(`/campaign/${campaignId}/transactions`);
+  };
+  
+  // Handle viewing general fund transactions
+  const handleViewGeneralFundTransactions = () => {
+    // Scroll to top of the page
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    navigate(`/general-fund/transactions`);
   };
 
   return (
@@ -719,6 +748,157 @@ const CharityManagementPage: React.FC = () => {
                   </div>
                 </div>
                 
+                {/* General Fund Details */}
+                <div className="p-4 border-b border-[var(--stroke)]">
+                  <h3 className="text-lg font-medium text-[var(--headline)] mb-4">General Fund Details</h3>
+                  <div className="space-y-6">
+                    <div 
+                      className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer transform hover:-translate-y-1 active:translate-y-0"
+                      onClick={handleViewGeneralFundTransactions}
+                    >
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                          <FaMoneyBillWave className="text-blue-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-[var(--headline)]">General Fund</h4>
+                        </div>
+                        <div className="ml-auto text-right">
+                          <p className="font-bold text-[var(--headline)]">
+                            RM{generalFundAllocation.total.toLocaleString()}
+                          </p>
+                          <p className="text-sm text-[var(--paragraph)]">
+                            Total Balance
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {/* Fund Allocation Donut Chart */}
+                      <div className="flex flex-col md:flex-row items-center justify-center gap-8 mt-4 mb-4">
+                        {/* Donut Chart */}
+                        <div className="relative w-40 h-40">
+                          {(() => {
+                            // Calculate the circumference of the circle
+                            const radius = 40;
+                            const circumference = 2 * Math.PI * radius;
+                            
+                            // Calculate percentages
+                            const total = generalFundAllocation.total || 1; // Avoid division by zero
+                            const availablePercentage = (generalFundAllocation.available / total) * 100;
+                            const onHoldPercentage = (generalFundAllocation.onHold / total) * 100;
+                            const usedPercentage = (generalFundAllocation.used / total) * 100;
+                            
+                            // Calculate stroke-dasharray values
+                            const availableDash = `${(availablePercentage / 100) * circumference} ${circumference}`;
+                            const onHoldDash = `${(onHoldPercentage / 100) * circumference} ${circumference}`;
+                            const usedDash = `${(usedPercentage / 100) * circumference} ${circumference}`;
+                            
+                            // Calculate stroke-dashoffset values
+                            const usedOffset = "0";
+                            const onHoldOffset = `${-(usedPercentage / 100) * circumference}`;
+                            const availableOffset = `${-((usedPercentage + onHoldPercentage) / 100) * circumference}`;
+                            
+                            return (
+                              <svg viewBox="0 0 100 100" className="transform -rotate-90 w-full h-full">
+                                {/* Base circle (Background - Gray) */}
+                                <circle
+                                  cx="50"
+                                  cy="50"
+                                  r="40"
+                                  fill="none"
+                                  stroke="#E5E7EB"
+                                  strokeWidth="16"
+                                />
+                                
+                                {/* Used Funds (Red) */}
+                                <circle
+                                  cx="50"
+                                  cy="50"
+                                  r="40"
+                                  fill="none"
+                                  stroke="#EF4444"
+                                  strokeWidth="16"
+                                  strokeDasharray={usedDash}
+                                  strokeDashoffset={usedOffset}
+                                />
+                                
+                                {/* On Hold (Yellow) */}
+                                <circle
+                                  cx="50"
+                                  cy="50"
+                                  r="40"
+                                  fill="none"
+                                  stroke="#FBBF24"
+                                  strokeWidth="16"
+                                  strokeDasharray={onHoldDash}
+                                  strokeDashoffset={onHoldOffset}
+                                />
+                                
+                                {/* Available Funds (Green) */}
+                                <circle
+                                  cx="50"
+                                  cy="50"
+                                  r="40"
+                                  fill="none"
+                                  stroke="#10B981"
+                                  strokeWidth="16"
+                                  strokeDasharray={availableDash}
+                                  strokeDashoffset={availableOffset}
+                                />
+                              </svg>
+                            );
+                          })()}
+                          <div className="absolute inset-0 flex flex-col items-center justify-center">
+                            <span className="text-lg font-bold text-[var(--headline)]">
+                              RM{generalFundAllocation.total.toLocaleString()}
+                            </span>
+                            <span className="text-xs text-[var(--paragraph)]">
+                              Total Funds
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Legend */}
+                        <div className="flex flex-col gap-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-3 h-3 rounded-full bg-[#10B981]"></div>
+                            <div>
+                              <p className="font-medium text-[var(--headline)]">Available Fund</p>
+                              <p className="text-sm text-[var(--paragraph)]">
+                                RM{generalFundAllocation.available.toLocaleString()} 
+                                ({generalFundAllocation.total > 0 ? 
+                                  ((generalFundAllocation.available / generalFundAllocation.total) * 100).toFixed(1) : 0}%)
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-3 h-3 rounded bg-[#FBBF24]"></div>
+                            <div>
+                              <p className="font-medium text-[var(--headline)]">On Hold</p>
+                              <p className="text-sm text-[var(--paragraph)]">
+                                RM{generalFundAllocation.onHold.toLocaleString()} 
+                                ({generalFundAllocation.total > 0 ? 
+                                  ((generalFundAllocation.onHold / generalFundAllocation.total) * 100).toFixed(1) : 0}%)
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-3 h-3 rounded-full bg-[#EF4444]"></div>
+                            <div>
+                              <p className="font-medium text-[var(--headline)]">Used Funds</p>
+                              <p className="text-sm text-[var(--paragraph)]">
+                                RM{generalFundAllocation.used.toLocaleString()} 
+                                ({generalFundAllocation.total > 0 ? 
+                                  ((generalFundAllocation.used / generalFundAllocation.total) * 100).toFixed(1) : 0}%)
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
                 {/* Campaign Fund Details */}
                 <div className="p-4">
                   <h3 className="text-lg font-medium text-[var(--headline)] mb-4">Campaign Fund Details</h3>
@@ -730,17 +910,23 @@ const CharityManagementPage: React.FC = () => {
                         .filter(campaign => new Date(campaign.deadline) > new Date()) // Keep filtering active campaigns if desired
                         .map((campaign) => {
                           // Get actual fund details for this campaign
-                          const details = campaignFundDetails[campaign.id] || { available: 0, onHold: 0, used: 0 };
-                          const { available, onHold, used } = details;
-                          const totalAllocated = available + onHold + used;
+                          const details = campaignFundDetails[campaign.id] || { availableCampaignSpecific: 0, availableAlwaysDonate: 0, onHold: 0, used: 0 };
+                          const { availableCampaignSpecific, availableAlwaysDonate, onHold, used } = details;
+                          const totalAvailable = availableCampaignSpecific + availableAlwaysDonate; // Keep total available for reference if needed
+                          const totalAllocated = totalAvailable + onHold + used; // Correct total allocated
                           const remainingTarget = Math.max(0, campaign.goal - campaign.currentContributions);
                           const goal = campaign.goal > 0 ? campaign.goal : 1; // Avoid division by zero
 
                           // Calculate percentages based on the campaign GOAL
-                          const availablePercentage = (available / goal * 100);
+                          const availableCampaignSpecificPercentage = (availableCampaignSpecific / goal * 100);
+                          const availableAlwaysDonatePercentage = (availableAlwaysDonate / goal * 100);
                           const onHoldPercentage = (onHold / goal * 100);
                           const usedPercentage = (used / goal * 100);
-                          const remainingPercentage = Math.max(0, 100 - availablePercentage - onHoldPercentage - usedPercentage);
+                          // Recalculate remaining based on all segments
+                          const remainingPercentage = Math.max(0, 100 - availableCampaignSpecificPercentage - availableAlwaysDonatePercentage - onHoldPercentage - usedPercentage);
+
+                          // Prepare title for the progress bar
+                          const progressBarTitle = `Available (Specific): ${availableCampaignSpecificPercentage.toFixed(1)}%, Available (Always): ${availableAlwaysDonatePercentage.toFixed(1)}%, On Hold: ${onHoldPercentage.toFixed(1)}%, Used: ${usedPercentage.toFixed(1)}%, Remaining Goal: ${remainingPercentage.toFixed(1)}%`;
 
                           return (
                             <div 
@@ -769,15 +955,25 @@ const CharityManagementPage: React.FC = () => {
                                 </div>
                               </div>
                       
-                              {/* Fund Status Bar - Updated with actual percentages */}
-                              <div className="h-4 bg-gray-200 rounded-full overflow-hidden flex" title={`Available: ${availablePercentage.toFixed(1)}%, On Hold: ${onHoldPercentage.toFixed(1)}%, Used: ${usedPercentage.toFixed(1)}%, Remaining Goal: ${remainingPercentage.toFixed(1)}%`}>
+                              {/* Fund Status Bar - Updated with actual percentages and color breakdown */}
+                              <div className="h-4 bg-gray-200 rounded-full overflow-hidden flex" title={progressBarTitle}>
+                                {/* Available - Campaign Specific (Green) */}
                                 <div 
-                                  className="h-full bg-green-500 transition-all duration-300 flex items-center justify-center text-white text-xs font-bold"
-                                  style={{ width: `${availablePercentage}%` }}
-                                  title={`Available: RM${available.toLocaleString()}`}
+                                  className="h-full bg-[#10B981] transition-all duration-300 flex items-center justify-center text-white text-xs font-bold"
+                                  style={{ width: `${availableCampaignSpecificPercentage}%` }}
+                                  title={`Available (Campaign Specific): RM${availableCampaignSpecific.toLocaleString()}`}
                                 >
-                                  {availablePercentage > 10 ? `${availablePercentage.toFixed(0)}%` : ''}
+                                  {availableCampaignSpecificPercentage > 10 ? `${availableCampaignSpecificPercentage.toFixed(0)}%` : ''}
                                 </div>
+                                {/* Available - Always Donate (Light Blue) */}
+                                <div 
+                                  className="h-full bg-[#60A5FA] transition-all duration-300 flex items-center justify-center text-white text-xs font-bold"
+                                  style={{ width: `${availableAlwaysDonatePercentage}%` }}
+                                  title={`Available (Always Donate): RM${availableAlwaysDonate.toLocaleString()}`}
+                                >
+                                  {availableAlwaysDonatePercentage > 10 ? `${availableAlwaysDonatePercentage.toFixed(0)}%` : ''}
+                                </div>
+                                {/* On Hold (Yellow) */}
                                 <div 
                                   className="h-full bg-yellow-400 transition-all duration-300 flex items-center justify-center text-black text-xs font-bold"
                                   style={{ width: `${onHoldPercentage}%` }}
@@ -785,6 +981,7 @@ const CharityManagementPage: React.FC = () => {
                                 >
                                  {onHoldPercentage > 10 ? `${onHoldPercentage.toFixed(0)}%` : ''}
                                 </div>
+                                {/* Used (Red) */}
                                 <div 
                                   className="h-full bg-red-500 transition-all duration-300 flex items-center justify-center text-white text-xs font-bold"
                                   style={{ width: `${usedPercentage}%` }}
@@ -800,19 +997,19 @@ const CharityManagementPage: React.FC = () => {
                                 />
                               </div>
                     
-                              {/* Fund Status Legend - Updated with actual amounts */}
+                              {/* Fund Status Legend - Updated with actual amounts and breakdown */}
                               <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
                                 <div className="flex items-center gap-2">
-                                  <div className="w-3 h-3 bg-green-500 rounded-full" />
-                                  <span>Available: RM{available.toLocaleString()}</span>
+                                  <div className="w-3 h-3 bg-[#10B981] rounded-full" />
+                                  <span>Available (Campaign Specific): RM{availableCampaignSpecific.toLocaleString()}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-3 h-3 bg-[#60A5FA] rounded-full" />
+                                  <span>Available (Always): RM{availableAlwaysDonate.toLocaleString()}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <div className="w-3 h-3 bg-yellow-400 rounded-sm" />
                                   <span>On Hold: RM{onHold.toLocaleString()}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <div className="w-3 h-3 bg-red-500 rounded-full" />
-                                  <span>Used: RM{used.toLocaleString()}</span>
                                 </div>
                                 {remainingTarget > 0 && (
                                   <div className="flex items-center gap-2 text-gray-500">
