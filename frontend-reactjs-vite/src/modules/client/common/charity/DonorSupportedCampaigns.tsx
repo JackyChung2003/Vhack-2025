@@ -49,6 +49,7 @@ const DonorSupportedCampaigns: React.FC = () => {
                   currentContributions={campaign.current_amount}
                   deadline={campaign.deadline}
                   category={campaign.category}
+                  organizationName={campaign.charity?.name}
                 />
               </div>
               <div className="absolute top-0 right-0 bg-[var(--highlight)] text-white px-3 py-1 rounded-bl-lg rounded-tr-lg text-sm font-medium z-10">

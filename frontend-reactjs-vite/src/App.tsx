@@ -37,6 +37,7 @@ import VendorOpenMarket from "./modules/client/vendor/OpenMarket/OpenMarket";
 import CampaignTransactions from './modules/client/charity/management/CampaignTransactions';
 import AllCampaigns from "./modules/client/donor/AllCampaigns";
 import RecurringDonations from "./modules/client/common/charity/AutoDonation";
+import LandingPage from "./modules/client/common/Dashboard";
 
 export function App() {
 	const { user, loading: authLoading } = useAuth();
@@ -100,7 +101,7 @@ export function App() {
 			<Routes>
 				{(!isConnected || !roleChecked) ? (
 					<>
-						<Route path="/Vhack-2025" element={<DonorHomePage />} />
+						<Route path="/Vhack-2025" element={<LandingPage />} />
 						<Route path="/login" element={<LoginPage />} />
 						<Route path="/register" element={<RegisterPage />} />
 						<Route path="*" element={<Navigate to="/Vhack-2025" replace />} />

@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { FaCalendarAlt, FaMoneyBillWave, FaTag } from "react-icons/fa";
+import { FaCalendarAlt, FaMoneyBillWave, FaTag, FaBuilding } from "react-icons/fa";
 
 interface CampaignCardProps {
   id: string | number;
@@ -10,9 +10,10 @@ interface CampaignCardProps {
   currentContributions: number;
   deadline: string;
   category?: string;
+  organizationName?: string;
 }
 
-const CampaignCard: React.FC<CampaignCardProps> = ({ id, name, description, goal, currentContributions, deadline, category }) => {
+const CampaignCard: React.FC<CampaignCardProps> = ({ id, name, description, goal, currentContributions, deadline, category, organizationName }) => {
   const navigate = useNavigate();
   const progress = (currentContributions / goal) * 100;
   const timeLeft = Math.max(0, Math.floor((new Date(deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
@@ -31,6 +32,12 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ id, name, description, goal
       <div className="absolute top-0 right-0 w-20 h-20 bg-[var(--highlight)] opacity-20 rounded-bl-full"></div>
       
       <h2 className="text-xl font-bold text-[var(--headline)] mb-3 pr-16 line-clamp-1 h-7">{name}</h2>
+      {organizationName && (
+        <div className="flex items-center gap-1 text-sm text-[var(--paragraph)] mb-2">
+          <FaBuilding className="text-[var(--tertiary)]" />
+          <span>By {organizationName}</span>
+        </div>
+      )}
       <p className="mb-5 text-[var(--paragraph)] line-clamp-2 min-h-[40px]">{description}</p>
       
       <div className="flex-grow">

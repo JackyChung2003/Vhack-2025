@@ -481,6 +481,7 @@ const CharityPage: React.FC = () => {
                             currentContributions={campaign.current_amount}
                             deadline={campaign.deadline || defaultDeadline.toISOString()}
                             category={campaign.category}
+                            organizationName={campaign.charity?.name}
                           />
                         </div>
                       );
@@ -534,6 +535,12 @@ const CharityPage: React.FC = () => {
                               <h3 className="text-xl font-bold text-[#003d20] mt-1">
                                 {campaign.title}
                               </h3>
+                              {campaign.charity?.name && (
+                                <div className="flex items-center gap-1 text-sm text-gray-600 mt-1">
+                                  <FaBuilding className="text-gray-500" size={12} />
+                                  <span>By {campaign.charity.name}</span>
+                                </div>
+                              )}
                               <p className="text-gray-600 mt-2 line-clamp-2">
                                 {campaign.description}
                               </p>

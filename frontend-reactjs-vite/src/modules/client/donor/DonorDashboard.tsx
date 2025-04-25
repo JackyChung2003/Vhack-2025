@@ -300,7 +300,7 @@ const DonorDashboard: React.FC = () => {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-[var(--headline)]">Active Campaigns</h2>
           <button
-            onClick={() => navigate('/donor/all-campaigns')}
+            onClick={() => navigate('/charity')}
             className="text-[var(--highlight)] hover:underline flex items-center gap-1 text-sm font-medium bg-transparent border-none cursor-pointer"
           >
             View all campaigns <FaArrowRight size={12} />
@@ -404,6 +404,21 @@ const DonorDashboard: React.FC = () => {
                         className="bg-[var(--highlight)] h-2 rounded-full"
                         style={{ width: `${((campaign.current_amount || 0) / (campaign.target_amount || 1)) * 100}%` }}
                       ></div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between text-sm mt-4">
+                    <div>
+                      <span className="text-[var(--paragraph)]">Raised</span>
+                      <p className="font-semibold text-[var(--headline)]">RM{(campaign.current_amount || 0).toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <span className="text-[var(--paragraph)]">Goal</span>
+                      <p className="font-semibold text-[var(--headline)]">RM{(campaign.target_amount || 0).toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <span className="text-[var(--paragraph)]">Days Left</span>
+                      <p className="font-semibold text-[var(--headline)]">{getDaysLeft(campaign.deadline)}</p>
                     </div>
                   </div>
                 </div>

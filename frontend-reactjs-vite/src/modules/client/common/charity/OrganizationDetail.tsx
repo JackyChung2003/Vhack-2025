@@ -1070,6 +1070,7 @@ const OrganizationDetail: React.FC = () => {
                         currentContributions={campaign.current_amount}
                         deadline={campaign.deadline || defaultDeadline.toISOString()}
                         category={campaign.category}
+                        organizationName={orgData.name}
                       />
                     </div>
                   );
@@ -1106,6 +1107,7 @@ const OrganizationDetail: React.FC = () => {
                         currentContributions={campaign.current_amount}
                         deadline={campaign.deadline || defaultDeadline.toISOString()}
                         category={campaign.category}
+                        organizationName={orgData.name}
                       />
                     </div>
                   );
