@@ -35,7 +35,7 @@ const QuotationCard: React.FC<QuotationCardProps> = ({
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'MYR',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     }).format(price);

@@ -682,6 +682,15 @@ const CampaignTransactions: React.FC = () => {
                         Verify <FaExternalLinkAlt className="text-xs" />
                       </a>
                     )}
+                    {/* Link to a dummy page if no hash or not a donation */}
+                    {!(transaction.transactionHash && transaction.type === 'Donation') && (
+                      <a
+                        href="/#" // Link to a dummy/placeholder route
+                        className="text-xs flex items-center justify-end gap-1 text-gray-500 hover:text-gray-700 hover:underline mt-1 " // Style as a less prominent link, cursor indicates help/info
+                      >
+                        Verify <FaExternalLinkAlt className="text-xs" />
+                      </a>
+                    )}
                   </div>
                 </div>
               </div>
