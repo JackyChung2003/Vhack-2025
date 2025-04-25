@@ -1,6 +1,7 @@
 import supabase from './supabaseClient';
 import blockchainService from '../blockchain/blockchainService';
 
+
 // Types based on your Supabase schema
 export interface Campaign {
   id: string;
@@ -1071,7 +1072,7 @@ export const charityService = {
       throw error;
     }
   },
-  
+
   // Get total funds for a charity including campaign funds and general fund
   getTotalFunds: async (): Promise<{ 
     totalFunds: number, 
@@ -2021,4 +2022,5 @@ export const charityService = {
       throw error;
     }
   }
+
 }; 
