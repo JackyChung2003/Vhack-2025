@@ -46,7 +46,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
   const [ethicalInvestment, setEthicalInvestment] = useState<boolean>(false);
 
   // Define predefined amounts here so we can reference the first one as default
-  const predefinedAmounts = [10, 25, 50, 100, 250];
+  const predefinedAmounts = [10, 50, 100, 250, 500];
 
   // Set first predefined amount as default
   const [amount, setAmount] = useState<number | ''>(predefinedAmounts[0]);

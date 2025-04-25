@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   FaArrowLeft, FaHandHoldingHeart, FaBuilding, FaUsers, FaHistory, FaChartLine,
-  FaGlobe, FaEnvelope, FaPhone, FaMapMarkerAlt, FaCalendarAlt, FaComments, FaClock, FaPencilAlt, FaTimes, FaPlus, FaFacebook, FaTwitter, FaInstagram, FaCoins, FaChevronLeft, FaGift, FaTrophy, FaExternalLinkAlt, FaDownload, FaHandHoldingUsd
+  FaGlobe, FaEnvelope, FaPhone, FaMapMarkerAlt, FaCalendarAlt, FaComments, FaClock, FaPencilAlt, FaTimes, FaPlus, FaFacebook, FaTwitter, FaInstagram, FaCoins, FaChevronLeft, FaGift, FaTrophy, FaExternalLinkAlt, FaDownload, FaHandHoldingUsd, FaReceipt, FaArrowRight, FaMedal, FaHeart, FaCheckCircle, FaComment, FaThumbtack
 } from "react-icons/fa";
 import { motion } from "framer-motion";
 import CampaignCard from "../../../../components/cards/CampaignCard";
@@ -22,6 +22,29 @@ import { DonationTracker } from "../../../../utils/mockData";
 import { getTransactionExplorerUrl } from "../../../../services/blockchain/blockchainService";
 import supabase from "../../../../services/supabase/supabaseClient";
 import SimpleDonationVerifier from "../../../../components/donation/SimpleDonationVerifier";
+
+// Add these mock data interfaces
+interface CommunityMember {
+  id: number;
+  name: string;
+  avatar?: string;
+  joinDate: string;
+  donationsCount: number;
+  badges: string[];
+  isVerified: boolean;
+}
+
+interface CommunityPost {
+  id: number;
+  authorId: number;
+  authorName: string;
+  authorAvatar?: string;
+  content: string;
+  date: string;
+  likes: number;
+  comments: number;
+  isPinned?: boolean;
+}
 
 const OrganizationDetail: React.FC = () => {
   const { id: organizationIdString } = useParams();
@@ -56,6 +79,7 @@ const OrganizationDetail: React.FC = () => {
   const [organizationLoading, setOrganizationLoading] = useState(false);
   const [organizationError, setOrganizationError] = useState<string | null>(null);
   const [organizationCampaigns, setOrganizationCampaigns] = useState<any[]>([]);
+  const [hasContributedToGeneralFund, setHasContributedToGeneralFund] = useState(false);
 
   // For timeline data
   const [goalAmount, setGoalAmount] = useState<number>(100000); // Default goal amount for organization
@@ -66,6 +90,22 @@ const OrganizationDetail: React.FC = () => {
   const [blockchainTransactions, setBlockchainTransactions] = useState<any[]>([]);
   const [transactionsLoading, setTransactionsLoading] = useState(false);
   const [transactionsError, setTransactionsError] = useState<string | null>(null);
+
+  // Add community mock data states
+  const [communityStats, setCommunityStats] = useState({
+    membersCount: 0,
+    postsCount: 0,
+    activeMembers: 0,
+    recentActivities: 0
+  });
+  
+  const [communityMembers, setCommunityMembers] = useState<CommunityMember[]>([]);
+  const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>([]);
+  const [isLoadingCommunity, setIsLoadingCommunity] = useState(false);
+
+  // Add state for new post input
+  const [newPostContent, setNewPostContent] = useState("");
+  const [isPostingContent, setIsPostingContent] = useState(false);
 
   // Determine if we're viewing as charity's own profile
   const isOwnProfile = userRole === 'charity' && !organizationIdString;
@@ -238,11 +278,42 @@ const OrganizationDetail: React.FC = () => {
   // Unconditional donor effect hook
   useEffect(() => {
     if (userRole === 'donor' && !isOwnProfile && organizationIdString) {
-      const hasContributed = mockDonorContributions.supportedCampaigns.some(
+      // Check for campaign contributions
+      const hasCampaignContributions = mockDonorContributions.supportedCampaigns.some(
         contribution => organizationCampaigns.some(
           campaign => campaign.charity_id === organizationIdString && campaign.id === contribution.id
         )
       );
+      
+      // Check for general fund contributions
+      const checkGeneralFundContributions = async () => {
+        try {
+          // Query for donations made by this donor to this organization's general fund
+          const { data: generalDonations, error } = await supabase
+            .from('campaign_donations')
+            .select('*')
+            .eq('charity_id', organizationIdString)
+            .is('campaign_id', null);
+            
+          if (error) {
+            console.error("Error checking general fund contributions:", error);
+            return;
+          }
+          
+          // If there are any donations to the general fund, mark as contributed
+          const hasGeneralFundDonations = (generalDonations && generalDonations.length > 0);
+          setHasContributedToGeneralFund(hasGeneralFundDonations);
+          
+          console.log("General fund contribution check:", {
+            hasGeneralFundDonations,
+            donationsCount: generalDonations?.length || 0
+          });
+        } catch (err) {
+          console.error("Error checking general fund contributions:", err);
+        }
+      };
+      
+      checkGeneralFundContributions();
     }
   }, [organizationIdString, userRole, isOwnProfile, organizationCampaigns]);
 
@@ -481,24 +552,34 @@ const OrganizationDetail: React.FC = () => {
 
   // Update the fetchOrganizationTransactions function with the correct column name
   const fetchOrganizationTransactions = async () => {
-    if (!organization || !organization.id) return;
+    if (!organization?.id) return;
     
     try {
       setTransactionsLoading(true);
       setTransactionsError(null);
       
+      console.log("Fetching transactions for organization ID:", organization.id);
+      
       // Get all donations to this charity (both general and campaign-specific) from campaign_donations table
       const { data: allDonations, error: donationsError } = await supabase
         .from('campaign_donations')
-        .select('id, amount, created_at, user_id, is_anonymous, transaction_hash, donation_policy, message, status, campaign_id')
+        .select('*')
         .eq('charity_id', organization.id)
         .order('created_at', { ascending: false });
         
-      if (donationsError) throw donationsError;
+      if (donationsError) {
+        console.error("Error fetching donations:", donationsError);
+        throw donationsError;
+      }
+      
+      console.log("All donations fetched:", allDonations?.length || 0, allDonations);
       
       // Separate general donations (where campaign_id is null) from campaign donations
-      const generalDonations = allDonations.filter(donation => donation.campaign_id === null);
-      const campaignDonations = allDonations.filter(donation => donation.campaign_id !== null);
+      const generalDonations = allDonations?.filter(donation => donation.campaign_id === null) || [];
+      const campaignDonations = allDonations?.filter(donation => donation.campaign_id !== null) || [];
+      
+      console.log("General donations count:", generalDonations.length);
+      console.log("Campaign donations count:", campaignDonations.length);
       
       // Update filters to use is_anonymous
       const userIds = [
@@ -542,31 +623,31 @@ const OrganizationDetail: React.FC = () => {
       }
       
       // Format general donations
-      const generalTransactions = (generalDonations || []).map((donation: any) => ({
+      const generalTransactions = generalDonations.map((donation) => ({
         id: `general-${donation.id}`,
         amount: donation.amount,
         date: donation.created_at,
-        donorName: donation.is_anonymous ? null : (userNames[donation.user_id] || 'Unknown Donor'),
+        donorName: donation.is_anonymous ? "Anonymous Donor" : (userNames[donation.user_id] || 'Unknown Donor'),
         donorId: donation.is_anonymous ? null : donation.user_id,
-        transactionHash: donation.transaction_hash,
-        message: donation.message,
+        transactionHash: donation.transaction_hash || "",
+        message: donation.message || "General Fund Donation",
         status: donation.status || 'confirmed',
         donationType: 'general'
       }));
       
       // Format campaign donations
-      const campaignTransactions = (campaignDonations || []).map((donation: any) => {
+      const campaignTransactions = campaignDonations.map((donation) => {
         const campaign = donation.campaign_id ? campaignInfo[donation.campaign_id] : null;
         
         return {
           id: `campaign-${donation.id}`,
           amount: donation.amount,
           date: donation.created_at,
-          donorName: donation.is_anonymous ? null : (userNames[donation.user_id] || 'Unknown Donor'),
+          donorName: donation.is_anonymous ? "Anonymous Donor" : (userNames[donation.user_id] || 'Unknown Donor'),
           donorId: donation.is_anonymous ? null : donation.user_id,
-          transactionHash: donation.transaction_hash,
+          transactionHash: donation.transaction_hash || "",
           donationPolicy: donation.donation_policy,
-          message: donation.message,
+          message: donation.message || `Donation to ${campaign?.title || 'a campaign'}`,
           status: donation.status || 'confirmed',
           donationType: 'campaign',
           campaignName: campaign ? campaign.title : 'Unknown Campaign',
@@ -574,8 +655,11 @@ const OrganizationDetail: React.FC = () => {
         };
       });
       
-      // Combine both types of transactions
-      setBlockchainTransactions([...generalTransactions, ...campaignTransactions]);
+      // Combine both types of transactions and log for debugging
+      const allTransactions = [...generalTransactions, ...campaignTransactions];
+      console.log("Processed transactions:", allTransactions.length, allTransactions);
+      
+      setBlockchainTransactions(allTransactions);
     } catch (err: any) {
       console.error('Error fetching organization transactions:', err);
       setTransactionsError(err.message || 'Failed to load transaction data');
@@ -590,6 +674,461 @@ const OrganizationDetail: React.FC = () => {
       fetchOrganizationTransactions();
     }
   }, [organization]);
+
+  // Add a new effect to fetch transactions when viewing as charity
+  useEffect(() => {
+    if (isOwnProfile && charityProfile) {
+      // Create a fetchCharityOwnTransactions function specifically for charity viewing own profile
+      const fetchCharityOwnTransactions = async () => {
+        try {
+          setTransactionsLoading(true);
+          setTransactionsError(null);
+          
+          console.log("Fetching transactions for charity's own profile, ID:", charityProfile.id);
+          
+          // Get all donations to this charity (both general and campaign-specific) from campaign_donations table
+          const { data: allDonations, error: donationsError } = await supabase
+            .from('campaign_donations')
+            .select('*')
+            .eq('charity_id', charityProfile.id)
+            .order('created_at', { ascending: false });
+            
+          if (donationsError) {
+            console.error("Error fetching charity's own donations:", donationsError);
+            throw donationsError;
+          }
+          
+          console.log("All donations fetched for charity profile:", allDonations?.length || 0, allDonations);
+          
+          // Separate general donations (where campaign_id is null) from campaign donations
+          const generalDonations = allDonations?.filter(donation => donation.campaign_id === null) || [];
+          const campaignDonations = allDonations?.filter(donation => donation.campaign_id !== null) || [];
+          
+          console.log("General donations count:", generalDonations.length);
+          console.log("Campaign donations count:", campaignDonations.length);
+          
+          // Update filters to use is_anonymous
+          const userIds = [
+            ...generalDonations.filter(d => !d.is_anonymous && d.user_id).map(d => d.user_id),
+            ...campaignDonations.filter(d => !d.is_anonymous && d.user_id).map(d => d.user_id)
+          ];
+          
+          // Collect all campaign IDs 
+          const campaignIds = [...new Set(campaignDonations.filter(d => d.campaign_id).map(d => d.campaign_id))];
+          
+          // Fetch user names
+          let userNames: Record<string, string> = {};
+          if (userIds.length > 0) {
+            const { data: userData, error: userError } = await supabase
+              .from('users')
+              .select('id, name')
+              .in('id', userIds);
+              
+            if (!userError && userData) {
+              userNames = userData.reduce((acc: Record<string, string>, user) => {
+                acc[user.id] = user.name;
+                return acc;
+              }, {});
+            }
+          }
+          
+          // Fetch campaign names
+          let campaignInfo: Record<string, {title: string, id: string}> = {};
+          if (campaignIds.length > 0) {
+            const { data: campaignsData, error: campaignsError } = await supabase
+              .from('campaigns')
+              .select('id, title')
+              .in('id', campaignIds);
+              
+            if (!campaignsError && campaignsData) {
+              campaignInfo = campaignsData.reduce((acc: Record<string, {title: string, id: string}>, campaign) => {
+                acc[campaign.id] = { title: campaign.title, id: campaign.id };
+                return acc;
+              }, {});
+            }
+          }
+          
+          // Format general donations
+          const generalTransactions = generalDonations.map((donation) => ({
+            id: `general-${donation.id}`,
+            amount: donation.amount,
+            date: donation.created_at,
+            donorName: donation.is_anonymous ? "Anonymous Donor" : (userNames[donation.user_id] || 'Unknown Donor'),
+            donorId: donation.is_anonymous ? null : donation.user_id,
+            transactionHash: donation.transaction_hash || "",
+            message: donation.message || "General Fund Donation",
+            status: donation.status || 'confirmed',
+            donationType: 'general'
+          }));
+          
+          // Format campaign donations
+          const campaignTransactions = campaignDonations.map((donation) => {
+            const campaign = donation.campaign_id ? campaignInfo[donation.campaign_id] : null;
+            
+            return {
+              id: `campaign-${donation.id}`,
+              amount: donation.amount,
+              date: donation.created_at,
+              donorName: donation.is_anonymous ? "Anonymous Donor" : (userNames[donation.user_id] || 'Unknown Donor'),
+              donorId: donation.is_anonymous ? null : donation.user_id,
+              transactionHash: donation.transaction_hash || "",
+              donationPolicy: donation.donation_policy,
+              message: donation.message || `Donation to ${campaign?.title || 'a campaign'}`,
+              status: donation.status || 'confirmed',
+              donationType: 'campaign',
+              campaignName: campaign ? campaign.title : 'Unknown Campaign',
+              campaignId: donation.campaign_id
+            };
+          });
+          
+          // Combine both types of transactions and log for debugging
+          const allTransactions = [...generalTransactions, ...campaignTransactions];
+          console.log("Processed transactions for charity profile:", allTransactions.length, allTransactions);
+          
+          setBlockchainTransactions(allTransactions);
+        } catch (err: any) {
+          console.error('Error fetching charity transactions:', err);
+          setTransactionsError(err.message || 'Failed to load transaction data');
+        } finally {
+          setTransactionsLoading(false);
+        }
+      };
+      
+      fetchCharityOwnTransactions();
+    }
+  }, [isOwnProfile, charityProfile]);
+
+  // Add this effect to load mock community data
+  useEffect(() => {
+    if (userRole === 'donor' && hasContributedToGeneralFund && orgData?.id) {
+      setIsLoadingCommunity(true);
+      
+      // Simulate API call delay
+      setTimeout(() => {
+        // Mock community stats based on organization size
+        const membersCount = Math.floor(Math.random() * 50) + 30; // 30-80 members
+        const postsCount = Math.floor(Math.random() * 30) + 15; // 15-45 posts
+        
+        setCommunityStats({
+          membersCount,
+          postsCount,
+          activeMembers: Math.floor(membersCount * 0.6), // 60% of members are active
+          recentActivities: Math.floor(Math.random() * 10) + 5 // 5-15 recent activities
+        });
+        
+        // Generate mock community members
+        const mockMembers: CommunityMember[] = [
+          {
+            id: 1,
+            name: "Sarah Abdullah",
+            avatar: "https://randomuser.me/api/portraits/women/32.jpg",
+            joinDate: "2024-01-15",
+            donationsCount: 12,
+            badges: ["Top Donor", "Early Supporter"],
+            isVerified: true
+          },
+          {
+            id: 2,
+            name: "Rajesh Kumar",
+            avatar: "https://randomuser.me/api/portraits/men/45.jpg",
+            joinDate: "2024-01-22",
+            donationsCount: 8,
+            badges: ["Regular Donor"],
+            isVerified: true
+          },
+          {
+            id: 3,
+            name: "Lim Wei Jian",
+            avatar: "https://randomuser.me/api/portraits/men/64.jpg",
+            joinDate: "2024-02-05",
+            donationsCount: 15,
+            badges: ["Champion", "Fundraiser"],
+            isVerified: true
+          },
+          {
+            id: 4,
+            name: "Michelle Wong",
+            avatar: "https://randomuser.me/api/portraits/women/28.jpg",
+            joinDate: "2024-02-18",
+            donationsCount: 5,
+            badges: ["New Member"],
+            isVerified: false
+          },
+          {
+            id: 5,
+            name: "David Smith",
+            avatar: "https://randomuser.me/api/portraits/men/22.jpg",
+            joinDate: "2024-03-01",
+            donationsCount: 3,
+            badges: ["New Member"],
+            isVerified: false
+          },
+          {
+            id: 6,
+            name: "Amanda Chen",
+            avatar: "https://randomuser.me/api/portraits/women/65.jpg",
+            joinDate: "2024-02-27",
+            donationsCount: 7,
+            badges: ["Active Member"],
+            isVerified: true
+          },
+          {
+            id: 7,
+            name: "James Robertson",
+            avatar: "https://randomuser.me/api/portraits/men/33.jpg", 
+            joinDate: "2024-01-30",
+            donationsCount: 10,
+            badges: ["Monthly Donor"],
+            isVerified: true
+          }
+        ];
+        
+        // Create organization announcement post
+        const organizationAnnouncement: CommunityPost = {
+          id: 999,
+          authorId: 0,
+          authorName: orgData.name || "Organization",
+          authorAvatar: "https://placehold.co/400x400/4A90E2/FFFFFF?text=ORG",
+          content: "📢 Important Announcement: We're excited to announce our upcoming fundraising gala on May 15th! Join us for an evening of inspiration and impact. All proceeds will directly support our mission of helping communities in need. Tickets are limited, so reserve your spot early. Contact us for more details or to sponsor the event!",
+          date: new Date().toISOString(),
+          likes: 78,
+          comments: 23,
+          isPinned: true
+        };
+        
+        // Generate mock community posts with the announcement at the top
+        const mockPosts: CommunityPost[] = [
+          organizationAnnouncement,
+          {
+            id: 1,
+            authorId: 3,
+            authorName: "Lim Wei Jian",
+            authorAvatar: "https://randomuser.me/api/portraits/men/64.jpg",
+            content: "I'm so happy to see the progress made on the latest campaign! The work being done to help those in need is truly inspiring.",
+            date: "2024-03-15T14:30:00",
+            likes: 24,
+            comments: 7,
+            isPinned: false
+          },
+          {
+            id: 2,
+            authorId: 1,
+            authorName: "Sarah Abdullah",
+            authorAvatar: "https://randomuser.me/api/portraits/women/32.jpg",
+            content: "Just made my monthly donation to the general fund. Feels great to know my contribution is making a difference!",
+            date: "2024-03-14T09:15:00",
+            likes: 18,
+            comments: 5
+          },
+          {
+            id: 3,
+            authorId: 7,
+            authorName: "James Robertson",
+            authorAvatar: "https://randomuser.me/api/portraits/men/33.jpg",
+            content: "Does anyone know when the next community event will be held? I'd like to volunteer.",
+            date: "2024-03-13T16:45:00",
+            likes: 7,
+            comments: 12
+          },
+          {
+            id: 4,
+            authorId: 2,
+            authorName: "Rajesh Kumar",
+            authorAvatar: "https://randomuser.me/api/portraits/men/45.jpg",
+            content: "Just saw the impact report - amazing to see how our donations are helping! Keep up the great work team!",
+            date: "2024-03-12T11:20:00",
+            likes: 15,
+            comments: 3
+          },
+          {
+            id: 5,
+            authorId: 4,
+            authorName: "Michelle Wong",
+            authorAvatar: "https://randomuser.me/api/portraits/women/28.jpg",
+            content: "New member here! Excited to be part of this community and support such an important cause.",
+            date: "2024-03-10T08:30:00",
+            likes: 22,
+            comments: 8
+          }
+        ];
+        
+        setCommunityMembers(mockMembers);
+        setCommunityPosts(mockPosts);
+        setIsLoadingCommunity(false);
+        
+        // Log to console for debugging
+        console.log("Community data loaded:", {
+          orgId: orgData.id,
+          communityType: "organization",
+          stats: {
+            membersCount,
+            postsCount,
+            activeMembers: Math.floor(membersCount * 0.6),
+            recentActivities: Math.floor(Math.random() * 10) + 5
+          },
+          members: mockMembers.length,
+          posts: mockPosts.length
+        });
+      }, 800);
+    }
+  }, [userRole, hasContributedToGeneralFund, orgData?.id]);
+
+  // Replace the community stats section with enhanced version
+  const renderCommunityStats = () => (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <motion.div
+        whileHover={{ scale: 1.02 }}
+        className="bg-gradient-to-r from-[var(--highlight)] to-[var(--tertiary)] rounded-lg p-4 text-white w-full"
+      >
+        <div className="flex items-center gap-3">
+          <FaUsers className="text-2xl" />
+          <div>
+            <p className="text-2xl font-bold">{communityStats.membersCount}</p>
+            <p className="text-sm opacity-90">Members</p>
+          </div>
+        </div>
+      </motion.div>
+
+      <motion.div
+        whileHover={{ scale: 1.02 }}
+        className="bg-gradient-to-r from-[var(--secondary)] to-[var(--tertiary)] rounded-lg p-4 text-white w-full"
+      >
+        <div className="flex items-center gap-3">
+          <FaComments className="text-2xl" />
+          <div>
+            <p className="text-2xl font-bold">{communityStats.postsCount}</p>
+            <p className="text-sm opacity-90">Posts</p>
+          </div>
+        </div>
+      </motion.div>
+      
+      <motion.div
+        whileHover={{ scale: 1.02 }}
+        className="bg-gradient-to-r from-[var(--tertiary)] to-[var(--secondary)] rounded-lg p-4 text-white w-full"
+      >
+        <div className="flex items-center gap-3">
+          <FaHeart className="text-2xl" />
+          <div>
+            <p className="text-2xl font-bold">{communityStats.activeMembers}</p>
+            <p className="text-sm opacity-90">Active Members</p>
+          </div>
+        </div>
+      </motion.div>
+      
+      <motion.div
+        whileHover={{ scale: 1.02 }}
+        className="bg-gradient-to-r from-[var(--secondary)] to-[var(--highlight)] rounded-lg p-4 text-white w-full"
+      >
+        <div className="flex items-center gap-3">
+          <FaClock className="text-2xl" />
+          <div>
+            <p className="text-2xl font-bold">{communityStats.recentActivities}</p>
+            <p className="text-sm opacity-90">Recent Activities</p>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+  
+  // Create enhanced members list
+  const renderCommunityMembers = () => (
+    <div className="space-y-4">
+      {isLoadingCommunity ? (
+        <div className="flex justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[var(--highlight)]"></div>
+        </div>
+      ) : (
+        communityMembers.map((member) => (
+          <motion.div
+            key={member.id}
+            whileHover={{ scale: 1.02 }}
+            className="bg-[var(--main)] p-4 rounded-lg border border-[var(--stroke)] flex items-center gap-4 hover:shadow-md transition-all cursor-pointer"
+          >
+            <div className="relative">
+              {member.avatar ? (
+                <img 
+                  src={member.avatar} 
+                  alt={member.name} 
+                  className="w-12 h-12 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--highlight)] to-[var(--tertiary)] flex items-center justify-center text-white font-bold shadow-lg">
+                  {member.name.charAt(0)}
+                </div>
+              )}
+              {member.isVerified && (
+                <div className="absolute -bottom-1 -right-1 bg-blue-500 rounded-full p-1">
+                  <FaCheckCircle className="text-white text-xs" />
+                </div>
+              )}
+            </div>
+            
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <p className="font-medium text-[var(--headline)]">{member.name}</p>
+                {member.badges.includes('Top Donor') && (
+                  <span className="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <FaMedal className="text-amber-600" /> Top Donor
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-3 text-xs text-[var(--paragraph)]">
+                <div className="flex items-center gap-1">
+                  <FaClock className="text-[var(--highlight)]" />
+                  Joined {new Date(member.joinDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </div>
+                <div className="flex items-center gap-1">
+                  <FaHandHoldingHeart className="text-[var(--highlight)]" />
+                  {member.donationsCount} donations
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex flex-wrap gap-1">
+              {member.badges.filter(badge => badge !== 'Top Donor').map((badge, idx) => (
+                <span key={idx} className="bg-gray-100 text-gray-700 text-xs px-2 py-0.5 rounded-full">
+                  {badge}
+                </span>
+              ))}
+            </div>
+          </motion.div>
+        ))
+      )}
+    </div>
+  );
+
+  // Add function to handle post creation
+  const handleCreatePost = () => {
+    if (!newPostContent.trim()) return;
+    
+    setIsPostingContent(true);
+    
+    // Simulate API call
+    setTimeout(() => {
+      // Create a new post
+      const newPost: CommunityPost = {
+        id: Date.now(),
+        authorId: 999, // Current user ID
+        authorName: "You", // Current user name
+        authorAvatar: undefined, // Current user avatar
+        content: newPostContent,
+        date: new Date().toISOString(),
+        likes: 0,
+        comments: 0,
+        isPinned: false
+      };
+      
+      // Add to posts list
+      setCommunityPosts([newPost, ...communityPosts]);
+      
+      // Reset input
+      setNewPostContent("");
+      setIsPostingContent(false);
+      
+      // Show success message
+      toast.success("Post published successfully!");
+    }, 800);
+  };
 
   // Conditional rendering after all hooks are called
   // If we're viewing as charity profile and still loading
@@ -836,18 +1375,6 @@ const OrganizationDetail: React.FC = () => {
                   </div>
                 </motion.div>
 
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  className="bg-gradient-to-r from-[var(--tertiary)] to-[var(--highlight)] rounded-lg p-4 text-white"
-                >
-                  <div className="flex items-center gap-3">
-                    <FaUsers className="text-2xl" />
-                    <div>
-                      <p className="text-2xl font-bold">{supporters || 0}</p>
-                      <p className="text-sm opacity-90">Supporters</p>
-                    </div>
-                  </div>
-                </motion.div>
 
                 <motion.div
                   whileHover={{ scale: 1.02 }}
@@ -865,151 +1392,6 @@ const OrganizationDetail: React.FC = () => {
             </div>
           </div>
         </motion.div>
-
-        {/* Impact Section */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="mb-8"
-        >
-          <div className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] p-6">
-            <h2 className="text-2xl font-bold text-[var(--headline)] flex items-center gap-2 mb-4">
-              <FaChartLine className="text-[var(--highlight)]" />
-              Our Impact
-            </h2>
-            <p className="text-[var(--paragraph)] mb-6">{extendedDetails.impact}</p>
-
-            <h3 className="text-xl font-bold text-[var(--headline)] mb-4">Our Values</h3>
-            <div className="flex flex-wrap gap-3">
-              {extendedDetails.values.map((value, index) => (
-                <span
-                  key={index}
-                  className="px-4 py-2 bg-[var(--highlight)] text-white rounded-full text-sm font-medium"
-                >
-                  {value}
-                </span>
-              ))}
-            </div>
-          </div>
-        </motion.section>
-
-        {/* General Fund Section */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
-          className="mb-8"
-        >
-          <div className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] p-6">
-            <h2 className="text-2xl font-bold text-[var(--headline)] flex items-center gap-2 mb-4">
-              <FaHandHoldingHeart className="text-[var(--highlight)]" />
-              General Fund
-            </h2>
-
-            {generalFundLoading ? (
-              <div className="flex justify-center py-4">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[var(--highlight)]"></div>
-              </div>
-            ) : generalFundError ? (
-              <div className="text-red-500 py-2">{generalFundError}</div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  className="bg-gradient-to-r from-[var(--highlight)] to-[var(--tertiary)] rounded-lg p-6 text-white"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-white bg-opacity-20 rounded-full">
-                      <FaHandHoldingHeart className="text-3xl" />
-                    </div>
-                    <div>
-                      <p className="text-3xl font-bold">RM{generalFund.totalAmount.toLocaleString()}</p>
-                      <p className="text-sm opacity-90">Total Direct Donations</p>
-                    </div>
-                  </div>
-                  <p className="mt-4 text-white text-opacity-90">
-                    Funds donated directly to support our general operations and mission.
-                  </p>
-                </motion.div>
-
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  className="bg-gradient-to-r from-[var(--secondary)] to-[var(--tertiary)] rounded-lg p-6 text-white"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-white bg-opacity-20 rounded-full">
-                      <FaUsers className="text-3xl" />
-                    </div>
-                    <div>
-                      <p className="text-3xl font-bold">{generalFund.donationsCount}</p>
-                      <p className="text-sm opacity-90">Direct Supporters</p>
-                    </div>
-                  </div>
-                  <p className="mt-4 text-white text-opacity-90">
-                    People who believe in our organization's mission and have donated directly.
-                  </p>
-                </motion.div>
-              </div>
-            )}
-
-            {userRole === 'donor' && !isOwnProfile && (
-              <div className="mt-6 text-center">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setIsDonationModalOpen(true)}
-                  className="px-6 py-3 bg-gradient-to-r from-[var(--highlight)] to-[var(--tertiary)] text-white rounded-xl font-medium shadow-lg hover:shadow-xl transition-shadow flex items-center gap-2 mx-auto"
-                >
-                  <FaHandHoldingHeart className="text-xl" />
-                  Support Our General Fund
-                </motion.button>
-              </div>
-            )}
-          </div>
-        </motion.section>
-
-        {/* Organization Timeline and Leaderboard Section */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.28 }}
-          className="mb-8"
-        >
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Timeline - Left Column */}
-            <div className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] p-6">
-              <h2 className="text-2xl font-bold text-[var(--headline)] flex items-center gap-2 mb-4">
-                <FaHistory className="text-[var(--highlight)]" />
-                Organization Timeline
-              </h2>
-
-              <CampaignTimeline
-                entries={generateOrganizationTimelineEntries()}
-                className="bg-transparent p-0"
-                startDate={extendedDetails.founded ? `Jan 1, ${extendedDetails.founded}` : undefined}
-                currentAmount={combinedTotalRaised}
-                goalAmount={goalAmount}
-                daysLeft={daysLeft}
-                todayDonations={todayDonations}
-              />
-            </div>
-
-            {/* Donor Leaderboard - Right Column */}
-            <div className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] p-6">
-              <h2 className="text-2xl font-bold text-[var(--headline)] flex items-center gap-2 mb-4">
-                <FaTrophy className="text-[var(--highlight)]" />
-                Top Supporters
-              </h2>
-
-              <DonorLeaderboardAndTracker
-                tracker={donationTracker}
-                className="border-0 bg-transparent p-0 shadow-none"
-                userDonorId={userRole === 'donor' ? 2 : undefined} // Example: highlight user with ID 2 if current user is a donor
-              />
-            </div>
-          </div>
-        </motion.section>
 
         {/* Campaigns Section */}
         <motion.section
@@ -1122,6 +1504,200 @@ const OrganizationDetail: React.FC = () => {
           )}
         </motion.section>
 
+        {/* General Fund Section */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="mb-8"
+        >
+          <div className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] p-6">
+            <h2 className="text-2xl font-bold text-[var(--headline)] flex items-center gap-2 mb-4">
+              <FaHandHoldingHeart className="text-[var(--highlight)]" />
+              General Fund
+            </h2>
+
+            {generalFundLoading ? (
+              <div className="flex justify-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[var(--highlight)]"></div>
+              </div>
+            ) : generalFundError ? (
+              <div className="text-red-500 py-2">{generalFundError}</div>
+            ) : (
+              <>
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  className="bg-gradient-to-r from-[var(--highlight)] to-[var(--tertiary)] rounded-lg p-6 text-white mb-6"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-white bg-opacity-20 rounded-full">
+                      <FaHandHoldingHeart className="text-3xl" />
+                    </div>
+                    <div>
+                      <p className="text-3xl font-bold">RM{generalFund.totalAmount.toLocaleString()}</p>
+                      <p className="text-sm opacity-90">Total Direct Donations</p>
+                    </div>
+                  </div>
+                  <p className="mt-4 text-white text-opacity-90">
+                    Funds donated directly to support our general operations and mission.
+                  </p>
+                </motion.div>
+
+                {/* Organization Donations - now inside the general fund section */}
+                {transactionsLoading ? (
+                  <div className="flex justify-center py-4">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[var(--highlight)]"></div>
+                  </div>
+                ) : transactionsError ? (
+                  <div className="text-center py-4">
+                    <p className="text-red-500 mb-3">{transactionsError}</p>
+                    <button 
+                      onClick={() => isOwnProfile && charityProfile ? window.location.reload() : fetchOrganizationTransactions()}
+                      className="px-4 py-2 bg-[var(--highlight)] text-white rounded-lg"
+                    >
+                      Try Again
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-6">
+                    <h3 className="text-lg font-medium text-[var(--headline)] flex items-center gap-2 mb-4">
+                      <FaReceipt className="text-[var(--highlight)]" />
+                      General Fund Donations
+                    </h3>
+                    
+                    <p className="text-sm text-[var(--paragraph)] mb-4">
+                      Showing recent donation transactions verified on the blockchain for {isOwnProfile ? (charityProfile?.name || "your organization") : (organization?.name || "this organization")}
+                    </p>
+                    
+                    <div className="space-y-3">
+                      {blockchainTransactions
+                        .filter(tx => tx.donationType === 'general')
+                        .slice(0, 3) // Show only first 3 donations
+                        .map(tx => (
+                          <div
+                            key={tx.id}
+                            className="p-4 rounded-lg bg-[var(--panel)] hover:shadow-md transition-all"
+                          >
+                            <div className="flex justify-between items-center mb-2">
+                              <div className="font-bold text-[var(--headline)] text-lg">
+                                RM{tx.amount.toLocaleString()}
+                              </div>
+                              <div className="text-sm text-[var(--subtext)] bg-[var(--main)] px-2 py-1 rounded-full">
+                                {new Date(tx.date).toLocaleDateString()}
+                              </div>
+                            </div>
+                            
+                            {tx.donorName && (
+                              <div className="text-sm text-[var(--paragraph)] mb-2">
+                                From: <span className="font-medium text-[var(--headline)]">{tx.donorName}</span>
+                              </div>
+                            )}
+                            
+                            <div className="flex justify-between items-center mt-2">
+                              <div className="text-xs text-[var(--subtext)] truncate max-w-[70%]">
+                                TX: {tx.transactionHash ? 
+                                  `${tx.transactionHash.substring(0, 8)}...${tx.transactionHash.substring(tx.transactionHash.length - 8)}` : 
+                                  'N/A'}
+                              </div>
+                              {tx.transactionHash && (
+                                <a
+                                  href={getTransactionExplorerUrl(tx.transactionHash)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-[var(--highlight)] hover:underline flex items-center"
+                                >
+                                  Verify <FaExternalLinkAlt className="ml-1 text-xs" />
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                        
+                      {blockchainTransactions.filter(tx => tx.donationType === 'general').length === 0 && (
+                        <div className="text-center py-6 text-[var(--paragraph)] bg-[var(--panel)] rounded-lg">
+                          <FaReceipt className="mx-auto text-3xl text-[var(--subtext)] mb-2" />
+                          <p>No verified transactions available yet.</p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {blockchainTransactions.filter(tx => tx.donationType === 'general').length > 3 && (
+                      <div className="text-center mt-4">
+                        <button 
+                          onClick={() => navigate('/general-fund/transactions')}
+                          className="text-[var(--highlight)] hover:underline flex items-center justify-center gap-1 mx-auto"
+                        >
+                          View All Donations <FaArrowRight className="text-xs" />
+                        </button>
+                      </div>
+                    )}
+                    
+                    <div className="text-xs text-center text-[var(--subtext)] italic mt-4">
+                      All donations are securely verified on the blockchain for complete transparency
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {userRole === 'donor' && !isOwnProfile && (
+              <div className="mt-6 text-center">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setIsDonationModalOpen(true)}
+                  className="px-6 py-3 bg-gradient-to-r from-[var(--highlight)] to-[var(--tertiary)] text-white rounded-xl font-medium shadow-lg hover:shadow-xl transition-shadow flex items-center gap-2 mx-auto"
+                >
+                  <FaHandHoldingHeart className="text-xl" />
+                  Support Our General Fund
+                </motion.button>
+              </div>
+            )}
+          </div>
+        </motion.section>
+
+        {/* Organization Timeline and Leaderboard Section */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.28 }}
+          className="mb-8"
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Timeline - Left Column */}
+            <div className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] p-6">
+              <h2 className="text-2xl font-bold text-[var(--headline)] flex items-center gap-2 mb-4">
+                <FaHistory className="text-[var(--highlight)]" />
+                Organization Timeline
+              </h2>
+
+              <CampaignTimeline
+                entries={generateOrganizationTimelineEntries()}
+                className="bg-transparent p-0"
+                startDate={extendedDetails.founded ? `Jan 1, ${extendedDetails.founded}` : undefined}
+                currentAmount={combinedTotalRaised}
+                goalAmount={goalAmount}
+                daysLeft={daysLeft}
+                todayDonations={todayDonations}
+              />
+            </div>
+
+            {/* Donor Leaderboard - Right Column */}
+            <div className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] p-6">
+              <h2 className="text-2xl font-bold text-[var(--headline)] flex items-center gap-2 mb-4">
+                <FaTrophy className="text-[var(--highlight)]" />
+                Top Supporters
+              </h2>
+
+              <DonorLeaderboardAndTracker
+                tracker={donationTracker}
+                className="border-0 bg-transparent p-0 shadow-none"
+                userDonorId={userRole === 'donor' ? 2 : undefined} // Example: highlight user with ID 2 if current user is a donor
+              />
+            </div>
+          </div>
+        </motion.section>
+
         {/* Community Section */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
@@ -1130,7 +1706,7 @@ const OrganizationDetail: React.FC = () => {
           className="mb-8"
         >
           {userRole === 'donor' ? (
-            isDonationModalOpen ? (
+            hasContributedToGeneralFund ? (
               <div className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] overflow-hidden">
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-6">
@@ -1146,33 +1722,7 @@ const OrganizationDetail: React.FC = () => {
                   </div>
 
                   {/* Community Stats */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      className="bg-gradient-to-r from-[var(--highlight)] to-[var(--tertiary)] rounded-lg p-4 text-white w-full"
-                    >
-                      <div className="flex items-center gap-3">
-                        <FaUsers className="text-2xl" />
-                        <div>
-                          <p className="text-2xl font-bold">42</p>
-                          <p className="text-sm opacity-90">Members</p>
-                        </div>
-                      </div>
-                    </motion.div>
-
-                    <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      className="bg-gradient-to-r from-[var(--secondary)] to-[var(--tertiary)] rounded-lg p-4 text-white w-full"
-                    >
-                      <div className="flex items-center gap-3">
-                        <FaComments className="text-2xl" />
-                        <div>
-                          <p className="text-2xl font-bold">24</p>
-                          <p className="text-sm opacity-90">Posts</p>
-                        </div>
-                      </div>
-                    </motion.div>
-                  </div>
+                  {renderCommunityStats()}
 
                   {/* Community Navigation */}
                   <div className="flex mb-6 bg-[var(--background)] rounded-lg p-1">
@@ -1201,30 +1751,131 @@ const OrganizationDetail: React.FC = () => {
                   {/* Community Content */}
                   <div className="bg-[var(--background)] rounded-lg p-4">
                     {communityView === 'feed' && (
-                      <PostFeed communityId={orgData.id} communityType="organization" />
-                    )}
-                    {communityView === 'members' && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {[1, 2, 3, 4, 5].map((i) => (
-                          <motion.div
-                            key={i}
-                            whileHover={{ scale: 1.02 }}
-                            className="bg-[var(--main)] p-4 rounded-lg border border-[var(--stroke)] flex items-center gap-4 cursor-pointer"
-                          >
-                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--highlight)] to-[var(--tertiary)] flex items-center justify-center text-white font-bold shadow-lg">
-                              U{i}
-                            </div>
-                            <div>
-                              <p className="font-medium text-[var(--headline)]">User {i}</p>
-                              <div className="flex items-center gap-2 text-xs text-[var(--paragraph)]">
-                                <FaClock className="text-[var(--highlight)]" />
-                                Joined 2 weeks ago
+                      isLoadingCommunity ? (
+                        <div className="flex justify-center py-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[var(--highlight)]"></div>
+                        </div>
+                      ) : communityPosts.length > 0 ? (
+                        <>
+                          {/* Post Creation Form */}
+                          <div className="bg-[var(--main)] p-4 rounded-lg border border-[var(--stroke)] mb-6">
+                            <div className="flex items-start gap-3">
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--highlight)] to-[var(--tertiary)] flex items-center justify-center text-white font-bold">
+                                Y
+                              </div>
+                              <div className="flex-1">
+                                <textarea
+                                  placeholder="Share your thoughts with the community..."
+                                  className="w-full p-3 rounded-lg bg-[var(--background)] border border-[var(--stroke)] focus:outline-none focus:ring-2 focus:ring-[var(--highlight)] resize-none min-h-[80px] text-[var(--paragraph)]"
+                                  value={newPostContent}
+                                  onChange={(e) => setNewPostContent(e.target.value)}
+                                  disabled={isPostingContent}
+                                ></textarea>
+                                <div className="flex justify-end mt-2">
+                                  <button
+                                    className="px-4 py-2 bg-[var(--highlight)] text-white rounded-lg hover:bg-opacity-90 transition-all flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                                    onClick={handleCreatePost}
+                                    disabled={!newPostContent.trim() || isPostingContent}
+                                  >
+                                    {isPostingContent ? (
+                                      <>
+                                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                                        Posting...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <FaComment />
+                                        Post
+                                      </>
+                                    )}
+                                  </button>
+                                </div>
                               </div>
                             </div>
-                          </motion.div>
-                        ))}
-                      </div>
+                          </div>
+                          
+                          {/* Posts List */}
+                          <div className="space-y-6">
+                            {communityPosts.map(post => (
+                              <div 
+                                key={post.id} 
+                                className={`bg-[var(--main)] p-4 rounded-lg border ${post.isPinned 
+                                  ? 'border-amber-300 bg-amber-50 dark:bg-amber-900/10' 
+                                  : 'border-[var(--stroke)]'} hover:shadow-md transition-all`}
+                              >
+                                {/* Post Header */}
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="flex items-center gap-3">
+                                    {post.authorAvatar ? (
+                                      <img src={post.authorAvatar} alt={post.authorName} className="w-10 h-10 rounded-full object-cover" />
+                                    ) : (
+                                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--highlight)] to-[var(--tertiary)] flex items-center justify-center text-white font-bold">
+                                        {post.authorName.charAt(0)}
+                                      </div>
+                                    )}
+                                    <div>
+                                      <div className="flex items-center gap-1">
+                                        <p className="font-medium text-[var(--headline)]">{post.authorName}</p>
+                                        {post.authorId === 0 && (
+                                          <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full ml-1">
+                                            Official
+                                          </span>
+                                        )}
+                                      </div>
+                                      <p className="text-xs text-[var(--subtext)]">
+                                        {new Date(post.date).toLocaleString('en-US', {
+                                          year: 'numeric',
+                                          month: 'short',
+                                          day: 'numeric',
+                                          hour: '2-digit',
+                                          minute: '2-digit'
+                                        })}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  {post.isPinned && (
+                                    <span className="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
+                                      <FaThumbtack className="text-amber-600" /> Announcement
+                                    </span>
+                                  )}
+                                </div>
+                                
+                                {/* Post Content */}
+                                <p className={`text-[var(--paragraph)] mb-4 ${post.isPinned ? 'font-medium' : ''}`}>{post.content}</p>
+                                
+                                {/* Post Interactions */}
+                                <div className="flex items-center justify-between text-sm text-[var(--subtext)] pt-2 border-t border-[var(--stroke)]">
+                                  <div className="flex items-center gap-2">
+                                    <button className="flex items-center gap-1 hover:text-[var(--highlight)] transition-colors">
+                                      <FaHeart className="text-[var(--highlight)]" />
+                                      {post.likes}
+                                    </button>
+                                    <button className="flex items-center gap-1 hover:text-[var(--highlight)] transition-colors">
+                                      <FaComment className="text-[var(--highlight)]" />
+                                      {post.comments}
+                                    </button>
+                                  </div>
+                                  <button className="text-[var(--subtext)] hover:text-[var(--highlight)] transition-colors">
+                                    Reply
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center py-8">
+                          <FaComments className="mx-auto text-4xl text-[var(--paragraph)] opacity-30 mb-4" />
+                          <p className="text-[var(--paragraph)]">No posts yet in this community.</p>
+                          <button
+                            className="mt-4 px-4 py-2 bg-[var(--highlight)] text-white rounded-lg hover:bg-opacity-90 transition-all"
+                          >
+                            Create the first post
+                          </button>
+                        </div>
+                      )
                     )}
+                    {communityView === 'members' && renderCommunityMembers()}
                   </div>
                 </div>
               </div>
@@ -1250,22 +1901,6 @@ const OrganizationDetail: React.FC = () => {
             )
           ) : null}
         </motion.section>
-
-        {/* Add the BlockchainTransparencyTracker in an appropriate tab or section */}
-        <div className="max-w-7xl mx-auto mt-6">
-          <SimpleDonationVerifier
-            title="Organization Donations"
-            campaignName={organization?.name || "this organization"}
-            transactions={blockchainTransactions.map(tx => ({
-              id: tx.id,
-              amount: tx.amount,
-              date: tx.date,
-              transactionHash: tx.transactionHash,
-              donorName: tx.donorName
-            }))}
-            showDonorNames={true}
-          />
-        </div>
       </div>
 
       {/* Donation Modal */}
@@ -1304,6 +1939,9 @@ const OrganizationDetail: React.FC = () => {
               const donationType = isRecurring ? 'monthly' : 'one-time';
               toast.success(`Thank you for your ${donationType} donation of RM${amount} to ${orgData.name}!`);
               setIsDonationModalOpen(false);
+              
+              // Set that the user has contributed to the general fund
+              setHasContributedToGeneralFund(true);
 
               // Optionally refresh organization data to show updated stats
               if (!isOwnProfile && organizationIdString) {
@@ -1357,6 +1995,39 @@ const OrganizationDetail: React.FC = () => {
           onClose={handleCloseCampaignModal}
           onSave={handleSaveCampaign}
         />
+      )}
+
+      {/* Floating Donate Now button - only show for donors viewing an organization */}
+      {userRole === 'donor' && !isOwnProfile && (
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.5, duration: 0.5 }}
+          className="fixed bottom-8 right-8 z-40"
+        >
+          <button
+            onClick={() => setIsDonationModalOpen(true)}
+            className="group relative overflow-hidden px-8 py-4 rounded-full bg-gradient-to-r from-[var(--highlight)] to-[var(--secondary)] text-white font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-3"
+          >
+            {/* Pulsing background effect */}
+            <span className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity duration-300"></span>
+
+            {/* Icon with animation */}
+            <span className="relative bg-white bg-opacity-30 p-2 rounded-full">
+              <FaHandHoldingHeart className="text-xl group-hover:scale-110 transition-transform duration-300" />
+            </span>
+
+            <span className="relative">
+              Donate Now
+              <span className="block text-xs opacity-90">Support This Organization</span>
+            </span>
+
+            {/* Arrow indicator */}
+            <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7-7 7"></path>
+            </svg>
+          </button>
+        </motion.div>
       )}
     </div>
   );
