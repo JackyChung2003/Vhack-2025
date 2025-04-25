@@ -804,6 +804,21 @@ export const charityService = {
       if (authError) throw authError;
       if (!user) throw new Error('User not authenticated');
 
+      // Fetch donor's actual name from the users table
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('name')
+        .eq('id', user.id)
+        .single();
+        
+      if (userError) {
+        console.error('Error fetching donor name:', userError);
+        // Continue with donation even if we can't get the user's name
+      }
+      
+      // Use the fetched name, fallback to provided donorName, or use 'Donor' as last resort
+      const actualDonorName = userData?.name || donationData.donorName || 'Donor';
+
       // Transaction hash placeholder that will be updated with the actual hash
       let transactionHash = '';
 
@@ -842,7 +857,7 @@ export const charityService = {
           donation_policy: donationData.donationPolicy || null,
           transaction_hash: '',
           message: donationData.message || null,
-          donor_name: donationData.donorName || null,
+          donor_name: actualDonorName,
           donor_email: donationData.donorEmail || null,
           is_anonymous: donationData.isAnonymous || false,
           is_recurring: donationData.isRecurring || false,
@@ -878,7 +893,7 @@ export const charityService = {
                 (fullCampaignData.users[0]?.name || 'Unknown Charity') : 
                 (fullCampaignData.users as any).name || 'Unknown Charity') : 
               'Unknown Charity',
-            donorName: donationData.isAnonymous ? 'Anonymous Donor' : (donationData.donorName || 'Donor'),
+            donorName: donationData.isAnonymous ? 'Anonymous Donor' : actualDonorName, // Use the actual donor name
             amountInMYR: donationData.amount,
             campaignTitle: fullCampaignData?.title || 'General Donation',
             timestamp: new Date().toISOString()
@@ -963,7 +978,7 @@ export const charityService = {
           amount: donationData.amount,
           transaction_hash: '',
           message: donationData.message || null,
-          donor_name: donationData.donorName || null,
+          donor_name: actualDonorName, // Use the actual donor name
           donor_email: donationData.donorEmail || null,
           is_anonymous: donationData.isAnonymous || false,
           is_recurring: donationData.isRecurring || false,
@@ -994,7 +1009,7 @@ export const charityService = {
             isAnonymous: donationData.isAnonymous || false,
             isRecurring: donationData.isRecurring || false,
             charityName: fullCharityData?.name || 'Unknown Charity',
-            donorName: donationData.isAnonymous ? 'Anonymous Donor' : (donationData.donorName || 'Donor'),
+            donorName: donationData.isAnonymous ? 'Anonymous Donor' : actualDonorName, // Use the actual donor name
             amountInMYR: donationData.amount,
             campaignTitle: 'General Donation',
             timestamp: new Date().toISOString()

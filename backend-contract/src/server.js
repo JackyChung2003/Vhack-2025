@@ -55,6 +55,43 @@ app.post('/donations', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
+    // Sanitize and validate metadata before sending to blockchain
+    let safeMetadata = {};
+    
+    if (metadata) {
+      if (typeof metadata === 'string') {
+        try {
+          // If it's a string, try to parse it as JSON
+          safeMetadata = JSON.parse(metadata);
+        } catch (e) {
+          console.warn("Received invalid JSON metadata string:", metadata);
+          // If parsing fails, use it as-is but only if it's not too large
+          if (metadata.length <= 1000) {
+            safeMetadata = { rawData: metadata.replace(/[^\x20-\x7E]/g, '') }; // Keep only printable ASCII
+          } else {
+            safeMetadata = { error: "Metadata too large or contains invalid characters" };
+          }
+        }
+      } else if (typeof metadata === 'object') {
+        // If it's already an object, sanitize its string properties
+        safeMetadata = Object.entries(metadata).reduce((acc, [key, value]) => {
+          if (typeof value === 'string') {
+            // Clean string values
+            acc[key] = value.replace(/[^\x20-\x7E]/g, '').trim().substring(0, 200);
+          } else if (typeof value === 'number' || typeof value === 'boolean') {
+            // Keep numbers and booleans
+            acc[key] = value;
+          } else if (value === null || value === undefined) {
+            // Skip null/undefined
+            acc[key] = '';
+          }
+          return acc;
+        }, {});
+      }
+    }
+    
+    console.log("Sanitized metadata:", JSON.stringify(safeMetadata));
+
     // Record on blockchain
     const result = await donationBlockchainService.recordDonation(
       donorId,
@@ -62,7 +99,7 @@ app.post('/donations', authenticate, async (req, res) => {
       amount,
       currency,
       donationType,
-      metadata || {}
+      safeMetadata
     );
 
     // Return the blockchain transaction result

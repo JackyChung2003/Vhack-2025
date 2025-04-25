@@ -56,13 +56,37 @@ const recordDonation = async (donorId, recipientId, amount, currency, donationTy
     const contract = await getDonationTrackerContract();
     console.log("Contract instance obtained (v3)");
 
-    // Make sure metadata is properly stringified
-    const metadataStr = typeof metadata === 'object' ? 
-      JSON.stringify(metadata) : 
-      metadata;
+    // Enhanced metadata handling
+    let metadataStr;
+    if (typeof metadata === 'string') {
+      try {
+        // If it's already a string, try parsing it to validate JSON
+        const parsed = JSON.parse(metadata);
+        // Re-stringify to ensure clean formatting
+        metadataStr = JSON.stringify(parsed);
+      } catch (e) {
+        console.warn("Invalid JSON metadata string received, using as-is:", metadata);
+        // If it's not valid JSON, sanitize the string
+        metadataStr = metadata
+          .replace(/[^\x20-\x7E]/g, '') // Remove non-printable ASCII characters
+          .substring(0, 1000); // Limit length as a precaution
+      }
+    } else if (typeof metadata === 'object') {
+      try {
+        // If it's an object, stringify it with proper encoding
+        metadataStr = JSON.stringify(metadata);
+      } catch (e) {
+        console.error("Error stringifying metadata object:", e);
+        // Fallback to empty object
+        metadataStr = "{}";
+      }
+    } else {
+      // Fallback for any other type
+      metadataStr = "{}";
+    }
     
-    // Ensure proper UTF-8 encoding
-    console.log("Attempting to call contract.call('recordDonation')...");
+    console.log("Processed metadata for blockchain:", metadataStr);
+    
     // Use contract.call for v3 write operations
     const tx = await contract.call("recordDonation", [
       donorId, recipientId, amount.toString(), currency, donationType, metadataStr

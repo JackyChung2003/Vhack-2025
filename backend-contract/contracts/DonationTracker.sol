@@ -93,16 +93,24 @@ contract DonationTracker is Ownable {
             block.timestamp
         );
         
-        // Parse metadata to extract key fields
-        // (This requires careful implementation)
+        // Note: JSON parsing in Solidity is complex and error-prone
+        // We're simply emitting the basic event with required fields
+        // and keeping the detailed event for logging purposes only
+        // Future versions may use oracles or off-chain processing for metadata
         
-        // Emit detailed event
+        // Try to emit detailed event with safe fallbacks for required fields
+        string memory donorName = "Donor"; // Safe default
+        string memory recipientName = "Recipient"; // Safe default
+        
+        // Important: This is a simplified version - Solidity doesn't have built-in
+        // JSON parsing. In production, use a proper JSON parser library or oracle.
+        
         emit DonationRecordedDetailed(
             donationId,
             donorId,
-            metadata.donorName, // This would require JSON parsing in Solidity
+            donorName,
             recipientId,
-            metadata.charityName,
+            recipientName,
             amount,
             currency,
             donationType

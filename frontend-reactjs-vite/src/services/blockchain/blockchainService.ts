@@ -18,6 +18,37 @@ interface BlockchainDonationResult {
 }
 
 /**
+ * Sanitize metadata to ensure it can be safely stringified and stored on the blockchain
+ * This function removes non-ASCII characters and ensures all values are properly encoded
+ */
+const sanitizeMetadata = (metadata: Record<string, any>): Record<string, any> => {
+  const sanitized: Record<string, any> = {};
+  
+  // Process each key-value pair in the metadata
+  for (const [key, value] of Object.entries(metadata)) {
+    if (typeof value === 'string') {
+      // Remove non-ASCII characters and normalize strings
+      sanitized[key] = value
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+        .replace(/[^\x00-\x7F]/g, '') // Remove non-ASCII
+        .trim();
+    } else if (value === null || value === undefined) {
+      // Skip null or undefined values
+      sanitized[key] = '';
+    } else if (typeof value === 'object') {
+      // Recursively sanitize nested objects
+      sanitized[key] = sanitizeMetadata(value);
+    } else {
+      // Keep numbers, booleans as is
+      sanitized[key] = value;
+    }
+  }
+  
+  return sanitized;
+};
+
+/**
  * Record a donation on the blockchain
  */
 export const recordDonationOnBlockchain = async (
@@ -29,6 +60,12 @@ export const recordDonationOnBlockchain = async (
   metadata: Record<string, any> = {}
 ): Promise<BlockchainDonationResult> => {
   try {
+    // Sanitize the metadata to prevent encoding issues
+    const sanitizedMetadata = sanitizeMetadata(metadata);
+    
+    console.log('Original metadata:', JSON.stringify(metadata));
+    console.log('Sanitized metadata:', JSON.stringify(sanitizedMetadata));
+    
     const response = await fetch(`${BLOCKCHAIN_API_URL}/donations`, {
       method: 'POST',
       headers: {
@@ -41,7 +78,7 @@ export const recordDonationOnBlockchain = async (
         amount,
         currency,
         donationType,
-        metadata,
+        metadata: sanitizedMetadata,
       }),
     });
 
