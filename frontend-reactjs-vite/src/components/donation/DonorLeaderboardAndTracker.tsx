@@ -6,6 +6,8 @@ import {
 } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DonationTracker as DonationTrackerType } from '../../utils/mockData';
+import { getTransactionExplorerUrl } from '../../services/blockchain/blockchainService';
+import supabase from '../../services/supabase/supabaseClient';
 
 // Updated Donor interface with avatar as optional
 interface Donor {
@@ -27,10 +29,21 @@ interface TimelineEntry {
     donationPolicy?: 'always-donate' | 'campaign-specific';
 }
 
+interface CampaignDonation {
+    id: string;
+    amount: number;
+    created_at: string;
+    transaction_hash?: string;
+    donation_policy?: 'always-donate' | 'campaign-specific';
+    message?: string;
+    is_recurring?: boolean;
+}
+
 interface DonorLeaderboardAndTrackerProps {
     tracker: DonationTrackerType;
     className?: string;
     userDonorId?: number; // Current user's donor ID if they are a donor
+    campaignId?: string; // Add campaign ID prop to filter donations by campaign
 }
 
 // Add new interfaces for tooltip state
@@ -45,7 +58,8 @@ interface TooltipState {
 const DonorLeaderboardAndTracker: React.FC<DonorLeaderboardAndTrackerProps> = ({
     tracker,
     className = '',
-    userDonorId
+    userDonorId,
+    campaignId
 }) => {
     // State for donor profile popout
     const [selectedDonorId, setSelectedDonorId] = useState<number | null>(null);
@@ -117,14 +131,78 @@ const DonorLeaderboardAndTracker: React.FC<DonorLeaderboardAndTrackerProps> = ({
         return index < colors.length ? colors[index] : 'bg-[var(--tertiary)]';
     };
 
-    // Get donations for a specific donor
-    const getDonationsForDonor = (donorId: number) => {
-        return tracker.donations.timeline.daily.filter(donation =>
-            tracker.donations.topDonors.find(d =>
-                d.donorId === donorId &&
-                new Date(d.lastDonation).toISOString().split('T')[0] === donation.date
-            )
-        );
+    // Add new state for real donations data
+    const [donorDonations, setDonorDonations] = useState<Record<number, CampaignDonation[]>>({});
+    const [isLoadingDonations, setIsLoadingDonations] = useState<boolean>(false);
+
+    // Log campaignId to debug
+    useEffect(() => {
+        console.log('DonorLeaderboardAndTracker - campaignId:', campaignId);
+        // Clear donor donations when campaignId changes to force refetch
+        setDonorDonations({});
+    }, [campaignId]);
+
+    // Updated function to get donations for a donor
+    const getDonationsForDonor = async (donorId: number) => {
+        // Check if we already have this donor's donations in state
+        if (donorDonations[donorId] && donorDonations[donorId].length > 0) {
+            return donorDonations[donorId];
+        }
+        
+        // Find donor in top donors to get their user ID
+        const donor = topDonors.find(d => d.donorId === donorId);
+        if (!donor) return [];
+        
+        try {
+            setIsLoadingDonations(true);
+            console.log('Fetching donations for donor:', donorId, 'campaignId:', campaignId);
+            
+            // Start building the query
+            let query = supabase
+                .from('campaign_donations')
+                .select('*')
+                .eq('user_id', donor.donorId.toString()); // Assuming donorId matches user_id
+                
+            // If campaignId is provided, filter by campaign
+            if (campaignId) {
+                console.log('Filtering by campaign ID:', campaignId);
+                query = query.eq('campaign_id', campaignId);
+            }
+            
+            // Execute the query with ordering
+            const { data, error } = await query.order('created_at', { ascending: false });
+            
+            if (error) {
+                console.error('Error fetching donor donations:', error);
+                return [];
+            }
+            
+            console.log('Fetched donations:', data);
+            
+            // Convert donations to the format expected by the component
+            const formattedDonations = data?.map((donation: any) => ({
+                id: donation.id,
+                amount: donation.amount,
+                created_at: donation.created_at,
+                transaction_hash: donation.transaction_hash || undefined,
+                donation_policy: donation.donation_policy as 'always-donate' | 'campaign-specific' || undefined,
+                message: donation.message || undefined,
+                is_recurring: donation.is_recurring || false
+            })) || [];
+            
+            // Update state with fetched donations
+            setDonorDonations(prev => ({
+                ...prev,
+                [donorId]: formattedDonations
+            }));
+            
+            return formattedDonations;
+        } catch (error) {
+            console.error('Error in getDonationsForDonor:', error);
+            return [];
+        } finally {
+            setIsLoadingDonations(false);
+        }
     };
 
     // Handle donor click to show popout profile
@@ -159,6 +237,102 @@ const DonorLeaderboardAndTracker: React.FC<DonorLeaderboardAndTrackerProps> = ({
     const hideTooltip = () => {
         setTooltip(prev => ({ ...prev, isVisible: false }));
     };
+
+    // Prepare donations for rendering in the Donation History Section
+    const renderDonationHistory = (selectedDonor: Donor) => {
+        const donations = donorDonations[selectedDonor.donorId] || [];
+        
+        if (isLoadingDonations) {
+            return (
+                <div className="text-center py-8 text-[var(--paragraph)]">
+                    Loading donation history...
+                </div>
+            );
+        }
+        
+        if (donations.length === 0) {
+            return (
+                <div className="text-center py-8 text-[var(--paragraph)]">
+                    No donation history available
+                </div>
+            );
+        }
+        
+        return donations.map((donation, dIndex) => (
+            <div
+                key={`${selectedDonor.donorId}-${dIndex}`}
+                className="bg-[var(--main)] p-4 rounded-lg border border-[var(--stroke)] flex justify-between items-center"
+            >
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[var(--highlight)] bg-opacity-10 flex items-center justify-center">
+                        <FaCalendarAlt className="text-[var(--highlight)]" />
+                    </div>
+                    <div>
+                        <div className="font-medium text-lg text-[#00674D]">
+                            RM{donation.amount.toLocaleString()}
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="text-xs text-[var(--paragraph)]">
+                                {formatDate(donation.created_at)}
+                            </div>
+                            {donation.donation_policy && (
+                                <div
+                                    className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 cursor-help ${donation.donation_policy === 'campaign-specific'
+                                        ? 'bg-green-100 text-green-700'
+                                        : 'bg-blue-100 text-blue-700'
+                                        }`}
+                                    onMouseEnter={(e) => showTooltip(
+                                        e,
+                                        donation.donation_policy === 'campaign-specific' ? 'Campaign-specific' : 'Always-donate',
+                                        donation.donation_policy === 'campaign-specific'
+                                            ? 'Refundable if campaign goal isn\'t reached'
+                                            : 'Benefits the organization regardless of campaign outcome'
+                                    )}
+                                    onMouseLeave={hideTooltip}
+                                >
+                                    {donation.donation_policy === 'campaign-specific' ? 'Campaign-specific' : 'Always-donate'}
+                                    <FaQuestionCircle className="text-xs opacity-60" />
+                                </div>
+                            )}
+                            {donation.is_recurring && (
+                                <div
+                                    className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 flex items-center gap-1 cursor-help"
+                                    onMouseEnter={(e) => showTooltip(
+                                        e,
+                                        'Recurring Donation',
+                                        'This donation is part of a monthly recurring commitment'
+                                    )}
+                                    onMouseLeave={hideTooltip}
+                                >
+                                    Monthly
+                                    <FaSync className="text-xs" />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {donation.transaction_hash && (
+                    <a
+                        href={getTransactionExplorerUrl(donation.transaction_hash)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1.5 bg-[#FFA500] bg-opacity-10 text-[#FF8C00] rounded-md hover:bg-opacity-20 transition-colors flex items-center gap-1.5 text-xs font-medium ml-2"
+                    >
+                        <FaReceipt className="text-sm" />
+                        <span>Transaction</span>
+                    </a>
+                )}
+            </div>
+        ));
+    };
+
+    // Fetch donations when selected donor changes
+    useEffect(() => {
+        if (selectedDonorId) {
+            getDonationsForDonor(selectedDonorId);
+        }
+    }, [selectedDonorId]);
 
     return (
         <div className={`bg-[var(--main)] rounded-xl border border-[var(--stroke)] overflow-hidden ${className}`}>
@@ -481,79 +655,7 @@ const DonorLeaderboardAndTracker: React.FC<DonorLeaderboardAndTrackerProps> = ({
                                         {/* Donation timeline - Only this part scrolls when needed */}
                                         <div className="flex-1 overflow-y-auto pr-2" style={{ maxHeight: "350px" }}>
                                             <div className="space-y-2">
-                                                {getDonationsForDonor(selectedDonor.donorId).length > 0 ? (
-                                                    getDonationsForDonor(selectedDonor.donorId).map((donation, dIndex) => (
-                                                        <div
-                                                            key={`${selectedDonor.donorId}-${dIndex}`}
-                                                            className="bg-[var(--main)] p-4 rounded-lg border border-[var(--stroke)] flex justify-between items-center"
-                                                        >
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="w-10 h-10 rounded-full bg-[var(--highlight)] bg-opacity-10 flex items-center justify-center">
-                                                                    <FaCalendarAlt className="text-[var(--highlight)]" />
-                                                                </div>
-                                                                <div>
-                                                                    <div className="font-medium text-lg text-[#00674D]">
-                                                                        RM{donation.amount.toLocaleString()}
-                                                                    </div>
-                                                                    <div className="flex items-center gap-2">
-                                                                        <div className="text-xs text-[var(--paragraph)]">
-                                                                            {formatDate(donation.date)}
-                                                                        </div>
-                                                                        {donation.donationPolicy && (
-                                                                            <div
-                                                                                className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 cursor-help ${donation.donationPolicy === 'campaign-specific'
-                                                                                    ? 'bg-green-100 text-green-700'
-                                                                                    : 'bg-blue-100 text-blue-700'
-                                                                                    }`}
-                                                                                onMouseEnter={(e) => showTooltip(
-                                                                                    e,
-                                                                                    donation.donationPolicy === 'campaign-specific' ? 'Campaign-specific' : 'Always-donate',
-                                                                                    donation.donationPolicy === 'campaign-specific'
-                                                                                        ? 'Refundable if campaign goal isn\'t reached'
-                                                                                        : 'Benefits the organization regardless of campaign outcome'
-                                                                                )}
-                                                                                onMouseLeave={hideTooltip}
-                                                                            >
-                                                                                {donation.donationPolicy === 'campaign-specific' ? 'Campaign' : 'General'}
-                                                                                <FaQuestionCircle className="text-xs opacity-60" />
-                                                                            </div>
-                                                                        )}
-                                                                        {donation.isRecurring && (
-                                                                            <div
-                                                                                className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 flex items-center gap-1 cursor-help"
-                                                                                onMouseEnter={(e) => showTooltip(
-                                                                                    e,
-                                                                                    'Recurring Donation',
-                                                                                    'This donation is part of a monthly recurring commitment'
-                                                                                )}
-                                                                                onMouseLeave={hideTooltip}
-                                                                            >
-                                                                                Monthly
-                                                                                <FaSync className="text-xs" />
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-                                                            {donation.transactionHash && (
-                                                                <a
-                                                                    href={`https://etherscan.io/tx/${donation.transactionHash}`}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="px-3 py-1.5 bg-[#FFA500] bg-opacity-10 text-[#FF8C00] rounded-md hover:bg-opacity-20 transition-colors flex items-center gap-1.5 text-xs font-medium ml-2"
-                                                                >
-                                                                    <FaReceipt className="text-sm" />
-                                                                    <span>Transaction</span>
-                                                                </a>
-                                                            )}
-                                                        </div>
-                                                    ))
-                                                ) : (
-                                                    <div className="text-center py-8 text-[var(--paragraph)]">
-                                                        No donation history available
-                                                    </div>
-                                                )}
+                                                {renderDonationHistory(selectedDonor)}
                                             </div>
                                         </div>
                                     </div>

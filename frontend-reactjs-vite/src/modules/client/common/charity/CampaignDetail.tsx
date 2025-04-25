@@ -826,6 +826,7 @@ const CampaignDetail: React.FC = () => {
                       }
                     }}
                     userDonorId={getCurrentUserDonorId()} // Get actual donor ID
+                    campaignId={campaign.id} // Pass the campaign ID
                   />
                 ) : (
                   <div className="bg-[var(--main)] rounded-xl border border-[var(--stroke)] p-6">
