@@ -11,6 +11,7 @@ interface Donation {
   campaign_name: string;
   campaign_id?: string | null;
   charity_id?: string | null;
+  charity_name?: string;
   amount: number;
   created_at: string;
   status: string;
@@ -57,7 +58,8 @@ const DonationHistory: React.FC = () => {
             transaction_hash,
             campaign_id,
             charity_id,
-            campaigns:campaign_id (id, title)
+            campaigns:campaign_id (id, title),
+            charities:charity_id (id, name)
           `)
           .eq('user_id', user.id)
           .order('created_at', { ascending: false });
@@ -81,16 +83,30 @@ const DonationHistory: React.FC = () => {
           
           setCampaigns(uniqueCampaigns);
           
-          const formattedDonations = donationData.map((donation: any) => ({
-            id: donation.id,
-            campaign_name: donation.campaigns?.title || 'General Fund',
-            campaign_id: donation.campaign_id,
-            charity_id: donation.charity_id,
-            amount: donation.amount,
-            created_at: donation.created_at,
-            status: donation.status || 'completed',
-            transaction_hash: donation.transaction_hash || ''
-          }));
+          const formattedDonations = donationData.map((donation: any) => {
+            // Determine campaign name based on if it's a campaign donation or general fund
+            let displayName = 'General Fund';
+            
+            if (donation.campaign_id && donation.campaigns) {
+              // Campaign donation
+              displayName = donation.campaigns.title || 'Unknown Campaign';
+            } else if (donation.charity_id && donation.charities) {
+              // General fund donation - use charity name
+              displayName = `${donation.charities.name} General Fund`;
+            }
+            
+            return {
+              id: donation.id,
+              campaign_name: displayName,
+              campaign_id: donation.campaign_id,
+              charity_id: donation.charity_id,
+              charity_name: donation.charities?.name,
+              amount: donation.amount,
+              created_at: donation.created_at,
+              status: donation.status || 'completed',
+              transaction_hash: donation.transaction_hash || ''
+            };
+          });
           
           setDonations(formattedDonations);
         }

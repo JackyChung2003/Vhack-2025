@@ -867,7 +867,7 @@ const CampaignDetail: React.FC = () => {
               <>
                 {blockchainTransactions.length > 0 ? (
                   <SimpleDonationVerifier
-                    title="Blockchain Verification"
+                    title="Donation Records"
                     campaignName={campaign.title}
                     transactions={blockchainTransactions.map(tx => ({
                       id: tx.id,
