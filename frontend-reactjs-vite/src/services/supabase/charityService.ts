@@ -1097,18 +1097,10 @@ export const charityService = {
         throw new Error('Charity profile not found');
       }
       
-      // Get general fund donations (where campaign_id is null)
-      const { data: generalDonations, error: generalError } = await supabase
-        .from('campaign_donations')
-        .select('amount')
-        .eq('charity_id', userData.id)
-        .is('campaign_id', null);
-      
-      if (generalError) throw generalError;
-      
-      // Calculate general fund total
-      const generalFundBalance = generalDonations?.reduce((sum, donation) => 
-        sum + (donation.amount || 0), 0) || 0;
+      // Get general fund allocation which includes available, onHold, used, and total
+      // This ensures we're only counting the current charity's donations
+      const generalFundAllocation = await charityService.getGeneralFundAllocation();
+      const generalFundBalance = generalFundAllocation.total;
       
       // Get campaigns to calculate their current amounts
       const { data: campaignsData, error: campaignsError } = await supabase

@@ -58,6 +58,10 @@ const CampaignTransactions: React.FC = () => {
           const allocation = await charityService.getGeneralFundAllocation();
           setGeneralFundAllocation(allocation);
           
+          // Get current authenticated user
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) throw new Error('User not authenticated');
+          
           // Fetch general fund donations
           const { data: generalFundDonations } = await supabase
             .from('campaign_donations')
@@ -75,6 +79,7 @@ const CampaignTransactions: React.FC = () => {
                 name
               )
             `)
+            .eq('charity_id', user.id)
             .is('campaign_id', null)
             .order('created_at', { ascending: false });
             
