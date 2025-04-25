@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { FaTimes, FaHandHoldingHeart, FaCreditCard, FaRegCreditCard, FaRegCalendarAlt, FaLock, FaInfoCircle, FaArrowRight, FaMoneyBillWave, FaEye, FaEyeSlash, FaHeart } from "react-icons/fa";
+import { FaTimes, FaHandHoldingHeart, FaCreditCard, FaRegCreditCard, FaRegCalendarAlt, FaLock, FaInfoCircle, FaArrowRight, FaMoneyBillWave, FaEye, FaEyeSlash, FaHeart, FaLink, FaExternalLinkAlt } from "react-icons/fa";
 import { mockDonorAutoDonations } from "../../utils/mockData";
 import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
 import { toast } from "react-toastify";
+import { getTransactionExplorerUrl } from "../../services/blockchain/blockchainService";
 
 interface DonationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onDonationComplete: (amount: number, donationPolicy?: string, isAnonymous?: boolean, isRecurring?: boolean) => void;
+  onDonationComplete: (amount: number, donationPolicy?: string, isAnonymous?: boolean, isRecurring?: boolean, txHash?: string) => void;
 
   // Support either the new props
   targetName?: string;
@@ -42,9 +43,10 @@ const DonationModal: React.FC<DonationModalProps> = ({
   const [step, setStep] = useState<'amount' | 'payment' | 'confirmation'>('amount');
   const [donationType, setDonationType] = useState<'one-time' | 'monthly'>('one-time');
   const [selectedDonationPolicy, setSelectedDonationPolicy] = useState<'always-donate' | 'campaign-specific'>('always-donate');
+  const [ethicalInvestment, setEthicalInvestment] = useState<boolean>(false);
 
   // Define predefined amounts here so we can reference the first one as default
-  const predefinedAmounts = [10, 25, 50, 100, 250];
+  const predefinedAmounts = [10, 50, 100, 250, 500];
 
   // Set first predefined amount as default
   const [amount, setAmount] = useState<number | ''>(predefinedAmounts[0]);
@@ -125,6 +127,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
     setCardName('');
     setLoveMessage('');
     setShowLoveMessage(false);
+    setEthicalInvestment(false);
     onClose();
   };
 
@@ -142,6 +145,9 @@ const DonationModal: React.FC<DonationModalProps> = ({
         // Pass the selectedDonationPolicy for campaigns to onDonationComplete
         // Also pass whether this is a recurring donation
         const isRecurring = donationType === 'monthly';
+        
+        // Blockchain transaction hash will be generated in the charityService
+        // and passed back here when the donation is complete
         if (derivedTargetType === 'campaign') {
           onDonationComplete(amount, selectedDonationPolicy, false, isRecurring);
         } else {
@@ -149,8 +155,8 @@ const DonationModal: React.FC<DonationModalProps> = ({
         }
       }
       setIsProcessing(false);
-      resetForm();
-      onClose();
+      // Update the step state to show confirmation
+      setStep('confirmation');
     }, 1500);
   };
 
@@ -163,6 +169,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
     setSelectedDonationPolicy('always-donate');
     setLoveMessage('');
     setShowLoveMessage(false);
+    setEthicalInvestment(false);
   };
 
   const createAutodonationRecord = () => {
@@ -732,6 +739,35 @@ const DonationModal: React.FC<DonationModalProps> = ({
                   </div>
                 )}
               </div>
+
+              {/* Add Ethical Investment Consent */}
+              <div className="mt-4 bg-green-50 p-3 rounded-lg border border-green-100">
+                <label className="flex items-start cursor-pointer">
+                  <div className="mt-0.5">
+                    <input
+                      type="checkbox"
+                      checked={ethicalInvestment}
+                      onChange={() => setEthicalInvestment(!ethicalInvestment)}
+                      className="sr-only"
+                    />
+                    <div className={`w-5 h-5 rounded flex items-center justify-center ${
+                      ethicalInvestment 
+                        ? 'bg-[#006838] text-white' 
+                        : 'border border-gray-300 bg-white'
+                      }`}
+                    >
+                      {ethicalInvestment && (
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                  <span className="ml-2 text-sm text-gray-700">
+                    Allow my funds to be ethically invested while waiting to be distributed - returns help support more good causes.
+                  </span>
+                </label>
+              </div>
             </div>
           )}
 
@@ -758,6 +794,12 @@ const DonationModal: React.FC<DonationModalProps> = ({
                       <span className="font-semibold">
                         {selectedDonationPolicy === 'always-donate' ? 'Always Donate' : 'Campaign Specific'}
                       </span>
+                    </div>
+                  )}
+                  {ethicalInvestment && (
+                    <div className="flex justify-between mb-2">
+                      <span>Ethical Investment:</span>
+                      <span className="font-semibold text-green-600">Enabled</span>
                     </div>
                   )}
                   {showLoveMessage && loveMessage && (
@@ -830,6 +872,26 @@ const DonationModal: React.FC<DonationModalProps> = ({
               <p className="text-gray-700 mb-6">
                 Your donation of RM{amount} {donationType === 'monthly' ? 'per month ' : ''}to {displayName} has been processed successfully.
               </p>
+              
+              {/* Blockchain transaction information */}
+              <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6 text-left">
+                <div className="flex items-start gap-2">
+                  <FaLink className="text-blue-500 mt-1 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium mb-1">Blockchain Transaction</p>
+                    <p className="text-sm text-gray-700 mb-1">
+                      Your donation has been recorded on the blockchain for transparency.
+                    </p>
+                    <div className="mt-2">
+                      
+                      <p className="text-xs text-gray-500 mt-1">
+                        Note: It may take a few minutes for the transaction to appear on the blockchain.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
               {showLoveMessage && loveMessage && (
                 <div className="bg-pink-50 border border-pink-200 p-4 rounded-lg mb-6">
                   <div className="flex items-start gap-2">
@@ -841,29 +903,6 @@ const DonationModal: React.FC<DonationModalProps> = ({
                   </div>
                 </div>
               )}
-              {campaignId && (
-                <div className="bg-[#006838] p-4 rounded-lg mb-6 text-left">
-                  <div className="flex items-start gap-2">
-                    <FaInfoCircle className="text-[#F9A826] mt-1 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm mb-2">
-                        <span className="font-medium">Donation Policy: </span>
-                        <span className={selectedDonationPolicy === 'always-donate' ? 'text-white' : 'text-green-600'}>
-                          {selectedDonationPolicy === 'always-donate' ? 'Always Donate' : 'Campaign Specific'}
-                        </span>
-                      </p>
-                      <p className="text-sm">
-                        {selectedDonationPolicy === 'always-donate'
-                          ? 'If this campaign does not reach its target by the deadline and not extended, your donation will support other initiatives by the organization.'
-                          : 'If this campaign does not reach its target by the deadline and not extended, your donation will be refunded to you.'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-              <p className="text-[#006838]">
-                A receipt has been sent to your email address.
-              </p>
             </div>
           )}
         </div>
@@ -884,8 +923,8 @@ const DonationModal: React.FC<DonationModalProps> = ({
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={handleNextStep}
-            disabled={step === 'amount' && !amount || isProcessing}
-            className={`px-6 py-2 rounded-lg ${step === 'amount' && !amount
+            disabled={(step === 'amount' && (!amount || !ethicalInvestment)) || isProcessing}
+            className={`px-6 py-2 rounded-lg ${(step === 'amount' && (!amount || !ethicalInvestment)) || isProcessing
               ? 'bg-gray-300 cursor-not-allowed'
               : 'bg-[#F9A826] text-white hover:bg-[#e99615]'
               } transition-colors flex items-center justify-center min-w-[120px]`}

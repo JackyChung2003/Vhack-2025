@@ -1,147 +1,144 @@
-import React, { useState } from "react";
-import { FaCheckCircle, FaPlus, FaFilter, FaBuilding, FaTruck, FaMoneyBillWave } from "react-icons/fa";
+import React, { useState, useEffect } from "react";
+import { FaCheckCircle, FaPlus, FaFilter, FaBuilding, FaTruck, FaMoneyBillWave, FaBoxOpen, FaExclamationTriangle } from "react-icons/fa";
 import TransactionCard from "./TransactionCard";
 import CreateTransactionModal from "./CreateTransactionModal";
+import ReportIssueModal from "./ReportIssueModal";
+import { charityService } from "../../../../services/supabase/charityService";
+import { toast } from "react-toastify";
+import supabase from "../../../../services/supabase/supabaseClient";
 
 // Define transaction status type
-type TransactionStatus = 'pending' | 'approved' | 'payment_held' | 'shipped' | 'delivered' | 'completed' | 'rejected';
+type TransactionStatus = 'pending' | 'shipping' | 'delivered' | 'completed' | 'rejected';
 
-// Define a Transaction type
+// Define a Transaction type matching our database structure
 type Transaction = {
-  id: number;
-  items: Array<{
+  id: string;
+  campaign_id: string | null;
+  vendor_id: string;
+  vendor_name: string;
+  amount: number;
+  status: TransactionStatus;
+  description: string;
+  created_at: string;
+  details: string;
+  quotation_id: string;
+  request_id: string;
+  charity_id: string;
+  campaign_name?: string;
+  items?: Array<{
     id: number;
     name: string;
     quantity: number;
     price: number;
   }>;
-  totalPrice: number;
-  vendor: string;
-  status: TransactionStatus;
-  fundSource: string;
-  createdBy: 'charity' | 'vendor';
-  date: string;
+  deliveryPhoto?: string; // URL to delivery confirmation photo
 };
 
 const PurchasingTransactions: React.FC = () => {
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [filter, setFilter] = useState<'all' | TransactionStatus>('all');
+  const [loading, setLoading] = useState(false);
 
-  // Mock data for transactions with expanded statuses
-  const transactions: Transaction[] = [
-    {
-      id: 1,
-      items: [
-        { id: 1, name: "Water Filters", quantity: 100, price: 5 },
-        { id: 2, name: "Water Testing Kits", quantity: 50, price: 10 }
-      ],
-      totalPrice: 1000,
-      vendor: "ABC Supplies",
-      status: 'pending',
-      fundSource: "Clean Water Initiative",
-      createdBy: 'charity',
-      date: "2023-05-15"
-    },
-    {
-      id: 2,
-      items: [
-        { id: 3, name: "School Supplies Kit", quantity: 200, price: 6 }
-      ],
-      totalPrice: 1200,
-      vendor: "XYZ Traders",
-      status: 'approved',
-      fundSource: "Education for All",
-      createdBy: 'charity',
-      date: "2023-05-10"
-    },
-    {
-      id: 3,
-      items: [
-        { id: 4, name: "Solar Lamps", quantity: 50, price: 15 }
-      ],
-      totalPrice: 750,
-      vendor: "Green Energy Co",
-      status: 'payment_held',
-      fundSource: "Renewable Energy Fund",
-      createdBy: 'charity',
-      date: "2023-05-08"
-    },
-    {
-      id: 4,
-      items: [
-        { id: 5, name: "Medical Kits", quantity: 30, price: 40 }
-      ],
-      totalPrice: 1200,
-      vendor: "MediSupply Inc",
-      status: 'shipped',
-      fundSource: "Healthcare Initiative",
-      createdBy: 'charity',
-      date: "2023-05-05"
-    },
-    {
-      id: 5,
-      items: [
-        { id: 6, name: "Food Packages", quantity: 100, price: 20 }
-      ],
-      totalPrice: 2000,
-      vendor: "Food Relief Suppliers",
-      status: 'delivered',
-      fundSource: "Hunger Relief Program",
-      createdBy: 'vendor',
-      date: "2023-04-28"
-    },
-    {
-      id: 6,
-      items: [
-        { id: 7, name: "Blankets", quantity: 200, price: 8 },
-        { id: 8, name: "Hygiene Kits", quantity: 100, price: 12 }
-      ],
-      totalPrice: 2800,
-      vendor: "Essential Supplies Co",
-      status: 'completed',
-      fundSource: "Winter Relief Fund",
-      createdBy: 'charity',
-      date: "2023-04-20"
-    },
-    {
-      id: 7,
-      items: [
-        { id: 9, name: "Construction Materials", quantity: 1, price: 5000 }
-      ],
-      totalPrice: 5000,
-      vendor: "BuildRight Materials",
-      status: 'rejected',
-      fundSource: "Shelter Program",
-      createdBy: 'vendor',
-      date: "2023-04-15"
-    }
-  ];
-
-  // Sort transactions by status
-  const sortTransactions = (transactions: Transaction[]) => {
-    const statusOrder: Record<TransactionStatus, number> = { 
-      'pending': 0, 
-      'approved': 1, 
-      'payment_held': 2, 
-      'shipped': 3, 
-      'delivered': 4, 
-      'completed': 5,
-      'rejected': 6
+  // Fetch transactions when component mounts
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        setLoading(true);
+        console.log("Fetching transactions...");
+        
+        // Check if the campaign_expenses table exists by making a test query
+        try {
+          const { count, error: tableError } = await supabase
+            .from('campaign_expenses')
+            .select('*', { count: 'exact', head: true });
+          
+          if (tableError) {
+            console.error("Error checking campaign_expenses table:", tableError);
+            toast.error(`Table error: ${tableError.message}`);
+            setLoading(false);
+            return;
+          }
+          
+          console.log(`campaign_expenses table exists with ${count} records`);
+        } catch (tableCheckError) {
+          console.error("Exception checking table:", tableCheckError);
+          toast.error("Failed to verify database table: " + 
+            (tableCheckError instanceof Error ? tableCheckError.message : String(tableCheckError)));
+          setLoading(false);
+          return;
+        }
+        
+        // Now try to fetch the transactions
+        const data = await charityService.getCharityTransactions();
+        console.log("Transaction data received:", data);
+        
+        // Convert data to our Transaction type
+        const formattedTransactions = data.map(tx => {
+          // Parse details to see if it contains items information
+          let items = [];
+          try {
+            if (tx.details && tx.details.includes('"items"')) {
+              const parsedDetails = JSON.parse(tx.details);
+              if (parsedDetails.items && Array.isArray(parsedDetails.items)) {
+                items = parsedDetails.items;
+              }
+            }
+          } catch (e) {
+            console.error('Error parsing transaction details:', e);
+          }
+          
+          return {
+            ...tx,
+            status: tx.status as TransactionStatus,
+            items: items.length > 0 ? items : undefined
+          };
+        });
+        
+        console.log("Formatted transactions:", formattedTransactions);
+        setTransactions(formattedTransactions);
+      } catch (error) {
+        console.error('Error fetching transactions:', error);
+        
+        // More detailed error information
+        if (error instanceof Error) {
+          console.error('Error message:', error.message);
+          console.error('Error stack:', error.stack);
+          toast.error(`Failed to load transactions: ${error.message}`);
+        } else {
+          toast.error('Failed to load transactions: Unknown error');
+        }
+      } finally {
+        setLoading(false);
+      }
     };
     
-    return [...transactions].sort((a, b) => {
+    fetchTransactions();
+  }, []);
+
+  // Sort transactions by status
+  const sortTransactions = (transactionsToSort: Transaction[]) => {
+    const statusOrder: Record<TransactionStatus, number> = {
+      'pending': 0,
+      'shipping': 1,
+      'delivered': 2,
+      'completed': 3,
+      'rejected': 4
+    };
+    
+    return [...transactionsToSort].sort((a, b) => {
       // First sort by status
       const statusDiff = statusOrder[a.status] - statusOrder[b.status];
       if (statusDiff !== 0) return statusDiff;
       
       // If status is the same, sort by date (newest first)
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
   };
 
   // Filter transactions based on status
-  const filteredTransactions = filter === 'all' 
+  const filteredTransactions = filter === 'all'
     ? sortTransactions(transactions)
     : sortTransactions(transactions.filter(t => t.status === filter));
 
@@ -153,13 +150,76 @@ const PurchasingTransactions: React.FC = () => {
     setSelectedTransaction(null);
   };
 
-  const handleConfirmDelivery = () => {
-    // In a real app, this would call an API to update the transaction status
+  const handleReleasePayment = async () => {
     if (selectedTransaction) {
-      // Update the transaction status to 'delivered'
-      console.log(`Confirmed delivery for transaction ${selectedTransaction.id}`);
-      // Close the modal after action
-      setSelectedTransaction(null);
+      try {
+        // Update transaction status to completed
+        await charityService.updateTransactionStatus(selectedTransaction.id, 'completed');
+        
+        // Update local state
+        setTransactions(prevTransactions =>
+          prevTransactions.map(t =>
+            t.id === selectedTransaction.id ? { ...t, status: 'completed' as TransactionStatus } : t
+          )
+        );
+        
+        // Update the selected transaction state to reflect the change immediately in the modal
+        setSelectedTransaction(prevSelected =>
+          prevSelected ? { ...prevSelected, status: 'completed' as TransactionStatus } : null
+        );
+        
+        toast.success('Payment released successfully');
+      } catch (error) {
+        console.error('Error releasing payment:', error);
+        toast.error('Failed to release payment');
+      }
+    }
+  };
+
+  const handleShowReportIssue = () => {
+    if (selectedTransaction) {
+      setShowReportModal(true);
+    }
+  };
+
+  const handleSubmitIssueReport = async (issueDetails: string) => {
+    if (selectedTransaction) {
+      try {
+        // Update transaction status to rejected
+        await charityService.updateTransactionStatus(selectedTransaction.id, 'rejected');
+        
+        // Update local state
+        setTransactions(prevTransactions =>
+          prevTransactions.map(t =>
+            t.id === selectedTransaction.id ? { ...t, status: 'rejected' as TransactionStatus } : t
+          )
+        );
+        
+        toast.success('Issue reported successfully');
+        setShowReportModal(false);
+        setSelectedTransaction(null);
+      } catch (error) {
+        console.error('Error reporting issue:', error);
+        toast.error('Failed to report issue');
+      }
+    }
+  };
+
+  // Get status icon based on transaction status
+  const getStatusIcon = (status: TransactionStatus) => {
+    switch(status) {
+      case 'pending':
+        return <FaBoxOpen className="w-5 h-5 text-yellow-500" />;
+      case 'shipping':
+        return <FaTruck className="w-5 h-5 text-indigo-500" />;
+      case 'delivered':
+        return <FaCheckCircle className="w-5 h-5 text-teal-500" />;
+      case 'completed':
+        return <FaMoneyBillWave className="w-5 h-5 text-green-500" />; // Reverted: Completed uses MoneyBillWave
+      case 'rejected':
+        return <FaExclamationTriangle className="w-5 h-5 text-red-500" />;
+      default:
+        return <FaCheckCircle className="w-5 h-5 opacity-30 text-gray-400" />;
     }
   };
 
@@ -167,36 +227,12 @@ const PurchasingTransactions: React.FC = () => {
   const getStepValue = (status: TransactionStatus): number => {
     const stepMap: Record<TransactionStatus, number> = {
       'pending': 0,
-      'approved': 1,
-      'payment_held': 2,
-      'shipped': 3,
-      'delivered': 4,
-      'completed': 5,
+      'shipping': 1,
+      'delivered': 2,
+      'completed': 3,
       'rejected': -1
     };
-    return stepMap[status];
-  };
-
-  // Get status icon based on transaction status
-  const getStatusIcon = (status: TransactionStatus) => {
-    switch(status) {
-      case 'pending':
-        return <FaCheckCircle className="w-5 h-5 opacity-30 text-gray-400" />;
-      case 'approved':
-        return <FaCheckCircle className="w-5 h-5 text-blue-500" />;
-      case 'payment_held':
-        return <FaMoneyBillWave className="w-5 h-5 text-purple-500" />;
-      case 'shipped':
-        return <FaTruck className="w-5 h-5 text-indigo-500" />;
-      case 'delivered':
-        return <FaCheckCircle className="w-5 h-5 text-teal-500" />;
-      case 'completed':
-        return <FaCheckCircle className="w-5 h-5 text-green-500" />;
-      case 'rejected':
-        return <FaCheckCircle className="w-5 h-5 text-red-500" />;
-      default:
-        return <FaCheckCircle className="w-5 h-5 opacity-30 text-gray-400" />;
-    }
+    return stepMap[status] ?? -1;
   };
 
   return (
@@ -204,12 +240,6 @@ const PurchasingTransactions: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-bold text-[var(--headline)]">Transactions</h2>
         <div className="flex space-x-2">
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="px-3 py-1.5 bg-[var(--highlight)] text-white rounded-lg shadow-md hover:bg-opacity-90 transition-all flex items-center gap-1"
-          >
-            <FaPlus size={12} /> New Order
-          </button>
           <div className="relative">
             <select
               value={filter}
@@ -218,9 +248,7 @@ const PurchasingTransactions: React.FC = () => {
             >
               <option value="all">All Status</option>
               <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="payment_held">Payment Held</option>
-              <option value="shipped">Shipped</option>
+              <option value="shipping">Shipping</option>
               <option value="delivered">Delivered</option>
               <option value="completed">Completed</option>
               <option value="rejected">Rejected</option>
@@ -230,9 +258,13 @@ const PurchasingTransactions: React.FC = () => {
         </div>
       </div>
       
-      <div className="space-y-4">
-        {filteredTransactions.length > 0 ? (
-          filteredTransactions.map((transaction) => (
+      {loading ? (
+        <div className="text-center py-8">
+          <p>Loading transactions...</p>
+        </div>
+      ) : filteredTransactions.length > 0 ? (
+        <div className="space-y-4">
+          {filteredTransactions.map((transaction) => (
             <div
               key={transaction.id}
               onClick={() => handleTransactionClick(transaction)}
@@ -241,33 +273,27 @@ const PurchasingTransactions: React.FC = () => {
               <div className="flex items-center">
                 <div className="flex-1">
                   <div className="flex justify-between items-center">
-                    <p className={`text-[var(--headline)] font-semibold ${
-                      transaction.status === 'completed' ? 'line-through' : ''
-                    }`}>
-                      {transaction.vendor} - {transaction.items.length} item(s)
-                    </p>
+                    <p className="text-[var(--headline)] font-semibold">{transaction.vendor_name}</p>
                     <span className={`text-sm px-2 py-1 rounded-full ${
                       transaction.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                      transaction.status === 'approved' ? 'bg-blue-100 text-blue-800' :
-                      transaction.status === 'payment_held' ? 'bg-purple-100 text-purple-800' :
-                      transaction.status === 'shipped' ? 'bg-indigo-100 text-indigo-800' :
+                      transaction.status === 'shipping' ? 'bg-indigo-100 text-indigo-800' :
                       transaction.status === 'delivered' ? 'bg-teal-100 text-teal-800' :
                       transaction.status === 'completed' ? 'bg-green-100 text-green-800' :
                       'bg-red-100 text-red-800'
                     }`}>
-                      {transaction.status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                      {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
                     </span>
                   </div>
                   <p className="text-sm text-[var(--paragraph)]">
-                    Total: RM{transaction.totalPrice.toLocaleString()} | Fund: {transaction.fundSource}
+                    Total: RM{transaction.amount.toLocaleString()} | Fund: {transaction.campaign_name || 'General Fund'}
                   </p>
                   <p className="text-sm text-[var(--paragraph)]">
-                    Created by: {transaction.createdBy === 'charity' ? 'You' : transaction.vendor} | Date: {transaction.date}
+                    Date: {new Date(transaction.created_at).toLocaleDateString()}
                   </p>
                   
                   {/* Compact step indicators */}
                   <div className="flex mt-3 space-x-1">
-                    {['pending', 'approved', 'payment_held', 'shipped', 'delivered', 'completed'].map((step, index) => {
+                    {['pending', 'shipping', 'delivered', 'completed'].map((step, index) => {
                       const isActive = getStepValue(transaction.status) >= index;
                       const isCurrentStep = getStepValue(transaction.status) === index;
                       return (
@@ -290,27 +316,30 @@ const PurchasingTransactions: React.FC = () => {
                 </div>
               </div>
             </div>
-          ))
-        ) : (
-          <div className="p-4 text-center text-gray-500">
-            No transactions found
-          </div>
-        )}
-      </div>
-
-      {/* Transaction Card Modal */}
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-8">
+          <p>No transactions found. Accept quotations to create transactions.</p>
+        </div>
+      )}
+      
+      {/* Transaction detail modal */}
       {selectedTransaction && (
         <TransactionCard
           transaction={selectedTransaction}
           onClose={handleCloseCard}
-          onConfirmDelivery={selectedTransaction.status === 'shipped' ? handleConfirmDelivery : undefined}
+          onReleasePayment={selectedTransaction.status === 'delivered' ? handleReleasePayment : undefined}
+          onReportIssue={selectedTransaction.status === 'delivered' ? handleShowReportIssue : undefined}
         />
       )}
-
-      {/* Create Transaction Modal */}
-      {showCreateModal && (
-        <CreateTransactionModal
-          onClose={() => setShowCreateModal(false)}
+      
+      {/* Report issue modal */}
+      {showReportModal && selectedTransaction && (
+        <ReportIssueModal
+          transaction={selectedTransaction}
+          onClose={() => setShowReportModal(false)}
+          onSubmit={handleSubmitIssueReport}
         />
       )}
     </div>

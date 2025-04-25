@@ -1,203 +1,213 @@
 import React, { useState } from 'react';
-import axios from 'axios';
-import { FaTimes, FaInfoCircle, FaSpinner } from 'react-icons/fa';
-import { useAuth } from '../../../../contexts/AuthContext';
-
-// Reuse the QuotationData interface, maybe move to a shared types file later
-interface QuotationData {
-  id: string;
-  request_id: string;
-  vendor_id: string;
-  vendor_name: string;
-  price: number;
-  details: string;
-  attachment_url: string | null;
-  is_accepted: boolean;
-  is_pinned: boolean; 
-  created_at: string;
-  vendor_rating: number;
-}
+import { FaTimes, FaPaperclip, FaTag, FaMoneyBillWave, FaInfoCircle } from 'react-icons/fa';
+import { OpenMarketRequest } from '../../../../services/supabase/openMarketService';
+import { toast } from 'react-toastify';
 
 interface SubmitQuotationModalProps {
-  requestId: string;
+  request: OpenMarketRequest;
   onClose: () => void;
-  onSubmitSuccess: (newQuotation: QuotationData) => void;
+  onSubmit: (quotationData: any) => void;
 }
 
-const SubmitQuotationModal: React.FC<SubmitQuotationModalProps> = ({ requestId, onClose, onSubmitSuccess }) => {
-  const [price, setPrice] = useState('');
-  const [details, setDetails] = useState('');
-  const [attachmentUrl, setAttachmentUrl] = useState(''); // Optional
-  const [priceError, setPriceError] = useState('');
-  const [detailsError, setDetailsError] = useState('');
-  const [submitError, setSubmitError] = useState<string | null>(null);
+const SubmitQuotationModal: React.FC<SubmitQuotationModalProps> = ({
+  request,
+  onClose,
+  onSubmit
+}) => {
+  const [price, setPrice] = useState<string>("");
+  const [details, setDetails] = useState<string>("");
+  const [files, setFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user } = useAuth(); // Get vendor ID from logged-in user
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setFiles(prev => [...prev, ...newFiles]);
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setFiles(files.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Basic Validation
-    let isValid = true;
-    setPriceError('');
-    setDetailsError('');
-    setSubmitError(null);
-
-    // Ensure user is logged in before proceeding
-    if (!user?.id) {
-        setSubmitError('Authentication error: You must be logged in to submit a quotation.');
-        // No need to set isValid = false here, just return early
-        return; 
-    }
-    // Now TypeScript knows user and user.id exist beyond this point
-
-    const numericPrice = parseFloat(price);
-    if (!price || isNaN(numericPrice) || numericPrice <= 0) {
-      setPriceError('Please enter a valid positive price.');
-      isValid = false;
+    // Basic validation
+    if (!price.trim()) {
+      toast.error("Please enter a price for your quotation");
+      return;
     }
     
     if (!details.trim()) {
-      setDetailsError('Details are required.');
-      isValid = false;
-    }
-    
-    if (!isValid) {
+      toast.error("Please provide details for your quotation");
       return;
     }
-
+    
+    const numericPrice = parseFloat(price);
+    if (isNaN(numericPrice) || numericPrice <= 0) {
+      toast.error("Please enter a valid price greater than zero");
+      return;
+    }
+    
     setIsSubmitting(true);
-
+    
     try {
-      // TODO: Replace with your actual backend API URL
-      const response = await axios.post<QuotationData>('http://localhost:5000/api/market/quotations', 
-        {
-          request_id: requestId,
-          vendor_id: user.id, // Safe to access user.id now
-          price: numericPrice,
-          details: details.trim(),
-          attachment_url: attachmentUrl.trim() || null, // Send null if empty
-        },
-        {
-           headers: {
-             // Include auth token if your backend requires it
-             // 'Authorization': `Bearer ${your_token}` 
-           }
-        }
-      );
-
-      // On success, call the callback function passed from the parent
-      onSubmitSuccess(response.data);
+      // Prepare data for submission
+      const quotationData = {
+        price: numericPrice,
+        details,
+        files, // Files would need to be uploaded to storage in a real implementation
+      };
       
-    } catch (err: any) {
-      console.error("Error submitting quotation:", err);
-      setSubmitError(err.response?.data?.error || "Failed to submit quotation. Please try again.");
+      // Call the parent component's onSubmit handler
+      await onSubmit(quotationData);
+    } catch (error) {
+      console.error("Error submitting quotation:", error);
+      toast.error("Failed to submit quotation. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
-      <div className="bg-[var(--main)] rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="flex justify-between items-center p-5 border-b border-[var(--stroke)]">
-          <h2 className="text-xl font-bold text-[var(--headline)]">Submit Your Quotation</h2>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4 z-50">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
+        {/* Header */}
+        <div className="bg-green-500 text-white px-4 py-3 flex justify-between items-center">
+          <h2 className="text-lg font-bold">Submit Quotation</h2>
           <button 
             onClick={onClose}
-            disabled={isSubmitting}
-            className="text-[var(--paragraph)] hover:text-[var(--headline)] transition-colors disabled:opacity-50"
+            className="text-white hover:text-gray-200 transition-colors"
           >
-            <FaTimes size={20} />
+            <FaTimes size={18} />
           </button>
         </div>
         
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {/* Price Input */}
-          <div>
-            <label htmlFor="quotation-price" className="block text-[var(--headline)] font-medium mb-1.5">
-              Price (MYR)
-            </label>
-            <input
-              id="quotation-price"
-              type="number"
-              step="0.01"
-              min="0.01"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              placeholder="e.g., 1500.00"
-              required
-              disabled={isSubmitting}
-              className={`w-full p-3 rounded-lg border ${priceError ? 'border-red-500' : 'border-[var(--stroke)]'} focus:outline-none focus:ring-2 focus:ring-[var(--highlight)] disabled:bg-gray-100`}
-            />
-            {priceError && <p className="mt-1 text-red-500 text-sm">{priceError}</p>}
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-4">
+          {/* Request title */}
+          <div className="mb-3 bg-gray-50 p-2 rounded-lg border border-gray-100">
+            <h3 className="font-medium text-sm text-[var(--headline)] mb-1">Request</h3>
+            <p className="text-sm text-[var(--paragraph)]">{request.title}</p>
           </div>
           
-          {/* Details Textarea */}
-          <div>
-            <label htmlFor="quotation-details" className="block text-[var(--headline)] font-medium mb-1.5">
-              Details
+          {/* Price input */}
+          <div className="mb-3">
+            <label className="block text-sm text-[var(--headline)] font-medium mb-1">
+              Your Price <span className="text-red-500">*</span>
+            </label>
+            <div className="flex">
+              <div className="bg-gray-100 flex items-center px-3 rounded-l-lg border border-r-0 border-[var(--stroke)]">
+                <FaMoneyBillWave className="text-green-500 text-sm" />
+              </div>
+              <input
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                className="flex-1 border border-[var(--stroke)] rounded-r-lg p-2 text-sm focus:outline-none focus:ring-1 focus:ring-green-500"
+                placeholder="Enter amount"
+                required
+              />
+            </div>
+          </div>
+          
+          {/* Details textarea */}
+          <div className="mb-3">
+            <label className="block text-sm text-[var(--headline)] font-medium mb-1">
+              Details <span className="text-red-500">*</span>
             </label>
             <textarea
-              id="quotation-details"
               value={details}
               onChange={(e) => setDetails(e.target.value)}
-              placeholder="Provide details about your offer, delivery timeline, specifications, etc."
-              rows={4}
+              className="w-full border border-[var(--stroke)] rounded-lg p-2 text-sm focus:outline-none focus:ring-1 focus:ring-green-500 min-h-[100px]"
+              placeholder="Describe your quotation in detail..."
               required
-              disabled={isSubmitting}
-              className={`w-full p-3 rounded-lg border ${detailsError ? 'border-red-500' : 'border-[var(--stroke)]'} focus:outline-none focus:ring-2 focus:ring-[var(--highlight)] disabled:bg-gray-100`}
-            />
-            {detailsError && <p className="mt-1 text-red-500 text-sm">{detailsError}</p>}
-          </div>
-
-          {/* Attachment URL Input (Optional) */}
-           <div>
-            <label htmlFor="quotation-attachment" className="block text-[var(--headline)] font-medium mb-1.5">
-              Attachment URL (Optional)
-            </label>
-            <input
-              id="quotation-attachment"
-              type="url"
-              value={attachmentUrl}
-              onChange={(e) => setAttachmentUrl(e.target.value)}
-              placeholder="https://example.com/your_quotation.pdf"
-              disabled={isSubmitting}
-              className={`w-full p-3 rounded-lg border border-[var(--stroke)] focus:outline-none focus:ring-2 focus:ring-[var(--highlight)] disabled:bg-gray-100`}
-            />
-            <p className="text-xs text-[var(--paragraph-light)] mt-1">Link to a PDF or document (e.g., Google Drive, Dropbox).</p>
+            ></textarea>
           </div>
           
-          {/* Info Message */}
-          <div className="bg-blue-50 text-blue-800 rounded-lg p-3 flex items-start text-sm">
-            <FaInfoCircle className="flex-shrink-0 mt-0.5 mr-2" />
+          {/* File upload - condensed version */}
+          <div className="mb-3">
+            <label className="block text-sm text-[var(--headline)] font-medium mb-1">
+              Attachments (Optional)
+            </label>
+            
+            <div className="border border-dashed border-[var(--stroke)] rounded-lg p-2 text-center">
+              <input
+                type="file"
+                id="fileUpload"
+                onChange={handleFileChange}
+                className="hidden"
+                multiple
+              />
+              <label 
+                htmlFor="fileUpload"
+                className="cursor-pointer flex items-center justify-center text-sm py-1"
+              >
+                <FaPaperclip className="text-green-500 mr-2" />
+                <span className="text-[var(--paragraph)]">
+                  Upload files
+                </span>
+              </label>
+            </div>
+            
+            {/* File list */}
+            {files.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {files.map((file, index) => (
+                  <div 
+                    key={index}
+                    className="flex items-center justify-between bg-gray-50 p-1 px-2 rounded text-xs"
+                  >
+                    <span className="truncate max-w-[250px]">
+                      {file.name}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(index)}
+                      className="text-red-500 hover:text-red-700 ml-1"
+                    >
+                      <FaTimes size={12} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          {/* Info callout - more compact */}
+          <div className="bg-blue-50 text-blue-800 rounded-lg p-2 mb-3 flex items-start text-xs">
+            <FaInfoCircle className="flex-shrink-0 mt-1 mr-2" />
             <p>
-            Ensure your price and details are accurate. Once submitted, your quotation may be visible to other vendors and cannot be edited.
+              Your quotation will be visible to the charity organization and other vendors. Be competitive with your pricing and clear with your details.
             </p>
           </div>
-
-          {/* Submit Error Message */}
-          {submitError && (
-             <div className="bg-red-100 text-red-700 rounded-lg p-3 text-sm">
-                {submitError}
-             </div>
-          )}
           
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-4 pt-2">
+          {/* Action buttons */}
+          <div className="flex justify-end gap-2 mt-3">
             <button
               type="button"
               onClick={onClose}
+              className="px-3 py-1.5 text-sm border border-[var(--stroke)] rounded-lg hover:bg-gray-100 transition-colors"
               disabled={isSubmitting}
-              className="px-5 py-2 rounded-lg font-medium border border-[var(--stroke)] hover:bg-[var(--background)] transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
+              className="px-3 py-1.5 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center"
               disabled={isSubmitting}
-              className="px-5 py-2 rounded-lg font-medium bg-[var(--highlight)] text-white hover:bg-opacity-90 transition-colors flex items-center justify-center disabled:opacity-70 min-w-[120px]"
             >
-              {isSubmitting ? <FaSpinner className="animate-spin mr-2" /> : 'Submit Quotation'}
+              {isSubmitting ? (
+                <>
+                  <span className="mr-1">Submitting...</span>
+                  <div className="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full"></div>
+                </>
+              ) : (
+                'Submit Quotation'
+              )}
             </button>
           </div>
         </form>

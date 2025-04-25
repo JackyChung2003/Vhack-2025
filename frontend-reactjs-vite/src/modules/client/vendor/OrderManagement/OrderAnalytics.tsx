@@ -127,7 +127,7 @@ const OrderAnalytics: React.FC = () => {
   };
 
   return (
-    <div className="bg-[var(--main)] p-4 rounded-xl shadow-md border border-[var(--stroke)] h-full">
+    <div className="bg-white p-4 h-full">
       <h2 className="text-xl font-bold text-[var(--headline)] mb-3">Order Summary</h2>
       <div className="grid grid-cols-1 gap-3">
         {/* Today's Orders */}
@@ -192,7 +192,7 @@ const OrderAnalytics: React.FC = () => {
       {/* Pending Orders Popup */}
       {showPendingOrders && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-[var(--main)] rounded-xl p-6 shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+          <div className="bg-white rounded-xl p-6 shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-bold text-[var(--headline)]">Pending Orders</h3>
               <button 
@@ -257,7 +257,7 @@ const OrderAnalytics: React.FC = () => {
         <TransactionCard
           transaction={selectedTransaction}
           onClose={handleCloseTransactionCard}
-          onApprove={handleApproveOrder}
+          onMarkAsShipped={handleApproveOrder}
         />
       )}
     </div>

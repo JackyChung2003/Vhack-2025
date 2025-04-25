@@ -31,8 +31,9 @@ export const RoleProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 localStorage.setItem('userRole', userRole);
                 console.log("Role set in context:", userRole);
             } else {
-                console.log("No role found — New User assumed.");
+                console.log("No role found — User needs to complete registration");
                 setRole(null);
+                localStorage.removeItem('userRole'); // Ensure localStorage is consistent
             }
         }
     }, [userRole, roleChecked]);
