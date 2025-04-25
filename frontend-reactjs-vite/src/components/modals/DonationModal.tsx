@@ -43,6 +43,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
   const [step, setStep] = useState<'amount' | 'payment' | 'confirmation'>('amount');
   const [donationType, setDonationType] = useState<'one-time' | 'monthly'>('one-time');
   const [selectedDonationPolicy, setSelectedDonationPolicy] = useState<'always-donate' | 'campaign-specific'>('always-donate');
+  const [ethicalInvestment, setEthicalInvestment] = useState<boolean>(false);
 
   // Define predefined amounts here so we can reference the first one as default
   const predefinedAmounts = [10, 25, 50, 100, 250];
@@ -126,6 +127,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
     setCardName('');
     setLoveMessage('');
     setShowLoveMessage(false);
+    setEthicalInvestment(false);
     onClose();
   };
 
@@ -167,6 +169,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
     setSelectedDonationPolicy('always-donate');
     setLoveMessage('');
     setShowLoveMessage(false);
+    setEthicalInvestment(false);
   };
 
   const createAutodonationRecord = () => {
@@ -736,6 +739,35 @@ const DonationModal: React.FC<DonationModalProps> = ({
                   </div>
                 )}
               </div>
+
+              {/* Add Ethical Investment Consent */}
+              <div className="mt-4 bg-green-50 p-3 rounded-lg border border-green-100">
+                <label className="flex items-start cursor-pointer">
+                  <div className="mt-0.5">
+                    <input
+                      type="checkbox"
+                      checked={ethicalInvestment}
+                      onChange={() => setEthicalInvestment(!ethicalInvestment)}
+                      className="sr-only"
+                    />
+                    <div className={`w-5 h-5 rounded flex items-center justify-center ${
+                      ethicalInvestment 
+                        ? 'bg-[#006838] text-white' 
+                        : 'border border-gray-300 bg-white'
+                      }`}
+                    >
+                      {ethicalInvestment && (
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                  <span className="ml-2 text-sm text-gray-700">
+                    Allow my funds to be ethically invested while waiting to be distributed - returns help support more good causes.
+                  </span>
+                </label>
+              </div>
             </div>
           )}
 
@@ -762,6 +794,12 @@ const DonationModal: React.FC<DonationModalProps> = ({
                       <span className="font-semibold">
                         {selectedDonationPolicy === 'always-donate' ? 'Always Donate' : 'Campaign Specific'}
                       </span>
+                    </div>
+                  )}
+                  {ethicalInvestment && (
+                    <div className="flex justify-between mb-2">
+                      <span>Ethical Investment:</span>
+                      <span className="font-semibold text-green-600">Enabled</span>
                     </div>
                   )}
                   {showLoveMessage && loveMessage && (
@@ -885,8 +923,8 @@ const DonationModal: React.FC<DonationModalProps> = ({
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={handleNextStep}
-            disabled={step === 'amount' && !amount || isProcessing}
-            className={`px-6 py-2 rounded-lg ${step === 'amount' && !amount
+            disabled={(step === 'amount' && (!amount || !ethicalInvestment)) || isProcessing}
+            className={`px-6 py-2 rounded-lg ${(step === 'amount' && (!amount || !ethicalInvestment)) || isProcessing
               ? 'bg-gray-300 cursor-not-allowed'
               : 'bg-[#F9A826] text-white hover:bg-[#e99615]'
               } transition-colors flex items-center justify-center min-w-[120px]`}
