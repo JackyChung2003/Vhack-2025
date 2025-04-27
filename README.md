@@ -110,6 +110,43 @@ http://localhost:5173/Vhack-2025/
 
 ---
 
+## 🏗️ Backend Architecture
+
+### Smart Contract (DonationTracker.sol)
+
+The core of our blockchain integration is the `DonationTracker` smart contract which provides:
+
+- **Transparent Donation Records**: All donations permanently recorded on the blockchain
+- **Detailed Metadata Support**: JSON metadata for each donation
+- **Event Emission**: Real-time events for donation tracking
+- **Query Capabilities**: Methods to retrieve individual and latest donations
+
+### Backend Services
+
+Our backend ecosystem includes:
+
+- **Node.js API Server**: Secure API endpoints for blockchain interactions
+- **Donation Blockchain Service**: Handles on-chain donation recording and verification
+- **Supabase Integration**: SQL-based persistence with blockchain reference fields
+
+### API Endpoints
+
+The backend exposes RESTful endpoints for:
+
+- `GET /health` - Health check endpoint
+- `POST /donations` - Record a donation on the blockchain
+- `GET /donations/:id` - Get details of a donation by ID
+- `GET /donations` - Get latest donations
+
+### Security Features
+
+- API key authentication for all backend endpoints
+- Secure private key management via environment variables
+- Transparent transaction verification via Etherscan
+- Admin-only contract interaction for data integrity
+
+---
+
 ## 📸 Screenshots
 
 _Coming soon: Interface previews, donation tracking timeline, and smart contract interaction flow._
@@ -119,11 +156,12 @@ _Coming soon: Interface previews, donation tracking timeline, and smart contract
 ## 🛠️ Tech Stack
 
 - **Frontend**: React, Vite, Tailwind CSS
-- **Blockchain**: Solidity, Thirdweb
+- **Blockchain**: Solidity, Thirdweb, OpenZeppelin
 - **Wallet Integration**: MetaMask
+- **Backend**: Node.js, Express.js API server
 - **Database**: Supabase
-- **APIs**: Etherscan for tracking
-- **Security**: Etherscan API, optional AI ML model for fraud detection
+- **APIs**: Etherscan for tracking, Custom blockchain service API
+- **Security**: Etherscan API, API key authentication, optional AI ML model for fraud detection
 
 ---
 
