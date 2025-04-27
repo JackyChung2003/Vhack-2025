@@ -68,7 +68,7 @@ const OrganizationDetail: React.FC = () => {
   const [charityCampaigns, setCharityCampaigns] = useState<any[]>([]);
   const [charityCampaignsLoading, setCharityCampaignsLoading] = useState(false);
   const [charityCampaignsError, setCharityCampaignsError] = useState<string | null>(null);
-
+  
   // For general fund data
   const [generalFund, setGeneralFund] = useState<{ totalAmount: number, donationsCount: number }>({ totalAmount: 0, donationsCount: 0 });
   const [generalFundLoading, setGeneralFundLoading] = useState(false);
@@ -457,6 +457,7 @@ const OrganizationDetail: React.FC = () => {
   }, [isOwnProfile]);
 
   // Calculate combined total raised (campaign + general fund)
+
   const combinedTotalRaised = (isOwnProfile ?
     (charityProfile?.totalRaised || 0) :
     (organization?.totalRaised || 0)) + generalFund.totalAmount;
